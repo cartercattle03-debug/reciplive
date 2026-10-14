@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { compareFamily, showDate } from "@/lib/recip";
 import { billHolds, billedIds, billingSettings } from "@/lib/server/billing";
 import { Checks } from "@/components/Checks";
+import { Catchups } from "@/components/Catchups";
+import { statusCatchups } from "@/lib/reconcile";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
@@ -85,6 +87,7 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
         )}
       </PageHeader>
       <BillingSettingsForm s={set} />
+      <Catchups list={statusCatchups(calc)} />
 
       <h2 className="mb-1.5 text-base font-semibold text-slate-900">Ready to bill</h2>
       <p className="mb-2 text-xs text-slate-500">Every cow whose record is Safe (confirmed at 75 days) and not on an invoice yet. Date Confirmed is her Safe preg check; Days Pregnant is on that date. A culled cow is a failed pregnancy and never shows here.</p>

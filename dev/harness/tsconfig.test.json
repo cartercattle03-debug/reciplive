@@ -6,5 +6,5 @@
     "typeRoots": ["/tmp/rltc/node_modules/@types"], "types": ["node"], "noEmitOnError": false
   },
   "files": ["/tmp/rltc/stubs.d.ts"],
-  "include": ["/home/claude/reciplive/src/lib/**/*.ts", "/home/claude/reciplive/dev/t_flow.ts", "/home/claude/reciplive/dev/t_billing.ts"]
+  "include": ["/home/claude/reciplive/src/lib/**/*.ts", "/home/claude/reciplive/dev/t_flow.ts", "/home/claude/reciplive/dev/t_billing.ts", "/home/claude/reciplive/dev/t_billroute.ts", "/home/claude/reciplive/src/app/api/billing/route.ts"]
 }

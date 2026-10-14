@@ -81,7 +81,7 @@ export function lineText(l: InvoiceForExport["lines"][number]) {
  * InvoiceNo make one invoice. Dates are MM/DD/YYYY. The Customer must match the QuickBooks customer name.
  */
 /** QuickBooks term names: 0 days = "Due on receipt" (Carter's terms, 2026-10-14), otherwise "Net 30" style. */
-export const termsName = (days: number) => (days > 0 ? `Net ${days}` : "Due on receipt");
+export const termsName = (days: number) => (days > 0 ? `Net ${days}` : "Due on Receipt");
 
 export function qboCsv(invoices: InvoiceForExport[]): string {
   const head = ["InvoiceNo", "Customer", "InvoiceDate", "DueDate", "Terms", "Memo", "Item(Product/Service)", "ItemDescription", "ItemQuantity", "ItemRate", "ItemAmount", "ServiceDate"];

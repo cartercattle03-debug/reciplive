@@ -109,7 +109,7 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   const drInv = await prisma.invoice.findFirst({ where: { organizationId: O, number: dr.made[0] } });
   ok("Due on receipt: due date = invoice date", drInv!.dueDate === "2026-12-01");
   const drCsv = qboCsv(await bill.invoicesForExport(O, [drInv!.id]));
-  ok("QuickBooks file says Due on receipt", drCsv.split("\r\n")[1].includes(",12/01/2026,12/01/2026,Due on receipt,"), drCsv);
+  ok("QuickBooks file says Due on receipt", drCsv.split("\r\n")[1].includes(",12/01/2026,12/01/2026,Due on Receipt,"), drCsv);
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
   process.exit(fails ? 1 : 0);
 })().catch((e) => {

@@ -30,7 +30,17 @@ export function BillingSettingsForm({ s }: { s: BillingSet }) {
       {box("price", "Price per confirmed pregnancy ($)", "w-40", "Starts every new invoice - change it on any invoice before exporting", s.price === null ? "" : s.price.toFixed(2))}
       {box("item", "QuickBooks Product/Service", "w-48", "Must match a Product/Service name in QuickBooks Online")}
       {box("adjustItem", "Adjustment Product/Service", "w-44", "What adjustment lines bill as in QuickBooks")}
-      {box("terms", "Terms (days - 0 = Due on receipt)", "w-56", "0 = Due on receipt; 30 = Net 30")}
+      <label className="text-xs font-medium text-slate-600">
+        Terms
+        <select className="field mt-0.5 w-40" defaultValue={String(s.terms)} onChange={(e) => save("terms", e.target.value)}>
+          <option value="0">Due on Receipt</option>
+          {[10, 15, 30, 45, 60].map((d) => (
+            <option key={d} value={d}>
+              Net {d}
+            </option>
+          ))}
+        </select>
+      </label>
       {box("nextNo", "Next invoice #", "w-28", "Set it to follow your QuickBooks numbers")}
       <p className="w-full text-xs text-slate-500">The two Product/Service names have to match items already set up in QuickBooks Online (Sales → Products and services), and each owner's name has to match their customer name there - you can change Bill To on any invoice.</p>
     </div>
@@ -112,7 +122,7 @@ export function InvoiceEditor({ inv, ranch, canEdit }: { inv: InvoiceView; ranch
             <span className="no-print">{field("invoiceDate", "date", "w-40")}</span>
             <span className="print-only">{showDate(inv.invoiceDate)}</span>
             <span className="text-slate-500">Terms</span>
-            <span className="font-semibold">{inv.invoiceDate === inv.dueDate ? "Due on receipt" : `Due ${showDate(inv.dueDate)}`}</span>
+            <span className="font-semibold">{inv.invoiceDate === inv.dueDate ? "Due on Receipt" : `Due ${showDate(inv.dueDate)}`}</span>
             <span className="text-slate-500">Payment Due</span>
             <span className="no-print">{field("dueDate", "date", "w-40")}</span>
             <span className="print-only">{showDate(inv.dueDate)}</span>
