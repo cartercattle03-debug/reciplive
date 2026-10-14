@@ -47,7 +47,8 @@ export async function billedIds(orgId: string) {
 }
 
 /** Build invoices from the ticked confirmed pregnancies - one invoice per owner. */
-export async function createInvoices(orgId: string, rawIds: unknown, invoiceDate?: unknown) {
+export async function createInvoices(orgId: string, rawIds: unknown, invoiceDate?: unknown, rawUnpicked?: unknown) {
+  const unpicked = [...new Set((Array.isArray(rawUnpicked) ? rawUnpicked : []).map(String))];
   const ids = [...new Set((Array.isArray(rawIds) ? rawIds : []).map(String))];
   if (!ids.length) throw new HttpError(400, "Tick at least one cow to bill.");
   const date = clean(invoiceDate) || ranchToday();
@@ -80,7 +81,12 @@ export async function createInvoices(orgId: string, rawIds: unknown, invoiceDate
       no++;
     }
     await prisma.organization.update({ where: { id: orgId }, data: { nextInvoiceNo: no } });
-    return { made };
+    // Billed now: no longer held back. Left unticked (and not already held): held back, with the invoice she missed.
+    await prisma.billHold.deleteMany({ where: { organizationId: orgId, transferId: { in: ids } } });
+    const held = new Set((await prisma.billHold.findMany({ where: { organizationId: orgId }, select: { transferId: true } })).map((h) => h.transferId));
+    const left = unpicked.filter((id) => ready.has(id) && !ids.includes(id) && !held.has(id));
+    if (left.length) await prisma.billHold.createMany({ data: left.map((transferId) => ({ organizationId: orgId, transferId, since: date, fromInvoice: made[0] })) });
+    return { made, held: left.length };
   });
 }
 
@@ -145,6 +151,10 @@ export async function addAdjustment(orgId: string, invoiceId: string, descriptio
   if (!desc) throw new HttpError(400, "Say what the adjustment is for.");
   const n = await prisma.invoiceLine.count({ where: { invoiceId: inv.id } });
   await prisma.invoiceLine.create({ data: { invoiceId: inv.id, organizationId: orgId, kind: "Adjustment", description: desc, position: n, amount: money(amount, "Amount") } });
+}
+
+export async function billHolds(orgId: string) {
+  return new Map((await prisma.billHold.findMany({ where: { organizationId: orgId } })).map((h) => [h.transferId, h]));
 }
 
 /** Take a line off. A pregnancy taken off goes back to Ready to bill. */

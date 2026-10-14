@@ -50,6 +50,7 @@ model Organization {
   snapshots   Snapshot[]
   events      CowEvent[]
   invoices    Invoice[]
+  billHolds   BillHold[]
 }
 
 model User {
@@ -243,4 +244,18 @@ model InvoiceLine {
   invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, transferId])
+}
+
+/// A confirmed cow left unticked when her owner's group was invoiced - she stays on Ready to bill, marked Held back,
+/// until she is billed (Carter, 2026-10-14: a cow that didn't ship with her group must never be lost).
+model BillHold {
+  id             String       @id @default(cuid())
+  organizationId String
+  transferId     String
+  since          String
+  fromInvoice    Int?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, transferId])
 }

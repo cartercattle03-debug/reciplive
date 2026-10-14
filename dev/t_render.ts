@@ -64,7 +64,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const bill = require("../src/lib/server/billing");
     const { billable } = require("../src/lib/billing");
     const { loadRanch } = require("../src/lib/server/data");
-    await show("billing page (nothing billed)", "(staff)/billing/page", { searchParams: {} }, ["Ready to bill", "Tick", "Billing settings"]);
+    await show("billing page (nothing billed)", "(staff)/billing/page", { searchParams: {} }, ["Ready to bill", "Tick", "Billing settings", "Group (transfer date)"]);
     const RR = await loadRanch(org.id);
     const rd = billable(RR.calc, RR.archive, await bill.billedIds(org.id));
     await bill.saveBillingSettings(org.id, { price: "450" });
@@ -72,6 +72,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const inv = await prisma.invoice.findFirst({ where: { organizationId: org.id } });
     await bill.addAdjustment(org.id, inv!.id, "Discount", "-50");
     await show("billing page lists the invoice", "(staff)/billing/page", { searchParams: {} }, ["#1001", "Not exported", "Download 1 not yet in QuickBooks"]);
+    await show("billing filtered: all ticked", "(staff)/billing/page", { searchParams: { owner: "Carter", b: "4-30" } }, ["all ticked", "Build invoices (", "checked=\"\""]);
     await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00"]);
     const mv = await show("manager sees the invoice, can't change or download", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "$850.00"], "mgr");
     if (/Download for QuickBooks|Use on every pregnancy line/.test(mv)) { fails++; console.log("FAIL manager gets invoice controls"); }

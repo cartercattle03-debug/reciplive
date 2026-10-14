@@ -11,7 +11,7 @@ export const POST = handle(async (req) => {
     case "settings":
       return saveBillingSettings(o, b);
     case "create":
-      return createInvoices(o, b.cowIds ?? b.ids, b.invoiceDate);
+      return createInvoices(o, b.cowIds ?? b.ids, b.invoiceDate, b.unpicked);
     case "update":
       return updateInvoice(o, String(b.id), b);
     case "line":

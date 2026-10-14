@@ -196,6 +196,7 @@ export function Table({
   maxHeight = true,
   lists,
   picks,
+  startPicked,
 }: {
   cols: Col[];
   rows: Row[];
@@ -206,10 +207,13 @@ export function Table({
   lists?: EditLists;
   /** What the tick boxes do: one button each, shown once something is ticked. Posts { action, cowIds, ...extra } to url. */
   picks?: { label: string; url: string; action: string; ask: string; danger?: boolean; extra?: Record<string, unknown> }[];
+  /** Every row starts ticked (Billing: pick the owner and group, untick what isn't going). */
+  startPicked?: boolean;
 }) {
   const router = useRouter();
   const [sort, setSort] = useState<{ i: number; dir: 1 | -1 } | null>(null);
-  const [picked, setPicked] = useState<string[]>([]);
+  const allPicks = rows.map((r) => r.cells.find((c) => c.pick)?.pick).filter(Boolean) as string[];
+  const [picked, setPicked] = useState<string[]>(startPicked ? allPicks : []);
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState("");
   const shown = useMemo(() => {
@@ -253,7 +257,7 @@ export function Table({
                     if (!(await ask(p.ask.replace("{n}", String(picked.length)).replace("{names}", picked.join(", ")), `${p.label} (${picked.length})`))) return;
                     setBusy(true);
                     try {
-                      await post(p.url, { action: p.action, cowIds: picked, ...(p.extra ?? {}) });
+                      await post(p.url, { action: p.action, cowIds: picked, unpicked: allPicks.filter((x) => !picked.includes(x)), ...(p.extra ?? {}) });
                       toast(`Done - ${picked.length} cow${picked.length === 1 ? "" : "s"}.`);
                       setPicked([]);
                       router.refresh();
@@ -282,6 +286,20 @@ export function Table({
                   className={"sticky top-0 z-10 whitespace-nowrap bg-brand-600 px-2 py-2 text-xs font-semibold text-white " + (c.noSort ? "" : "cursor-pointer select-none hover:bg-brand-700")}
                   onClick={() => !c.noSort && setSort((s) => (s && s.i === i ? (s.dir === 1 ? { i, dir: -1 } : null) : { i, dir: 1 }))}
                 >
+                  {picks && rows[0]?.cells[i]?.pick !== undefined ? (
+                    <input
+                      type="checkbox"
+                      aria-label="Tick all"
+                      title="Tick all / untick all"
+                      className="edit-only mr-1 h-4 w-4 cursor-pointer align-middle accent-white"
+                      onClick={(e) => e.stopPropagation()}
+                      checked={shown.length > 0 && shown.every((r) => picked.includes(r.cells[i].pick!))}
+                      onChange={(e) => {
+                        const these = shown.map((r) => r.cells[i].pick!).filter(Boolean);
+                        setPicked((p) => (e.target.checked ? [...new Set([...p, ...these])] : p.filter((x) => !these.includes(x))));
+                      }}
+                    />
+                  ) : null}
                   {c.label}
                   {sort?.i === i ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
                 </th>

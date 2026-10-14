@@ -79,6 +79,19 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   const again = await bill.createInvoices(O, [weldon[0].transferId], "2026-10-15");
   ok("next invoice number is never reused", again.made[0] === 2003);
   await refuses("next number can't go back below one used", () => bill.saveBillingSettings(O, { nextNo: "2001" }), "already used");
+  // Pick owner + group: all ticked, one left off -> she stays on Ready to bill, Held back, until she's billed.
+  ready = billable(R.calc, R.archive, await bill.billedIds(O));
+  const g = ready.filter((l) => l.owner === "Carter" && l.batch === "4-30");
+  const [left, ...going] = g;
+  const mk = await bill.createInvoices(O, going.map((l) => l.transferId), "2026-10-20", g.map((l) => l.transferId).filter((id) => going.every((x) => x.transferId !== id)));
+  let holds = await bill.billHolds(O);
+  ok(`Carter 4-30: ${going.length} billed, 1 held back`, mk.held === 1 && holds.has(left.transferId) && holds.get(left.transferId)!.fromInvoice === mk.made[0] && holds.get(left.transferId)!.since === "2026-10-20");
+  ready = billable(R.calc, R.archive, await bill.billedIds(O));
+  ok("held-back cow is still on Ready to bill", ready.some((l) => l.transferId === left.transferId));
+  await bill.createInvoices(O, [left.transferId], "2026-11-01");
+  holds = await bill.billHolds(O);
+  ok("billed later: no longer held back", !holds.has(left.transferId));
+
   // A workbook re-import gives every record a new id - the billed cows must still not come back.
   const billedBefore = billable((await loadRanch(O)).calc, R.archive, await bill.billedIds(O)).length;
   await rec.importWorkbook(O, parseWorkbook(JSON.parse(fs.readFileSync(process.env.WB || "/tmp/claude-0/sav/wb.json", "utf8"))));
