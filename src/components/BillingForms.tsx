@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
 import { showDate } from "@/lib/recip";
+import { LetterheadView, type LH } from "./LetterheadForm";
 
 export type BillingSet = { price: number | null; item: string; adjustItem: string; terms: number; nextNo: number };
 
@@ -53,7 +54,7 @@ export type InvoiceView = { id: string; number: number; owner: string; billTo: s
 const $ = (n: number) => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** The invoice, editable until it's voided: price for every line at once, any line's amount, adjustments. */
-export function InvoiceEditor({ inv, ranch, canEdit }: { inv: InvoiceView; ranch: string; canEdit: boolean }) {
+export function InvoiceEditor({ inv, lh, canEdit }: { inv: InvoiceView; lh: LH; canEdit: boolean }) {
   const router = useRouter();
   const [price, setPrice] = useState(inv.price.toFixed(2));
   const [adj, setAdj] = useState({ description: "", amount: "" });
@@ -110,11 +111,9 @@ export function InvoiceEditor({ inv, ranch, canEdit }: { inv: InvoiceView; ranch
 
       <div className="card p-6">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b-2 border-brand-600 pb-4">
-          <div>
-            <div className="text-2xl font-bold text-brand-700">INVOICE #{inv.number}</div>
-            <div className="text-sm text-slate-600">{ranch}</div>
-          </div>
+          <LetterheadView lh={lh} />
           <div className="grid grid-cols-[auto_auto] items-center gap-x-3 gap-y-1.5 text-sm">
+            <span className="col-span-2 mb-1 text-right text-2xl font-bold text-brand-700">INVOICE #{inv.number}</span>
             <span className="text-slate-500">Bill To</span>
             <span className="no-print">{field("billTo")}</span>
             <span className="print-only font-semibold">{inv.billTo}</span>

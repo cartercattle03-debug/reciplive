@@ -193,3 +193,24 @@ export async function invoicesForExport(orgId: string, ids: string[] | "pending"
 }
 
 export { lineFor };
+
+export type Letterhead = { name: string; address: string; phone: string; email: string; logo: string | null };
+
+export async function letterhead(orgId: string, ranch: string): Promise<Letterhead> {
+  const o = await prisma.organization.findUnique({ where: { id: orgId } });
+  return { name: o?.lhName || ranch, address: o?.lhAddress || "", phone: o?.lhPhone || "", email: o?.lhEmail || "", logo: o?.lhLogo || null };
+}
+
+/** The invoice header. The logo comes from the browser already shrunk to a small picture (under ~400 KB). */
+export async function saveLetterhead(orgId: string, b: Record<string, unknown>) {
+  const data: Record<string, unknown> = {};
+  for (const [k, f] of [["name", "lhName"], ["phone", "lhPhone"], ["email", "lhEmail"]] as const) if (b[k] !== undefined) data[f] = clean(b[k]) || null;
+  if (b.address !== undefined) data.lhAddress = String(b.address ?? "").replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean).join("\n") || null;
+  if (b.logo !== undefined) {
+    const v = String(b.logo ?? "");
+    if (v && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) throw new HttpError(400, "The logo has to be a picture (PNG or JPG).");
+    if (v.length > 600_000) throw new HttpError(400, "That logo is too big - try a smaller picture.");
+    data.lhLogo = v || null;
+  }
+  await prisma.organization.update({ where: { id: orgId }, data: data as any });
+}

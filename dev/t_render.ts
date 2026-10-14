@@ -64,17 +64,18 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const bill = require("../src/lib/server/billing");
     const { billable } = require("../src/lib/billing");
     const { loadRanch } = require("../src/lib/server/data");
-    await show("billing page (nothing billed)", "(staff)/billing/page", { searchParams: {} }, ["Ready to bill", "Tick", "Billing settings", "Group (transfer date)"]);
+    await show("billing page (nothing billed)", "(staff)/billing/page", { searchParams: {} }, ["Ready to bill", "Tick", "Billing settings", "Group (transfer date)", "Invoice header", "Upload logo"]);
     const RR = await loadRanch(org.id);
     const rd = billable(RR.calc, RR.archive, await bill.billedIds(org.id));
     await bill.saveBillingSettings(org.id, { price: "450" });
+    await bill.saveLetterhead(org.id, { name: "Carter Cattle LLC", address: "PO Box 1\nStratford, OK 74872", phone: "580-555-0100" });
     await bill.createInvoices(org.id, rd.slice(0, 2).map((l: any) => l.transferId));
     const inv = await prisma.invoice.findFirst({ where: { organizationId: org.id } });
     await bill.addAdjustment(org.id, inv!.id, "Discount", "-50");
     await show("billing page lists the invoice", "(staff)/billing/page", { searchParams: {} }, ["#1001", "Not exported", "Download 1 not yet in QuickBooks"]);
     await show("billing: why isn't 6305 here", "(staff)/billing/page", { searchParams: { why: "6305" } }, ["Cow 6305", "not Safe"]);
     await show("billing filtered: all ticked", "(staff)/billing/page", { searchParams: { owner: "Carter", b: "4-30" } }, ["all ticked", "Build invoice (", "checked=\"\""]);
-    await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00"]);
+    await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Carter Cattle LLC", "Stratford, OK 74872", "580-555-0100", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00"]);
     const mv = await show("manager sees the invoice, can't change or download", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "$850.00"], "mgr");
     if (/Download for QuickBooks|Use on every pregnancy line/.test(mv)) { fails++; console.log("FAIL manager gets invoice controls"); }
   }

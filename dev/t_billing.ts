@@ -104,6 +104,13 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   await rec.updateTransfer(O, safe.transferId, "status", "Culled");
   R = await loadRanch(O);
   ok("culled after Safe: never billable", !billable(R.calc, R.archive, await bill.billedIds(O)).some((l) => l.transferId === safe.transferId));
+  // Invoice header
+  await bill.saveLetterhead(O, { name: "Carter Cattle LLC", address: "46642 E County Road 1510\n\n  Stratford, OK 74872 ", phone: "(580) 555-0100", email: "office@example.com", logo: "data:image/png;base64,iVBORw0KGgo=" });
+  const lh = await bill.letterhead(O, "Ranch");
+  ok("header saved: name, two address lines, phone, email, logo", lh.name === "Carter Cattle LLC" && lh.address === "46642 E County Road 1510\nStratford, OK 74872" && lh.phone === "(580) 555-0100" && !!lh.logo);
+  await refuses("logo must be a picture", () => bill.saveLetterhead(O, { logo: "data:text/html;base64,PHNjcmlwdD4=" }), "picture");
+  await bill.saveLetterhead(O, { logo: "" });
+  ok("logo can be taken off", (await bill.letterhead(O, "Ranch")).logo === null);
   await bill.saveBillingSettings(O, { terms: "0" });
   const dr = await bill.createInvoices(O, [billable(R.calc, R.archive, await bill.billedIds(O))[0].transferId], "2026-12-01");
   const drInv = await prisma.invoice.findFirst({ where: { organizationId: O, number: dr.made[0] } });

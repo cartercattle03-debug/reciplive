@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { InvoiceEditor } from "@/components/BillingForms";
 import { prisma } from "@/lib/prisma";
 import { staffPage } from "@/lib/server/session";
+import { letterhead } from "@/lib/server/billing";
 
 export default async function InvoicePage({ params }: { params: { id: string } }) {
   const m = await staffPage();
@@ -9,7 +10,7 @@ export default async function InvoicePage({ params }: { params: { id: string } }
   if (!inv) notFound();
   return (
     <InvoiceEditor
-      ranch={m.ranch}
+      lh={await letterhead(m.organizationId, m.ranch)}
       canEdit={m.role === "OWNER"}
       inv={{
         id: inv.id,

@@ -36,3 +36,4 @@
 - 2026-10-14: Invoice terms default to Due on receipt (due date = invoice date; QuickBooks Terms 'Due on receipt'). Any number of days still works (Net N).
 - 2026-10-14: Terms box is a choice: Due on Receipt (default), Net 10 / 15 / 30 / 45 / 60. The 'didn't catch up' card also shows on Billing.
 - 2026-10-14: Billing: 'Why isn't a cow here?' box - each of her records in plain words (billed on #, culled, not Safe, preg checks).
+- 2026-10-14: Invoice header on Billing: logo upload (shrunk in the browser, kept on the ranch record), business name, address lines, phone, email - prints on every invoice. Price per pregnancy box never prints; each line's Amount and the Total do.

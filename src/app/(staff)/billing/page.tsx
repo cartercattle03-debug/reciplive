@@ -7,7 +7,8 @@ import { cowCell, dateCell, money, numCell } from "@/lib/cells";
 import { billable } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { compareFamily, showDate } from "@/lib/recip";
-import { billHolds, billedIds, billingSettings } from "@/lib/server/billing";
+import { billHolds, billedIds, billingSettings, letterhead } from "@/lib/server/billing";
+import { LetterheadForm } from "@/components/LetterheadForm";
 import { Checks } from "@/components/Checks";
 import { Catchups } from "@/components/Catchups";
 import { statusCatchups } from "@/lib/reconcile";
@@ -88,6 +89,7 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
         )}
       </PageHeader>
       <BillingSettingsForm s={set} />
+      <LetterheadForm lh={await letterhead(m.organizationId, m.ranch)} />
       <Catchups list={statusCatchups(calc)} />
       <form method="get" className="no-print card mb-5 flex flex-wrap items-end gap-2 p-3">
         <label className="text-xs font-medium text-slate-600">

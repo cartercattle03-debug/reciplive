@@ -40,6 +40,12 @@ model Organization {
   nextInvoiceNo Int?
   /// The QuickBooks Product/Service an adjustment line bills as.
   adjustItem    String?
+  /// Invoice header (letterhead): business name, address (several lines), phone, email, and the logo as a small picture.
+  lhName        String?
+  lhAddress     String?
+  lhPhone       String?
+  lhEmail       String?
+  lhLogo        String?
 
   memberships Membership[]
   batches     Batch[]
