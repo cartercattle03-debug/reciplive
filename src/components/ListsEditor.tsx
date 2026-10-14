@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
 
 type Batch = { id: string; label: string; transferDate: string | null; uses: number };
-type Item = { id: string; value: string; uses: number };
+type Item = { id: string; value: string; uses: number; ranchName?: string | null; location?: string | null; email?: string | null };
 
 function useAct() {
   const router = useRouter();
@@ -91,19 +91,51 @@ export function BatchList({ batches }: { batches: Batch[] }) {
   );
 }
 
-export function ItemList({ kind, title, items }: { kind: string; title: string; items: Item[] }) {
+export function ItemList({ kind, title, items, billing }: { kind: string; title: string; items: Item[]; billing?: boolean }) {
   const act = useAct();
+  const router = useRouter();
+  // An owner's billing info saves through Billing (it's printed under Bill To on their invoices).
+  const saveInfo = async (id: string, k: "ranchName" | "location" | "email", v: string) => {
+    try {
+      await post("/api/billing", { action: "ownerInfo", id, [k]: v });
+      toast("Saved - their invoices will show it under Bill To.");
+      router.refresh();
+    } catch (e) {
+      toast((e as Error).message, true);
+    }
+  };
+  const info = (it: Item, k: "ranchName" | "location" | "email", w: string, ph: string) => (
+    <td className="tc editable">
+      <input className={"cell-select " + w} placeholder={ph} type={k === "email" ? "email" : "text"} defaultValue={it[k] ?? ""} onBlur={(e) => e.target.value.trim() !== (it[k] ?? "") && saveInfo(it.id, k, e.target.value)} />
+    </td>
+  );
   const [v, setV] = useState("");
   return (
     <div className="card overflow-hidden">
       <div className="bg-brand-600 px-3 py-2 text-sm font-semibold text-white">{title}</div>
+      {billing && <p className="px-3 pt-2 text-xs text-slate-500">Ranch Name, Location and Email Address print under Bill To on that owner&apos;s invoices.</p>}
       <table className="keep-width m-2 text-sm">
+        {billing && (
+          <thead>
+            <tr className="text-xs text-slate-500">
+              <th className="px-2">Owner</th>
+              <th className="px-2">Ranch Name</th>
+              <th className="px-2">Location</th>
+              <th className="px-2">Email Address</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+        )}
         <tbody>
           {items.map((it, i) => (
             <tr key={it.id} className={i % 2 ? "bg-stripe" : ""}>
               <td className="tc editable">
                 <input className="cell-select w-32" defaultValue={it.value} onBlur={(e) => e.target.value.trim() !== it.value && act({ action: "renameItem", id: it.id, value: e.target.value }, "Renamed on every record.")} />
               </td>
+              {billing && info(it, "ranchName", "w-40", "Ranch name")}
+              {billing && info(it, "location", "w-36", "Town, State")}
+              {billing && info(it, "email", "w-48", "name@email.com")}
               <td className="tc text-xs text-slate-500">{it.uses} records</td>
               <td className="tc">
                 {it.uses === 0 && (

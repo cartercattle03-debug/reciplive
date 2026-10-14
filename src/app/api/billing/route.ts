@@ -1,4 +1,4 @@
-import { addAdjustment, createInvoices, removeLine, saveBillingSettings, saveLetterhead, updateInvoice, updateLine, voidInvoice } from "@/lib/server/billing";
+import { addAdjustment, createInvoices, removeLine, saveBillingSettings, saveLetterhead, saveOwnerInfo, updateInvoice, updateLine, voidInvoice } from "@/lib/server/billing";
 import { handle, HttpError, staffApi } from "@/lib/server/session";
 
 export const maxDuration = 60;
@@ -20,6 +20,8 @@ export const POST = handle(async (req) => {
       return addAdjustment(o, String(b.id), b.description, b.amount);
     case "removeLine":
       return removeLine(o, String(b.lineId));
+    case "ownerInfo":
+      return saveOwnerInfo(o, String(b.id), b);
     case "letterhead":
       return saveLetterhead(o, b);
     case "void":

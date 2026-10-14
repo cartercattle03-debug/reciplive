@@ -111,6 +111,24 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   await refuses("logo must be a picture", () => bill.saveLetterhead(O, { logo: "data:text/html;base64,PHNjcmlwdD4=" }), "picture");
   await bill.saveLetterhead(O, { logo: "" });
   ok("logo can be taken off", (await bill.letterhead(O, "Ranch")).logo === null);
+  // Who is billed: an owner's Ranch Name, Location, Email Address
+  const buckItem = (await prisma.listItem.findFirst({ where: { organizationId: O, kind: "OWNER", value: "Buck" } }))!;
+  const buckInv = (await prisma.invoice.findFirst({ where: { organizationId: O, owner: "Buck" } }))!;
+  await refuses("owner email must look like an email", () => bill.saveOwnerInfo(O, buckItem.id, { email: "buck at ranch" }), "email");
+  await bill.saveOwnerInfo(O, buckItem.id, { ranchName: " Buck Ranch ", location: "Ada, OK", email: "buck@example.com" });
+  const bi = (await prisma.listItem.findFirst({ where: { id: buckItem.id } }))!;
+  ok("owner billing info saved", bi.ranchName === "Buck Ranch" && bi.location === "Ada, OK" && bi.email === "buck@example.com");
+  const bInv = (await prisma.invoice.findFirst({ where: { id: buckInv.id } }))!;
+  ok("owner's open invoice picks it up", bInv.status !== "Open" || (bInv.billRanch === "Buck Ranch" && bInv.billLocation === "Ada, OK" && bInv.billEmail === "buck@example.com"), JSON.stringify(bInv));
+  await bill.updateInvoice(O, buckInv.id, { billLocation: "Ada, Oklahoma" });
+  await bill.saveOwnerInfo(O, buckItem.id, { location: "Stonewall, OK" });
+  ok("a location typed on the invoice isn't overwritten", (await prisma.invoice.findFirst({ where: { id: buckInv.id } }))!.billLocation === "Ada, Oklahoma");
+  const nb = ready.filter((l) => l.owner === "Buck" && !buck.some((x) => x.transferId === l.transferId))[0];
+  if (nb) {
+    const nm = await bill.createInvoices(O, [nb.transferId], "2026-10-20");
+    const ni = (await prisma.invoice.findFirst({ where: { organizationId: O, number: nm.made[0] } }))!;
+    ok("a new invoice starts with the owner's info", ni.billRanch === "Buck Ranch" && ni.billLocation === "Stonewall, OK" && ni.billEmail === "buck@example.com");
+  }
   await bill.saveBillingSettings(O, { terms: "0" });
   const dr = await bill.createInvoices(O, [billable(R.calc, R.archive, await bill.billedIds(O))[0].transferId], "2026-12-01");
   const drInv = await prisma.invoice.findFirst({ where: { organizationId: O, number: dr.made[0] } });

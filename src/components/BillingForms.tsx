@@ -49,7 +49,7 @@ export function BillingSettingsForm({ s }: { s: BillingSet }) {
 }
 
 type Line = { id: string; kind: string; description: string; cowId: string; batch: string; transferDate: string | null; mating: string; dueDate: string | null; confirmedDate: string | null; daysPreg: number | null; amount: number };
-export type InvoiceView = { id: string; number: number; owner: string; billTo: string; invoiceDate: string; dueDate: string; price: number; memo: string; status: string; exported: string | null; lines: Line[] };
+export type InvoiceView = { id: string; number: number; owner: string; billTo: string; billRanch: string; billLocation: string; billEmail: string; invoiceDate: string; dueDate: string; price: number; memo: string; status: string; exported: string | null; lines: Line[] };
 
 const $ = (n: number) => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -77,9 +77,10 @@ export function InvoiceEditor({ inv, lh, canEdit }: { inv: InvoiceView; lh: LH; 
   };
   const total = inv.lines.reduce((s, l) => s + l.amount, 0);
   const preg = inv.lines.filter((l) => l.kind === "Pregnancy");
-  const field = (k: "billTo" | "memo" | "invoiceDate" | "dueDate", type = "text", w = "w-48") => (
+  const field = (k: "billTo" | "billRanch" | "billLocation" | "billEmail" | "memo" | "invoiceDate" | "dueDate", type = "text", w = "w-48", ph?: string) => (
     <input
       type={type}
+      placeholder={live ? ph : undefined}
       className={"field " + w}
       defaultValue={inv[k]}
       disabled={!live}
@@ -112,11 +113,24 @@ export function InvoiceEditor({ inv, lh, canEdit }: { inv: InvoiceView; lh: LH; 
       <div className="card p-6">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b-2 border-brand-600 pb-4">
           <LetterheadView lh={lh} />
+          <div className="text-sm">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Bill To</div>
+            <div className="no-print flex flex-col gap-1">
+              {field("billTo", "text", "w-56", "QuickBooks customer name")}
+              {field("billRanch", "text", "w-56", "Ranch name")}
+              {field("billLocation", "text", "w-56", "Town, State")}
+              {field("billEmail", "email", "w-56", "Email address")}
+              {live && <span className="edit-only text-xs text-slate-500">Set an owner&apos;s info once on Lists → Owners.</span>}
+            </div>
+            <div className="print-only leading-snug">
+              <div className="font-semibold">{inv.billTo}</div>
+              {inv.billRanch && <div>{inv.billRanch}</div>}
+              {inv.billLocation && <div>{inv.billLocation}</div>}
+              {inv.billEmail && <div>{inv.billEmail}</div>}
+            </div>
+          </div>
           <div className="grid grid-cols-[auto_auto] items-center gap-x-3 gap-y-1.5 text-sm">
             <span className="col-span-2 mb-1 text-right text-2xl font-bold text-brand-700">INVOICE #{inv.number}</span>
-            <span className="text-slate-500">Bill To</span>
-            <span className="no-print">{field("billTo")}</span>
-            <span className="print-only font-semibold">{inv.billTo}</span>
             <span className="text-slate-500">Invoice Date</span>
             <span className="no-print">{field("invoiceDate", "date", "w-40")}</span>
             <span className="print-only">{showDate(inv.invoiceDate)}</span>

@@ -64,12 +64,27 @@ export async function createInvoices(orgId: string, rawIds: unknown, invoiceDate
     if (!byOwner.has(o)) byOwner.set(o, []);
     byOwner.get(o)!.push(id);
   }
+  const info = new Map(
+    (await prisma.listItem.findMany({ where: { organizationId: orgId, kind: "OWNER" } })).map((o) => [o.value.toLowerCase(), o])
+  );
   return atomic(async () => {
     let no = set.nextNo;
     const made: number[] = [];
     for (const [owner, list] of byOwner) {
       const inv = await prisma.invoice.create({
-        data: { organizationId: orgId, number: no, owner, billTo: owner, invoiceDate: date, dueDate: addDays(date, set.terms), price: set.price ?? 0, item: set.item },
+        data: {
+          organizationId: orgId,
+          number: no,
+          owner,
+          billTo: owner,
+          billRanch: info.get(owner.toLowerCase())?.ranchName ?? "",
+          billLocation: info.get(owner.toLowerCase())?.location ?? "",
+          billEmail: info.get(owner.toLowerCase())?.email ?? "",
+          invoiceDate: date,
+          dueDate: addDays(date, set.terms),
+          price: set.price ?? 0,
+          item: set.item,
+        },
       });
       await prisma.invoiceLine.createMany({
         data: list.map((id, i) => {
@@ -108,6 +123,7 @@ export async function updateInvoice(orgId: string, id: string, b: Record<string,
       data.billTo = clean(b.billTo);
     }
     if (b.memo !== undefined) data.memo = clean(b.memo);
+    for (const k of ["billRanch", "billLocation", "billEmail"] as const) if (b[k] !== undefined) data[k] = clean(b[k]);
     if (b.invoiceDate !== undefined) {
       const d = clean(b.invoiceDate);
       if (!isYmd(d)) throw new HttpError(400, "Pick the invoice date.");
@@ -213,4 +229,25 @@ export async function saveLetterhead(orgId: string, b: Record<string, unknown>) 
     data.lhLogo = v || null;
   }
   await prisma.organization.update({ where: { id: orgId }, data: data as any });
+}
+
+/** An owner's billing info: Ranch Name, Location, Email Address. New invoices for them start with it. */
+export async function saveOwnerInfo(orgId: string, id: string, b: Record<string, unknown>) {
+  const o = await prisma.listItem.findFirst({ where: { id, organizationId: orgId, kind: "OWNER" } });
+  if (!o) throw new HttpError(404, "That owner is gone - refresh the page.");
+  const data: Record<string, unknown> = {};
+  for (const k of ["ranchName", "location", "email"] as const) if (b[k] !== undefined) data[k] = clean(b[k]) || null;
+  if (data.email && !/^\S+@\S+\.\S+$/.test(String(data.email))) throw new HttpError(400, "That email address doesn't look right.");
+  await prisma.listItem.update({ where: { id: o.id }, data: data as any });
+  // Open invoices for this owner that have nothing typed in yet pick it up too.
+  if (b.fillOpen !== false) {
+    const open = await prisma.invoice.findMany({ where: { organizationId: orgId, owner: o.value, status: "Open" } });
+    for (const inv of open) {
+      const fill: Record<string, unknown> = {};
+      if (data.ranchName !== undefined && !inv.billRanch) fill.billRanch = data.ranchName ?? "";
+      if (data.location !== undefined && !inv.billLocation) fill.billLocation = data.location ?? "";
+      if (data.email !== undefined && !inv.billEmail) fill.billEmail = data.email ?? "";
+      if (Object.keys(fill).length) await prisma.invoice.update({ where: { id: inv.id }, data: fill as any });
+    }
+  }
 }

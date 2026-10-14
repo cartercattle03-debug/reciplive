@@ -103,6 +103,10 @@ model ListItem {
   kind           String
   value          String
   order          Int
+  /// An owner's billing info (Carter, 2026-10-14) - printed under Bill To on their invoices.
+  ranchName      String?
+  location       String?
+  email          String?
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, kind, value])
@@ -215,6 +219,10 @@ model Invoice {
   owner          String
   /// The QuickBooks customer name (starts as the owner).
   billTo         String
+  /// Who is billed, as printed under Bill To (copied from the owner's billing info, changeable per invoice).
+  billRanch      String        @default("")
+  billLocation   String        @default("")
+  billEmail      String        @default("")
   invoiceDate    String
   dueDate        String
   price          Float

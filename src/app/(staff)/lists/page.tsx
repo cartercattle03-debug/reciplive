@@ -18,7 +18,9 @@ export default async function Lists() {
         <div className="lg:col-span-2">
           <BatchList batches={batches.map((b) => ({ id: b.id, label: b.label, transferDate: b.transferDate, uses: uses("batch", b.label) }))} />
         </div>
-        <ItemList kind="OWNER" title="Owners" items={of("OWNER", "owner")} />
+        <div className="lg:col-span-2">
+          <ItemList kind="OWNER" title="Owners" billing items={items.filter((i) => i.kind === "OWNER").map((i) => ({ id: i.id, value: i.value, uses: uses("owner", i.value), ranchName: i.ranchName, location: i.location, email: i.email }))} />
+        </div>
         <div className="flex flex-col gap-5">
           <ItemList kind="COMPANY" title="Companies" items={of("COMPANY", "company")} />
           <ItemList kind="GRADE" title="Grades" items={of("GRADE", "grade")} />

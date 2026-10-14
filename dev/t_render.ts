@@ -69,13 +69,15 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const rd = billable(RR.calc, RR.archive, await bill.billedIds(org.id));
     await bill.saveBillingSettings(org.id, { price: "450" });
     await bill.saveLetterhead(org.id, { name: "Carter Cattle LLC", address: "PO Box 1\nStratford, OK 74872", phone: "580-555-0100" });
+    const own = await prisma.listItem.findFirst({ where: { organizationId: org.id, kind: "OWNER", value: rd[0].owner } });
+    await bill.saveOwnerInfo(org.id, own!.id, { ranchName: "Test Ranch LLC", location: "Ada, OK", email: "test@example.com" });
     await bill.createInvoices(org.id, rd.slice(0, 2).map((l: any) => l.transferId));
     const inv = await prisma.invoice.findFirst({ where: { organizationId: org.id } });
     await bill.addAdjustment(org.id, inv!.id, "Discount", "-50");
     await show("billing page lists the invoice", "(staff)/billing/page", { searchParams: {} }, ["#1001", "Not exported", "Download 1 not yet in QuickBooks"]);
     await show("billing: why isn't 6305 here", "(staff)/billing/page", { searchParams: { why: "6305" } }, ["Cow 6305", "not Safe"]);
     await show("billing filtered: all ticked", "(staff)/billing/page", { searchParams: { owner: "Carter", b: "4-30" } }, ["all ticked", "Build invoice (", "checked=\"\""]);
-    await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Carter Cattle LLC", "Stratford, OK 74872", "580-555-0100", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00"]);
+    await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Carter Cattle LLC", "Stratford, OK 74872", "580-555-0100", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00", "Test Ranch LLC", "Ada, OK", "test@example.com"]);
     const mv = await show("manager sees the invoice, can't change or download", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "$850.00"], "mgr");
     if (/Download for QuickBooks|Use on every pregnancy line/.test(mv)) { fails++; console.log("FAIL manager gets invoice controls"); }
   }
@@ -86,7 +88,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("customer none", "(staff)/customer/page", { searchParams: {} }, ["Pick an owner"]);
   await show("customer Lehman", "(staff)/customer/page", { searchParams: { owner: "Lehman", go: "1", m: ["Total Transferred", "Pregnancy Rate"], s: ["Safe", "Open"], sort: "Mating" } }, ["Lehman - Herd Summary", "Total Transferred"]);
   await show("master", "(staff)/master/page", { searchParams: {} }, ["Total Cows on List", "$3,500.00", "348-1"]);
-  await show("lists", "(staff)/lists/page", { searchParams: {} }, ["Groups (batches)", "Trans Ova", "Add New Batch"]);
+  await show("lists", "(staff)/lists/page", { searchParams: {} }, ["Groups (batches)", "Trans Ova", "Add New Batch", "Ranch Name", "Email Address", "Test Ranch LLC"]);
   await show("account (owner)", "account/page", {}, ["Logins", "Undo", "Workbook import", "c@x.com"]);
   await show("staff layout", "(staff)/layout", { children: "x" }, ["Dashboard", "Customer Search", "Carter Cattle"]);
   await show("my (customer)", "my/page", { searchParams: {} }, ["Lehman - your recips", "Total Transferred"], "cust");
