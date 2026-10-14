@@ -71,6 +71,11 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("account (owner)", "account/page", {}, ["Logins", "Undo", "Workbook import", "c@x.com"]);
   await show("staff layout", "(staff)/layout", { children: "x" }, ["Dashboard", "Customer Search", "Carter Cattle"]);
   await show("my (customer)", "my/page", { searchParams: {} }, ["Lehman - your recips", "Total Transferred"], "cust");
+  await show("customer portal has breakdowns", "my/page", { searchParams: { by: "company" } }, ["Your breakdowns", "By Embryo Type", "Pregnancy Rate"], "cust");
+  const sneak = await show("customer can't peek at another owner with ?as=", "my/page", { searchParams: { as: "Buck Creek" } }, ["Lehman - your recips"], "cust");
+  if (/Buck Creek/.test(sneak)) { fails++; console.log("FAIL customer saw another owner via ?as="); }
+  await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns"]);
+  await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");
   await show("account (customer)", "account/page", {}, ["Change your password"], "cust");
   const my = await show("customer sees no other owners", "my/page", { searchParams: {} }, [], "cust");

@@ -64,7 +64,13 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
               <td className="tc">{l.email}</td>
               <td className="tc">{l.name}</td>
               <td className="tc">{l.role === "OWNER" ? "Owner" : l.role === "MANAGER" ? "Manager" : "Customer"}</td>
-              <td className="tc">{l.role === "CUSTOMER" ? `${l.ownerName}'s cows` : l.role === "MANAGER" ? "Everything, view only" : "Everything"}</td>
+              <td className="tc">
+                {l.role === "CUSTOMER" ? (
+                  <a className="text-brand-600 underline" href={`/my?as=${encodeURIComponent(l.ownerName ?? "")}`} title="See exactly what this login sees">
+                    {l.ownerName}&apos;s cows
+                  </a>
+                ) : l.role === "MANAGER" ? "Everything, view only" : "Everything"}
+              </td>
               <td className="tc">{l.lastLogin}</td>
               <td className="tc whitespace-nowrap">
                 {l.role !== "OWNER" && (

@@ -25,3 +25,4 @@
 - 2026-10-14: Preg Check: Status next to Result; only the Result column is cream-shaded (others still click to edit); Notes twice as wide (also on Transfers and Open Inventory).
 - 2026-10-14: Preg Check Result is three tap buttons (Probable / Safe / Open; tap again to clear) - built for the iPad at the chute.
 - 2026-10-14: Preg Check: no column shading; Result buttons in their own colors (yellow / bright green / bright red); Safe and Open text brighter everywhere.
+- 2026-10-14: Customer portal gets their own breakdowns (by Group, Embryo Type, Company, Grade, with the grids) and a Year box; owner-only 'View as <owner>' (/my?as=) shows exactly what a customer sees.

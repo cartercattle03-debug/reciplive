@@ -18,6 +18,11 @@ export default async function CustomerSearch({ searchParams }: { searchParams: S
   return (
     <div>
       <PageHeader title="Customer Search" sub="Pick an owner, narrow by batch and status if you like (none ticked = all), choose which numbers to show, then print or save as PDF for that customer.">
+        {owner && (
+          <a href={`/my?as=${encodeURIComponent(owner)}`} className="btn-quiet edit-only">
+            View as {owner}
+          </a>
+        )}
         {owner && <PrintButton />}
       </PageHeader>
       <FilterForm className="card items-start p-3">
