@@ -107,6 +107,8 @@ model Transfer {
   status         String       @default("")
   deliveryStatus String       @default("")
   deliveryDate   String?
+  /// A Due Date typed in by hand (missed or different info) - it wins over transfer date + 276, and Days Bred follows it.
+  dueOverride    String?
   notes          String       @default("")
   /// A result typed on the Preg Check page, not yet confirmed. It belongs to this row, so it can't land on another cow.
   pregDraft      String?

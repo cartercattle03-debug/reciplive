@@ -44,7 +44,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       numCell(c.attemptNo),
       numCell(c.totalAttempts),
       { t: c.repeatFlag, cls: c.repeatFlag === "NEVER SETTLED" ? "text-red-700" : "" },
-      dateCell(c.dueDate),
+      { ...dateCell(c.dueDate), edit: ed(c.id, "dueOverride", c.dueDate ?? "", "date") },
       numCell(c.embryoAge),
     ],
   }));

@@ -53,7 +53,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("transfers", "(staff)/transfers/page", { searchParams: {} }, ["Add transfers", "6148", "Casino x 2246", "503 of 503"]);
   await show("transfers filtered", "(staff)/transfers/page", { searchParams: { batch: "3-12", status: "Safe" } }, ["of 503 records"]);
   await rec.setPregDraft(org.id, (await prisma.transfer.findFirst({ where: { organizationId: org.id, status: "Probable" } }))!.id, "Safe");
-  await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["Days Bred", "Result", "Confirm &amp; Archive (1)", "Total Cows", "Cows Checked"]);
+  await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["Days Bred", "Result", "Mating", "+ Add cow", "Confirm &amp; Archive (1)", "Total Cows", "Cows Checked"]);
   await show("75+ day", "(staff)/day75/page", { searchParams: {} }, ["Undelivered", "Delivered"]);
   for (const s of ["Cow ID", "Repeat Flag", "Total Attempts", "Times Passed", "Date Checked Open"]) await show(`open sort ${s}`, "(staff)/open/page", { searchParams: { sort: s } }, ["Open Inventory", "NEVER SETTLED"]);
   await show("master archive", "(staff)/archive/page", { searchParams: {} }, ["Master Archive", "Purchased", "Preg Check", "Transfer"]);

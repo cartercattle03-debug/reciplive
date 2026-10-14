@@ -234,6 +234,20 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   R = await loadRanch(O);
   ok("typed 54 is cow 054", R.calc.find((c) => c.cowId === "054" && c.latest)?.batch === "1-30" && !R.calc.some((c) => c.cowId === "54"));
 
+  // ---- Preg Check + Add cow (missed off the sheet), Due Date by hand, Mating edit
+  const before2 = pregCheckList(R.calc, { batch: "1-30" }).length;
+  await rec.addPregCow(O, { batch: "1-30", cowId: "MISS1", mating: "Late x 1", dueOverride: "2027-11-01" });
+  R = await loadRanch(O);
+  const miss = pregCheckList(R.calc, { batch: "1-30" }).find((c) => c.cowId === "MISS1");
+  ok("added cow is on the sheet and counts", !!miss && pregCheckList(R.calc, { batch: "1-30" }).length === before2 + 1);
+  ok("her typed Due Date wins and Days Bred follows it", miss?.dueDate === "2027-11-01" && miss?.embryoAge === Math.round((Date.parse(R.today) - Date.parse("2027-01-29")) / 86400000) + 7, `${miss?.dueDate} ${miss?.embryoAge}`);
+  await refuses("same cow twice on the sheet refused", () => rec.addPregCow(O, { batch: "1-30", cowId: "miss1" }), "already on the sheet");
+  await rec.updateTransfer(O, miss!.id, "mating", "Fixed x 2");
+  await rec.updateTransfer(O, miss!.id, "dueOverride", "");
+  R = await loadRanch(O);
+  const miss2 = R.calc.find((c) => c.id === miss!.id)!;
+  ok("mating edit saved; cleared due date goes back to transfer + 276", miss2.mating === "Fixed x 2" && miss2.dueDate === "2027-11-02", miss2.dueDate ?? "");
+
   // ---- A whole batch at once (100 lines, as from the Add transfers grid)
   const many = Array.from({ length: 100 }, (_, i) => ({ batch: "8-15", cowId: `B${i + 1}`, mating: "Bulk x 1", owner: "Carter", embryoType: "Frozen", grade: "7-1", company: "605", status: i % 10 === 0 ? "Pass" : "Pending" }));
   const big = await rec.addTransfers(O, many);

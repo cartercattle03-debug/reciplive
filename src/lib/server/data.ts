@@ -45,6 +45,7 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
       status: r.status,
       deliveryStatus: r.deliveryStatus,
       deliveryDate: r.deliveryDate,
+      dueOverride: r.dueOverride,
       notes: r.notes,
       pregDraft: r.pregDraft,
       pregDraftDate: r.pregDraftDate,

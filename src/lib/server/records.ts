@@ -6,7 +6,7 @@ import { withSnapshot } from "./snapshot";
 import { loadRanch } from "./data";
 import { latestRows } from "@/lib/recip";
 
-export const TRANSFER_FIELDS = ["batch", "cowId", "mating", "owner", "embryoType", "grade", "company", "status", "deliveryStatus", "deliveryDate", "notes"] as const;
+export const TRANSFER_FIELDS = ["batch", "cowId", "mating", "owner", "embryoType", "grade", "company", "status", "deliveryStatus", "deliveryDate", "dueOverride", "notes"] as const;
 export type TransferField = (typeof TRANSFER_FIELDS)[number];
 const LIST_KIND: Partial<Record<TransferField, string>> = { owner: "OWNER", company: "COMPANY", grade: "GRADE" };
 
@@ -35,6 +35,9 @@ async function checkValue(orgId: string, field: TransferField, raw: unknown): Pr
     case "deliveryStatus":
       if (v && !(DELIVERY as readonly string[]).includes(v)) throw new HttpError(400, "Delivery Status is Delivered or Undelivered.");
       return v;
+    case "dueOverride":
+      if (v && !isYmd(v)) throw new HttpError(400, "Pick a due date.");
+      return v || null;
     case "deliveryDate":
       if (v && !isYmd(v)) throw new HttpError(400, "Pick a delivery date.");
       return v || null;
@@ -488,4 +491,19 @@ export async function cullCows(orgId: string, raw: unknown) {
     }
     return { culled: list.length };
   });
+}
+
+/**
+ * Preg Check "+ Add cow": a cow that should be on the sheet but isn't (missed at entry, info missing).
+ * She goes in as a Pending transfer in that group, so she shows on the list and counts in the totals and percentages.
+ */
+export async function addPregCow(orgId: string, r: Record<string, unknown>) {
+  const cowId = clean(r.cowId);
+  const batch = clean(r.batch);
+  if (!cowId) throw new HttpError(400, "Enter her Cow ID.");
+  if (!batch) throw new HttpError(400, "Pick her Group.");
+  const { calc } = await loadRanch(orgId);
+  const twin = calc.find((c) => c.latest && c.cowId.toLowerCase() === cowId.toLowerCase() && c.batch.toLowerCase() === batch.toLowerCase() && (!c.status || c.status === "Pending" || c.status === "Probable"));
+  if (twin) throw new HttpError(400, `Cow ${twin.cowId} is already on the sheet in group ${twin.batch} - fix her line there instead.`);
+  return addTransfers(orgId, [{ batch, cowId, mating: r.mating, owner: r.owner, embryoType: r.embryoType, grade: r.grade, company: r.company, dueOverride: r.dueOverride, notes: r.notes, status: "Pending" }]);
 }

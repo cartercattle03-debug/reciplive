@@ -41,6 +41,8 @@ export type Transfer = {
   /** A preg check result typed on the Preg Check page, not yet confirmed. */
   pregDraft?: string | null;
   pregDraftDate?: string | null;
+  /** A Due Date typed in by hand; Days Bred is worked back from it. */
+  dueOverride?: string | null;
 };
 
 export type ArchiveRow = { checkDate: string; batch: string; cowId: string; mating: string; owner: string; result: string };
@@ -162,8 +164,12 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
       repeatFlag,
       latest,
       attemptNo: cow ? sorted.indexOf(r) + 1 : 0,
-      dueDate: r.transferDate && r.status !== "Pass" ? addDays(r.transferDate, DUE_DAYS) : null,
-      embryoAge: r.transferDate && r.status !== "Pass" ? daysBetween(r.transferDate, today) + EMBRYO_AGE_AT_TRANSFER : null,
+      dueDate: r.dueOverride ? r.dueOverride : r.transferDate && r.status !== "Pass" ? addDays(r.transferDate, DUE_DAYS) : null,
+      embryoAge: r.dueOverride
+        ? daysBetween(addDays(r.dueOverride, -DUE_DAYS), today) + EMBRYO_AGE_AT_TRANSFER
+        : r.transferDate && r.status !== "Pass"
+          ? daysBetween(r.transferDate, today) + EMBRYO_AGE_AT_TRANSFER
+          : null,
       freshReceived: mine.filter((x) => x.embryoType === "Fresh").length,
       frozenReceived: mine.filter((x) => x.embryoType === "Frozen").length,
       timesProbable: mine.filter(everProbable).length,

@@ -1,4 +1,5 @@
 import { PregButtons, PregSettings } from "@/components/PregControls";
+import { AddPregCow } from "@/components/AddPregCow";
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, dateCell, numCell } from "@/lib/cells";
@@ -24,7 +25,8 @@ export default async function PregCheck() {
       { t: c.pregDraft ?? "", cls: c.pregDraft ? `st-${c.pregDraft}` : "", edit: { api: "preg", id: c.id, field: "result", kind: "select", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
       c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
       { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
-      dateCell(c.dueDate),
+      { t: c.mating, edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
+      { ...dateCell(c.dueDate), cls: c.dueOverride ? "font-semibold" : "", title: c.dueOverride ? "Typed in by hand" : "Transfer date + 276", edit: { api: "transfers", id: c.id, field: "dueOverride", kind: "date", value: c.dueDate ?? "" } },
       { t: c.notes, edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } },
     ],
   }));
@@ -34,6 +36,7 @@ export default async function PregCheck() {
         title="Preg Check"
         sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Picking a Result fills in today as its Check Date (click the date to change it); taking the Result back off clears it."
       >
+        <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} batch={org?.pregBatch ?? ""} />
         <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} />
       </PageHeader>
       <PregSettings s={{ pregDate: org?.pregDate ?? "", pregBatch: org?.pregBatch ?? "", pregMinAge: org?.pregMinAge?.toString() ?? "", pregMaxAge: org?.pregMaxAge?.toString() ?? "" }} batches={lists.batches.map((b) => b.label)} />
@@ -59,7 +62,7 @@ export default async function PregCheck() {
         ))}
       </div>
       <Table
-        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Due Date" }, { label: "Notes" }]}
+        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
         rows={rows}
         empty="No cows due with this Group / age range."
       />
