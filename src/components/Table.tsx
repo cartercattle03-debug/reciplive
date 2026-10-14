@@ -159,7 +159,7 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
 }
 
 /**
- * The one table every page uses: navy heading row that stays put while scrolling, tan stripes,
+ * The one table every page uses: blue heading row that stays put while scrolling, light blue stripes,
  * click a heading to sort (again to reverse), click a cream cell to change it.
  */
 export function Table({

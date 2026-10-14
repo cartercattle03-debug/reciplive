@@ -1,7 +1,7 @@
-/** The RecipLive letters, drawn as thin strokes like HerdLive's: RECIP in navy, LIVE in rust. */
+/** The RecipLive letters, drawn as thin strokes like HerdLive's: RECIP in sky blue, LIVE in copper. */
 export function Wordmark({ className = "", onDark = false, weight = 12 }: { className?: string; onDark?: boolean; weight?: number }) {
-  const recip = onDark ? "#ffffff" : "#1f3a5f";
-  const live = onDark ? "#ede0d0" : "#8b4030";
+  const recip = onDark ? "#ffffff" : "#0369a1";
+  const live = onDark ? "#f4e6d6" : "#b8732e";
   const s = { fill: "none", strokeWidth: weight, strokeLinecap: "butt" as const, strokeLinejoin: "miter" as const };
   return (
     <svg viewBox="118 118 1190 196" className={className} role="img" aria-label="RecipLive">

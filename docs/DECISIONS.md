@@ -18,3 +18,4 @@
 - 2026-10-14: Each preg check result gets its own Check Date - today when picked, cleared if the result is taken back off. The page-wide Date box is gone.
 - 2026-10-14: A transfer typed as 54 / 968h goes on the cow already on file as 054 / 968H (only when exactly one fits), so it takes her off the open list.
 - 2026-10-14: Preg Check: Mating column (editable) after Status; Due Date editable (typed date wins, Days Bred follows; blank goes back to transfer + 276); + Add cow puts a missed cow on the sheet as a Pending transfer so she counts in the totals.
+- 2026-10-14: RecipLive colors: sky blue #0369a1 headings, copper #b8732e accent, dark headings (to read apart from HerdLive's navy / rust).

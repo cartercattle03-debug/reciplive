@@ -149,5 +149,5 @@ main table {
 
 /* Master Archive: a heavy line where the next cow starts. */
 tr.cow-break > td {
-  border-top: 3px solid #1f3a5f !important;
+  border-top: 3px solid #0369a1 !important;
 }

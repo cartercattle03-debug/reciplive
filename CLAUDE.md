@@ -2,8 +2,12 @@
 
 RecipLive is Carter's (Carter Cattle LLC, Stratford, OK) web app version of his **Savannah 2.0** Google Sheets
 recip / embryo-transfer workbook and its "Recip Tools" Apps Script. It is a **separate program from HerdLive**
-(own repo, own database, own site) - tentatively; it may join HerdLive later, so it shares HerdLive's stack and look
+(own repo, own database, own site) - tentatively; it may join HerdLive later, so it shares HerdLive's stack and table style
 but none of its logic. Never mix the two.
+
+## Colors
+RecipLive's own (Carter, 2026-10-14) so it reads apart from HerdLive: sky blue `#0369a1` (brand-600) headings and buttons,
+copper `#b8732e` (rust) accent, light blue row stripes. Status colors (Safe green, Open red, Probable yellow) never change.
 
 ## Stack
 Next.js 14 (App Router), Prisma 5, Postgres on Supabase, NextAuth (email + password, JWT), Tailwind - same as HerdLive.

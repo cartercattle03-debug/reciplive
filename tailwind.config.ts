@@ -1,15 +1,15 @@
 import type { Config } from "tailwindcss";
 
-// Same palette as HerdLive: navy headers, tan / rust accents, a tan wash on alternate table rows.
+// RecipLive colors (Carter, 2026-10-14): sky blue #0369a1 headings, copper #b8732e accent, a light blue wash on alternate rows.
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        brand: { 50: "#f2f5f9", 100: "#e1e8f1", 200: "#c3d0e2", 600: "#1f3a5f", 700: "#172c48", 900: "#0e1b2d" },
-        tan: "#ede0d0",
-        stripe: "#f6eee4",
-        rust: "#8b4030",
+        brand: { 50: "#f0f8fd", 100: "#dff0fa", 200: "#b9dff3", 600: "#0369a1", 700: "#075985", 900: "#0c4a6e" },
+        tan: "#f4e6d6",
+        stripe: "#eef6fb",
+        rust: "#b8732e",
       },
       fontFamily: {
         sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
