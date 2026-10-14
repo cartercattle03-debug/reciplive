@@ -6,8 +6,9 @@ import { parseWorkbook } from "../src/lib/workbook";
 import * as rec from "../src/lib/server/records";
 import { loadRanch } from "../src/lib/server/data";
 import { restoreSnapshot } from "../src/lib/server/snapshot";
-import { dashboard, openInventory, pregCheckList } from "../src/lib/recip";
+import { dashboard, inYear, openInventory, pregCheckList } from "../src/lib/recip";
 import { cowArchive } from "../src/lib/cowArchive";
+import { openList } from "../src/lib/openList";
 
 let fails = 0;
 const ok = (name: string, cond: boolean, extra = "") => {
@@ -47,20 +48,28 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   await rec.setPregDraft(O, picks[2].id, "Probable");
   await refuses("bad result refused", () => rec.setPregDraft(O, picks[0].id, "Maybe"), "Probable, Safe or Open");
   await rec.savePregSettings(O, { pregBatch: "3-12" });
-  await refuses("confirm needs a date", () => rec.confirmPregCheck(O), "Date");
-  await rec.savePregSettings(O, { pregDate: "2026-10-14", pregBatch: "" });
+  R = await loadRanch(O);
+  const today = R.today;
+  ok("picking a result dates it today", R.calc.find((x) => x.id === picks[0].id)?.pregDraftDate === today);
+  await rec.setPregDraft(O, picks[2].id, "");
+  R = await loadRanch(O);
+  ok("taking the result back off clears its date", !R.calc.find((x) => x.id === picks[2].id)?.pregDraftDate);
+  await rec.setPregDraft(O, picks[2].id, "Probable");
+  await rec.setPregDraftDate(O, picks[1].id, "2026-10-13");
+  await refuses("no date without a result", () => rec.setPregDraftDate(O, list[5].id, "2026-10-13"), "Result first");
+  await rec.savePregSettings(O, { pregBatch: "" });
   const before = R.archive.length;
   const c = await rec.confirmPregCheck(O);
   R = await loadRanch(O);
   ok("confirmed 3", c.confirmed === 3);
   ok("results on their own cows", R.calc.find((x) => x.id === picks[0].id)?.status === "Safe" && R.calc.find((x) => x.id === picks[1].id)?.status === "Open" && R.calc.find((x) => x.id === picks[2].id)?.status === "Probable");
-  ok("archive +3 with date", R.archive.length === before + 3 && R.archive.filter((a) => a.checkDate === "2026-10-14").length === 3);
+  ok("archive +3, each with its own check date", R.archive.length === before + 3 && R.archive.filter((a) => a.checkDate === today).length === 2 && R.archive.some((a) => a.checkDate === "2026-10-13" && a.cowId === picks[1].cowId));
   ok("drafts cleared", R.calc.every((x) => !x.pregDraft));
-  ok("opened cow now on Open Inventory date", R.calc.find((x) => x.id === picks[1].id)?.dateCheckedOpen === "2026-10-14");
+  ok("opened cow now on Open Inventory date", R.calc.find((x) => x.id === picks[1].id)?.dateCheckedOpen === "2026-10-13");
 
   // ---- Undo the confirm
   const snap = (await prisma.snapshot.findMany({ where: { organizationId: O }, orderBy: { createdAt: "desc" } }))[0];
-  ok("snapshot named for the check", snap.label.startsWith("Preg check 2026-10-14"), snap.label);
+  ok("snapshot named for the check", snap.label.startsWith("Preg check 2026-10-13 to"), snap.label);
   await restoreSnapshot(O, snap.id);
   R = await loadRanch(O);
   ok("undo: statuses back", R.calc.find((x) => x.id === picks[0].id)?.status === picks[0].status && R.calc.find((x) => x.id === picks[1].id)?.status === picks[1].status);
@@ -126,7 +135,7 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
 
   // ---- Open Inventory: cull checked cows, edit a record, and the Master Archive
   const opens = openInventory(R.calc, "Cow ID").slice(0, 2);
-  const cu = await rec.cullTransfers(O, opens.map((o) => o.id));
+  const cu = await rec.cullCows(O, opens.map((o) => o.cowId));
   R = await loadRanch(O);
   ok("cull: 2 culled, off Open Inventory", cu.culled === 2 && !openInventory(R.calc).some((o) => opens.some((x) => x.cowId === o.cowId)));
   ok("cull: dated in her archive", R.events.filter((e) => e.kind === "Culled" && opens.some((o) => o.cowId === e.cowId)).length === 2);
@@ -154,6 +163,55 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   const all = cowArchive(R.calc, R.archive, R.cows, R.events);
   ok("archive: every cow, every transfer and every check", new Set(all.map((x) => x.cowId)).size >= 286 && all.filter((x) => x.process === "Transfer" || x.process === "Pass").length === R.calc.length && all.filter((x) => x.process === "Preg Check").length === R.archive.length);
   console.log("      e.g. 348-1:", a1.map((x) => `${x.date ?? x.when}:${x.process}${x.result ? "=" + x.result : ""}`).join(" | "));
+
+  // ---- Open list by year: add, take off, move to next year, cull, and a Nov transfer checked Open in January
+  R = await loadRanch(O);
+  const o26 = openList(R.calc, R.cows, 2026, 2026);
+  ok("2026 open list = every open cow today", o26.length === openInventory(R.calc).length, `${o26.length} vs ${openInventory(R.calc).length}`);
+  await rec.addOpenCows(O, ["N900", "N901"], 2026, { purchaseDate: "Fall 2026", cost: "3,400", loanLocation: "First United" });
+  R = await loadRanch(O);
+  let L = openList(R.calc, R.cows, 2026, 2026);
+  ok("added cows on the 2026 list", L.some((e) => e.cowId === "N900" && e.added && !e.rec) && R.cows.get("N900")?.cost === 3400);
+  const pend = R.calc.find((c) => c.latest && c.status === "Pending")!;
+  await refuses("a cow waiting on a check can't be added", () => rec.addOpenCows(O, [pend.cowId], 2026, {}), "waiting on a preg check");
+  const safe = R.calc.find((c) => c.latest && c.status === "Safe")!;
+  await rec.addOpenCows(O, [safe.cowId], 2026, {});
+  R = await loadRanch(O);
+  ok("a Safe recip back from calving can be added back", openList(R.calc, R.cows, 2026, 2026).some((e) => e.cowId === safe.cowId && e.added && e.rec?.status === "Safe"));
+  ok("...her Safe record is untouched", R.calc.find((c) => c.id === safe.id)!.status === "Safe");
+  const offCow = L.find((e) => !e.added)!;
+  await rec.takeOffOpen(O, [offCow.cowId], "sold");
+  R = await loadRanch(O);
+  ok("red X: off the list, dated", !openList(R.calc, R.cows, 2026, 2026).some((e) => e.cowId === offCow.cowId) && R.events.some((e) => e.cowId === offCow.cowId && e.kind === "Taken off open list"));
+  ok("red X: her records are untouched", R.calc.filter((c) => c.cowId === offCow.cowId).length === cowArchive(R.calc, R.archive, R.cows, R.events, offCow.cowId).filter((x) => x.process === "Transfer" || x.process === "Pass").length);
+  const mv = openList(R.calc, R.cows, 2026, 2026).filter((e) => !e.added).slice(0, 3).map((e) => e.cowId);
+  await rec.moveOpenYear(O, [...mv, "N901"], 2027);
+  R = await loadRanch(O);
+  ok("moved to 2027 opens", mv.every((id) => openList(R.calc, R.cows, 2027, 2026).some((e) => e.cowId === id)) && !openList(R.calc, R.cows, 2026, 2026).some((e) => mv.includes(e.cowId) || e.cowId === "N901"));
+  await rec.cullCows(O, ["N900"]);
+  R = await loadRanch(O);
+  ok("cull a cow with no transfer: off the list, dated", !openList(R.calc, R.cows, 2026, 2026).some((e) => e.cowId === "N900") && R.events.some((e) => e.cowId === "N900" && e.kind === "Culled"));
+  // A November 2026 transfer checked Open on 1/15/2027 falls to the 2027 opens.
+  await rec.addBatch(O, "11-20", "2026-11-20");
+  await rec.addTransfers(O, [{ batch: "11-20", cowId: "NOV1", status: "Pending", embryoType: "Frozen" }]);
+  R = await loadRanch(O);
+  await rec.setPregDraft(O, R.calc.find((c) => c.cowId === "NOV1")!.id, "Open");
+  await rec.setPregDraftDate(O, R.calc.find((c) => c.cowId === "NOV1")!.id, "2027-01-15");
+  await rec.confirmPregCheck(O);
+  R = await loadRanch(O);
+  ok("Nov transfer checked Open in Jan lands in 2027 opens", openList(R.calc, R.cows, 2027, 2027).some((e) => e.cowId === "NOV1") && !openList(R.calc, R.cows, 2026, 2027).some((e) => e.cowId === "NOV1"));
+  ok("...and her transfer still counts in 2026", inYear(R.calc, 2026).some((c) => c.cowId === "NOV1"));
+  // Taken off, then a new transfer comes back Open: she is back on the list.
+  await rec.addBatch(O, "1-30", "2027-01-30");
+  await rec.addTransfers(O, [{ batch: "1-30", cowId: offCow.cowId, status: "Pending" }]);
+  R = await loadRanch(O);
+  await rec.setPregDraft(O, R.calc.find((c) => c.cowId === offCow.cowId && c.latest)!.id, "Open");
+  await rec.setPregDraftDate(O, R.calc.find((c) => c.cowId === offCow.cowId && c.latest)!.id, "2027-03-01");
+  await rec.confirmPregCheck(O);
+  R = await loadRanch(O);
+  ok("taken off, new transfer Open: back on that year's list", openList(R.calc, R.cows, 2027, 2027).some((e) => e.cowId === offCow.cowId));
+  const steps = cowArchive(R.calc, R.archive, R.cows, R.events, "N901");
+  ok("archive shows added + moved", steps.some((x) => x.process === "Open List" && x.result.startsWith("Added")) && steps.some((x) => x.result === "Moved to 2027 opens"), JSON.stringify(steps));
 
   // ---- A whole batch at once (100 lines, as from the Add transfers grid)
   const many = Array.from({ length: 100 }, (_, i) => ({ batch: "8-15", cowId: `B${i + 1}`, mating: "Bulk x 1", owner: "Carter", embryoType: "Frozen", grade: "7-1", company: "605", status: i % 10 === 0 ? "Pass" : "Pending" }));

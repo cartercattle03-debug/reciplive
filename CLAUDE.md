@@ -25,7 +25,12 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - Due Date = transfer date + 276. Embryo Age = days since transfer + 7.
 - Preg Check list = latest record Pending / Probable / blank, filtered by Group or Min/Max age. Results are drafts on
   their own row (can't land on another cow) until Confirm & Archive, which writes status + archive in one step.
-- Open Inventory = latest record Open or Pass. Yellow = Times Passed >= 2 (cull candidate).
+- **Year box** (cookie `rl_year`, `lib/server/year.ts`): a record's year = its batch's transfer date year. Dashboard, Transfers,
+  75+ Day, Breakdowns, Customer Search and Open Inventory show the picked year; history pages are lifetime.
+- Open Inventory (`lib/openList.ts`) = latest record Open or Pass, or a cow added straight to the list. Her year = the year she
+  was checked Open (Nov / Dec transfer checked in Jan falls to the new year), a Pass's batch year, or the year added.
+  Tick -> Cull / Move to next year's opens; red X = off the list (gone) for that record only. Yellow = Times Passed >= 2.
+- Preg Check: picking a Result stamps its own Check Date (today, changeable); taking the Result off clears it.
 - 75+ Day Cows = latest record Safe. Master Sheet Final Destination = Culled if any record Culled, else owner of her Safe latest record.
 - **IDs are text.** Leading zeros matter (054 is not 54). Batch labels and grades are text - never dates.
 - A repeated Cow ID is not a duplicate - the same cow has many records.

@@ -47,6 +47,7 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
       deliveryDate: r.deliveryDate,
       notes: r.notes,
       pregDraft: r.pregDraft,
+      pregDraftDate: r.pregDraftDate,
     };
   });
   const archive: ArchiveRow[] = archiveRows.map((a) => ({ checkDate: a.checkDate, batch: a.batch, cowId: a.cowId, mating: a.mating, owner: a.owner, result: a.result }));
@@ -57,7 +58,12 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
     const o = opts.owner.toLowerCase();
     calc = calc.filter((c) => c.owner.toLowerCase() === o);
   }
-  const cows = new Map<string, CowExtra>(cowRows.map((c) => [c.cowId, { cowId: c.cowId, purchaseDate: c.purchaseDate, loanLocation: c.loanLocation, cost: c.cost, salePrice: c.salePrice, soldDate: c.soldDate, transactionNo: c.transactionNo }]));
+  const cows = new Map<string, CowExtra>(
+    cowRows.map((c) => [
+      c.cowId,
+      { cowId: c.cowId, purchaseDate: c.purchaseDate, loanLocation: c.loanLocation, cost: c.cost, salePrice: c.salePrice, soldDate: c.soldDate, transactionNo: c.transactionNo, addedOpen: c.addedOpen, addedYear: c.addedYear, offListRecord: c.offListRecord, openYear: c.openYear, openYearRecord: c.openYearRecord },
+    ])
+  );
   const events: CowEventRow[] = eventRows.map((e) => ({ cowId: e.cowId, date: e.date, kind: e.kind, detail: e.detail, transferId: e.transferId }));
   return { lists, calc, archive, archiveRows, cows, events, today };
 }

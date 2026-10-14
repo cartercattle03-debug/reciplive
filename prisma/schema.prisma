@@ -110,6 +110,8 @@ model Transfer {
   notes          String       @default("")
   /// A result typed on the Preg Check page, not yet confirmed. It belongs to this row, so it can't land on another cow.
   pregDraft      String?
+  /// The check date for that typed result: today when the result is picked, cleared when the result is taken back off.
+  pregDraftDate  String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -146,6 +148,14 @@ model CowRecord {
   salePrice      Float?
   soldDate       String       @default("")
   transactionNo  String       @default("")
+  /// Open list (Carter, 2026-10-14). A new cow added straight to the open list, and the year she was added for.
+  addedOpen      Boolean      @default(false)
+  addedYear      Int?
+  /// Taken off the open list (gone / sold): the record she was on then ("none" = no transfers). A new record brings her back.
+  offListRecord  String?
+  /// Moved to another year's open list, for that record only.
+  openYear       Int?
+  openYearRecord String?
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, cowId])

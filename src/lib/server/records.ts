@@ -3,6 +3,8 @@ import { DELIVERY, EMBRYO_TYPES, PREG_RESULTS, STATUSES, ranchToday } from "@/li
 import type { ParsedWorkbook } from "@/lib/workbook";
 import { HttpError } from "./session";
 import { withSnapshot } from "./snapshot";
+import { loadRanch } from "./data";
+import { latestRows } from "@/lib/recip";
 
 export const TRANSFER_FIELDS = ["batch", "cowId", "mating", "owner", "embryoType", "grade", "company", "status", "deliveryStatus", "deliveryDate", "notes"] as const;
 export type TransferField = (typeof TRANSFER_FIELDS)[number];
@@ -61,7 +63,7 @@ export async function updateTransfer(orgId: string, id: string, field: string, v
   });
 }
 
-async function logCull(orgId: string, cowId: string, transferId: string, was: string) {
+async function logCull(orgId: string, cowId: string, transferId: string | null, was: string) {
   await prisma.cowEvent.create({ data: { organizationId: orgId, cowId, date: ranchToday(), kind: "Culled", detail: was ? `was ${was}` : "", transferId } });
 }
 
@@ -152,22 +154,35 @@ export async function savePregSettings(orgId: string, s: { pregDate?: unknown; p
 export async function setPregDraft(orgId: string, id: string, result: unknown) {
   const v = clean(result);
   if (v && !(PREG_RESULTS as readonly string[]).includes(v)) throw new HttpError(400, "Result is Probable, Safe or Open.");
-  const n = await prisma.transfer.updateMany({ where: { id, organizationId: orgId }, data: { pregDraft: v || null } });
+  // Picking a result dates the check today; taking it back off (a slip) clears the date with it.
+  const n = await prisma.transfer.updateMany({ where: { id, organizationId: orgId }, data: { pregDraft: v || null, pregDraftDate: v ? ranchToday() : null } });
   if (!n.count) throw new HttpError(404, "That record is gone - refresh the page.");
+}
+
+/** A different check date for one typed result (checked yesterday, typed in today). */
+export async function setPregDraftDate(orgId: string, id: string, date: unknown) {
+  const d = clean(date);
+  if (d && !isYmd(d)) throw new HttpError(400, "Pick a date.");
+  const row = await prisma.transfer.findFirst({ where: { id, organizationId: orgId } });
+  if (!row) throw new HttpError(404, "That record is gone - refresh the page.");
+  if (!row.pregDraft) throw new HttpError(400, "Pick her Result first - the date goes with it.");
+  await prisma.transfer.update({ where: { id }, data: { pregDraftDate: d || ranchToday() } });
 }
 
 /** Confirm & Archive: every typed result goes onto its own record and into the Preg Check Archive, all at once. */
 export async function confirmPregCheck(orgId: string) {
   const org = await prisma.organization.findUnique({ where: { id: orgId } });
-  if (!org?.pregDate) throw new HttpError(400, "Enter the preg check Date first.");
   const rows = await prisma.transfer.findMany({ where: { organizationId: orgId, pregDraft: { not: null } }, orderBy: { seq: "asc" } });
   const todo = rows.filter((r) => r.pregDraft);
   if (!todo.length) throw new HttpError(400, "No results to confirm - fill in the Result column first.");
-  return withSnapshot(orgId, `Preg check ${org.pregDate} (${todo.length} result${todo.length === 1 ? "" : "s"})`, async () => {
+  // Each result keeps its own check date (set when it was picked); the page Date covers any typed before dates were kept.
+  const dateOf = (r: (typeof todo)[number]) => r.pregDraftDate || org?.pregDate || ranchToday();
+  const dates = [...new Set(todo.map((r) => dateOf(r)!))].sort();
+  return withSnapshot(orgId, `Preg check ${dates.length === 1 ? dates[0] : `${dates[0]} to ${dates[dates.length - 1]}`} (${todo.length} result${todo.length === 1 ? "" : "s"})`, async () => {
     for (const r of todo) {
-      await prisma.transfer.update({ where: { id: r.id }, data: { status: r.pregDraft!, pregDraft: null } });
+      await prisma.transfer.update({ where: { id: r.id }, data: { status: r.pregDraft!, pregDraft: null, pregDraftDate: null } });
       await prisma.pregArchive.create({
-        data: { organizationId: orgId, checkDate: org.pregDate!, batch: r.batch, cowId: r.cowId, mating: r.mating, owner: r.owner, result: r.pregDraft!, priorStatus: r.status, transferId: r.id },
+        data: { organizationId: orgId, checkDate: dateOf(r)!, batch: r.batch, cowId: r.cowId, mating: r.mating, owner: r.owner, result: r.pregDraft!, priorStatus: r.status, transferId: r.id },
       });
     }
     return { confirmed: todo.length };
@@ -175,7 +190,7 @@ export async function confirmPregCheck(orgId: string) {
 }
 
 export async function clearPregDrafts(orgId: string) {
-  await prisma.transfer.updateMany({ where: { organizationId: orgId, pregDraft: { not: null } }, data: { pregDraft: null } });
+  await prisma.transfer.updateMany({ where: { organizationId: orgId, pregDraft: { not: null } }, data: { pregDraft: null, pregDraftDate: null } });
 }
 
 // ---------------------------------------------------------------------------
@@ -353,5 +368,107 @@ export async function importWorkbook(orgId: string, p: ParsedWorkbook) {
     }
     if (cows.size) await prisma.cowRecord.createMany({ data: [...cows.values()].map((c) => ({ organizationId: orgId, ...c })) });
     return { transfers: p.transfers.length, archive: p.archive.length, cows: cows.size };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Open list (Open Inventory)
+// ---------------------------------------------------------------------------
+
+/** Each cow's latest record id ("none" for a cow with no transfers). */
+async function latestIds(orgId: string) {
+  const { calc } = await loadRanch(orgId);
+  return new Map(latestRows(calc).map((c) => [c.cowId, c]));
+}
+const ids = (raw: unknown) => [...new Set((Array.isArray(raw) ? raw : []).map((x) => clean(x)).filter(Boolean))];
+async function event(orgId: string, cowId: string, kind: string, detail = "", transferId: string | null = null) {
+  await prisma.cowEvent.create({ data: { organizationId: orgId, cowId, date: ranchToday(), kind, detail, transferId } });
+}
+async function cowRow(orgId: string, cowId: string, data: Record<string, unknown>) {
+  await prisma.cowRecord.upsert({
+    where: { organizationId_cowId: { organizationId: orgId, cowId } },
+    create: { organizationId: orgId, cowId, ...data } as any,
+    update: data as any,
+  });
+}
+
+/** New cows straight onto the open list (bought / brought in, no transfer yet). */
+export async function addOpenCows(orgId: string, raw: unknown, year: number, extra: { purchaseDate?: unknown; loanLocation?: unknown; cost?: unknown; notes?: unknown }) {
+  const list = ids(raw);
+  if (!list.length) throw new HttpError(400, "Type at least one Cow ID.");
+  const costS = clean(extra.cost).replace(/[$,\s]/g, "");
+  if (costS && isNaN(Number(costS))) throw new HttpError(400, "Cost is a dollar amount.");
+  const latest = await latestIds(orgId);
+  const busy = list.filter((id) => {
+    const c = latest.get(id);
+    // Still waiting on a check (Pending / Probable / blank) - she isn't open yet.
+    return c && (!c.status || c.status === "Pending" || c.status === "Probable" || c.status === "Not Recorded");
+  });
+  if (busy.length) throw new HttpError(400, `Still waiting on a preg check (not open): ${busy.join(", ")}. Nothing was added.`);
+  return withSnapshot(orgId, `Added ${list.length} cow${list.length === 1 ? "" : "s"} to ${year} opens`, async () => {
+    for (const id of list) {
+      const c = latest.get(id);
+      const data: Record<string, unknown> = { addedOpen: true, addedYear: year, offListRecord: null, openYear: year, openYearRecord: c ? c.id : "none" };
+      if (clean(extra.purchaseDate)) data.purchaseDate = clean(extra.purchaseDate);
+      if (clean(extra.loanLocation)) data.loanLocation = clean(extra.loanLocation);
+      if (costS) data.cost = Number(costS);
+      await cowRow(orgId, id, data);
+      await event(orgId, id, "Added to open list", [`${year}`, clean(extra.notes)].filter(Boolean).join(" · "));
+    }
+    return { added: list.length };
+  });
+}
+
+/** Red X: off the open list (gone, sold, moved) without culling. A new transfer that comes back Open puts her back. */
+export async function takeOffOpen(orgId: string, raw: unknown, why: unknown) {
+  const list = ids(raw);
+  if (!list.length) throw new HttpError(400, "No cow picked.");
+  const latest = await latestIds(orgId);
+  return withSnapshot(orgId, `Took ${list.join(", ")} off the open list`, async () => {
+    for (const id of list) {
+      await cowRow(orgId, id, { offListRecord: latest.get(id)?.id ?? "none" });
+      await event(orgId, id, "Taken off open list", clean(why));
+    }
+    return { off: list.length };
+  });
+}
+
+/** Move the ticked cows to another year's open list (for her current record). */
+export async function moveOpenYear(orgId: string, raw: unknown, year: unknown) {
+  const list = ids(raw);
+  const y = Number(year);
+  if (!list.length) throw new HttpError(400, "Tick at least one cow.");
+  if (!Number.isInteger(y) || y < 2000 || y > 2200) throw new HttpError(400, "Pick a year.");
+  const latest = await latestIds(orgId);
+  return withSnapshot(orgId, `Moved ${list.length} open cow${list.length === 1 ? "" : "s"} to ${y}`, async () => {
+    for (const id of list) {
+      await cowRow(orgId, id, { openYear: y, openYearRecord: latest.get(id)?.id ?? "none" });
+      await event(orgId, id, `Moved to ${y} opens`);
+    }
+    return { moved: list.length };
+  });
+}
+
+/** Cull the ticked cows: her latest record turns Culled (a cow with no transfer just leaves the list), dated in her archive. */
+export async function cullCows(orgId: string, raw: unknown) {
+  const list = ids(raw);
+  if (!list.length) throw new HttpError(400, "Tick at least one cow to cull.");
+  const latest = await latestIds(orgId);
+  return withSnapshot(orgId, `Culled ${list.length} cow${list.length === 1 ? "" : "s"} (${list.slice(0, 5).join(", ")}${list.length > 5 ? " ..." : ""})`, async () => {
+    for (const id of list) {
+      const c = latest.get(id);
+      if (c && (c.status === "Open" || c.status === "Pass")) {
+        await prisma.transfer.update({ where: { id: c.id }, data: { status: "Culled" } });
+        await logCull(orgId, id, c.id, c.status);
+      } else if (c) {
+        // Added back to the open list after a Safe / Culled record: that record stays as it was; she leaves the list, culled.
+        await cowRow(orgId, id, { offListRecord: c.id });
+        await logCull(orgId, id, null, `after ${c.status}`);
+      } else {
+        await cowRow(orgId, id, { offListRecord: "none" });
+        await logCull(orgId, id, null, "");
+      }
+    }
+    return { culled: list.length };
   });
 }

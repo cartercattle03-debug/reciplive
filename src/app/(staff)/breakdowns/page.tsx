@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/Shell";
-import { BREAKDOWN_LABELS, EMBRYO_TYPES, breakdown, matrix, showRate, type BreakdownBy, type Calc } from "@/lib/recip";
+import { BREAKDOWN_LABELS, EMBRYO_TYPES, breakdown, inYear, matrix, showRate, type BreakdownBy, type Calc } from "@/lib/recip";
+import { pickedYear } from "@/lib/server/year";
 import { loadRanch, type Lists } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
 const ORDER: BreakdownBy[] = ["batch", "owner", "company", "embryoType", "grade"];
 const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-white";
 
-function values(by: BreakdownBy, l: Lists): string[] {
-  if (by === "batch") return l.batches.map((b) => b.label);
+function values(by: BreakdownBy, l: Lists, year: number): string[] {
+  if (by === "batch") return l.batches.filter((b) => b.transferDate?.startsWith(String(year))).map((b) => b.label);
   if (by === "owner") return l.owners;
   if (by === "company") return l.companies;
   if (by === "grade") return l.grades;
@@ -87,12 +88,14 @@ function Grid({ title, calc, rowBy, rows, colBy, cols, type }: { title: string; 
 
 export default async function Breakdowns({ searchParams }: { searchParams: { by?: string } }) {
   const m = await staffPage();
-  const { calc, lists } = await loadRanch(m.organizationId);
+  const { calc: all, lists } = await loadRanch(m.organizationId);
+  const year = pickedYear();
+  const calc = inYear(all, year);
   const by = (ORDER as string[]).includes(searchParams.by ?? "") ? (searchParams.by as BreakdownBy) : "batch";
-  const v = (b: BreakdownBy) => values(b, lists);
+  const v = (b: BreakdownBy) => values(b, lists, year);
   return (
     <div>
-      <PageHeader title={`${BREAKDOWN_LABELS[by]} breakdown`} sub="New groups, owners, companies and grades show up here as soon as they're on the Lists page. In the grids each cell shows the pregnancy rate and Safe+Probable / checked; yellow = some are still Probable (not confirmed)." />
+      <PageHeader title={`${BREAKDOWN_LABELS[by]} breakdown - ${year}`} sub="New groups, owners, companies and grades show up here as soon as they're on the Lists page. In the grids each cell shows the pregnancy rate and Safe+Probable / checked; yellow = some are still Probable (not confirmed)." />
       <div className="no-print mb-4 flex flex-wrap gap-1">
         {ORDER.map((b) => (
           <Link key={b} href={`/breakdowns?by=${b}`} className={b === by ? "btn" : "btn-quiet"}>

@@ -2,10 +2,11 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { Nav, SignOut } from "./Nav";
 import { AskBox, Toaster } from "./ui";
+import { YearPick } from "./YearPick";
 import type { Member } from "@/lib/server/session";
 
 /** The page frame: logo, ranch name, Import / Account / Log out, then the tabs (same feel as HerdLive). */
-export function Shell({ member, children, customer = false }: { member: Member; children: React.ReactNode; customer?: boolean }) {
+export function Shell({ member, children, customer = false, year }: { member: Member; children: React.ReactNode; customer?: boolean; year?: { year: number; years: number[] } }) {
   return (
     <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" || undefined}>
       <header className="no-print z-30 bg-white md:sticky md:top-0">
@@ -14,6 +15,11 @@ export function Shell({ member, children, customer = false }: { member: Member; 
             <Logo />
           </Link>
           <span className="truncate border-l border-slate-200 pl-3 text-sm text-slate-500">{member.ranch}</span>
+          {year && (
+            <span className="border-l border-slate-200 pl-3">
+              <YearPick year={year.year} years={year.years} />
+            </span>
+          )}
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {member.role === "MANAGER" && <span className="rounded-full bg-tan px-3 py-1 text-xs font-semibold text-brand-700">View only</span>}
             {!customer && (

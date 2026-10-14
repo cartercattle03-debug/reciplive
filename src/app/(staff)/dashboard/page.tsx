@@ -1,14 +1,22 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/Shell";
-import { breakdown, dashboard, showRate } from "@/lib/recip";
+import { breakdown, dashboard, inYear, showRate } from "@/lib/recip";
+import { openList } from "@/lib/openList";
+import { pickedYear, thisYear } from "@/lib/server/year";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
 export default async function Dashboard() {
   const m = await staffPage();
-  const { calc, lists } = await loadRanch(m.organizationId);
+  const { calc: all, lists, cows } = await loadRanch(m.organizationId);
+  const year = pickedYear();
+  const calc = inYear(all, year);
+  const yb = lists.batches.filter((b) => b.transferDate?.startsWith(String(year)));
   const d = dashboard(calc);
-  const g = breakdown(calc, "batch", lists.batches.map((b) => b.label));
+  const opens = openList(all, cows, year, thisYear());
+  d.currentlyOpen = opens.length;
+  d.threePlusOpen = opens.filter((o) => o.totalAttempts >= 3).length;
+  const g = breakdown(calc, "batch", yb.map((b) => b.label));
   const cards: [string, number | string, string?][] = [
     ["Total Transfers", d.totalTransfers],
     ["Confirmed Safe (75+ Day)", d.confirmedSafe, "/day75"],
@@ -16,12 +24,13 @@ export default async function Dashboard() {
     ["Currently Open", d.currentlyOpen, "/open"],
     ["3+ Transfers, Still Open", d.threePlusOpen, "/open?sort=Total+Attempts"],
     ["Pending Check", d.pending, "/preg-check"],
-    ["Unique Cows", d.uniqueCows, "/master"],
+    ["Cows Transferred", d.uniqueCows, "/master"],
   ];
   return (
     <div>
-      <PageHeader title="Recip program dashboard" sub="Live - every number updates the moment a transfer or preg check result is saved." />
-      {calc.length === 0 && (
+      <PageHeader title={`Recip program dashboard - ${year}`} sub={`Transfers in ${year} batches, and the ${year} open list. Pick another year in the Year box at the top. Live - every number updates the moment a result is saved.`} />
+      {all.length > 0 && calc.length === 0 && <div className="card mb-5 p-5 text-sm">No transfers in {year} yet - a fresh slate. Add the year&apos;s first batch on <Link className="font-semibold text-brand-600 underline" href="/lists">Lists</Link>, with its transfer date.</div>}
+      {all.length === 0 && (
         <div className="card mb-5 p-5 text-sm">
           Nothing loaded yet. <Link className="font-semibold text-brand-600 underline" href="/import">Import your Savannah workbook</Link> or start adding transfers on the <Link className="font-semibold text-brand-600 underline" href="/transfers">Transfers</Link> page.
         </div>
@@ -61,7 +70,7 @@ export default async function Dashboard() {
             {g.rows.map((r, i) => (
               <tr key={r.value} className="even:bg-stripe">
                 <td className="tc font-semibold">{r.value}</td>
-                <td className="tc">{lists.batches[i]?.transferDate ? new Date(lists.batches[i].transferDate + "T12:00:00").toLocaleDateString("en-US") : ""}</td>
+                <td className="tc">{yb[i]?.transferDate ? new Date(yb[i].transferDate + "T12:00:00").toLocaleDateString("en-US") : ""}</td>
                 {[r.total, r.pass, r.safe, r.probable, r.pending, r.open, r.unchecked].map((n, k) => (
                   <td key={k} className="tc">{n}</td>
                 ))}

@@ -54,3 +54,4 @@ declare module "xlsx" {
   export const SSF: { is_date(z: any): boolean; parse_date_code(v: number): { y: number; m: number; d: number } | null };
 }
 declare module "*.css";
+declare module "next/headers" { export function cookies(): { get(name: string): { value: string } | undefined }; }

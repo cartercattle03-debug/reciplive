@@ -40,6 +40,7 @@ export type Transfer = {
   notes: string;
   /** A preg check result typed on the Preg Check page, not yet confirmed. */
   pregDraft?: string | null;
+  pregDraftDate?: string | null;
 };
 
 export type ArchiveRow = { checkDate: string; batch: string; cowId: string; mating: string; owner: string; result: string };
@@ -320,7 +321,25 @@ export function customerSearch(calc: Calc[], f: CustomerFilter) {
   };
 }
 
-export type CowExtra = { cowId: string; purchaseDate: string; loanLocation: string; cost: number | null; salePrice: number | null; soldDate: string; transactionNo: string };
+export type CowExtra = {
+  cowId: string;
+  purchaseDate: string;
+  loanLocation: string;
+  cost: number | null;
+  salePrice: number | null;
+  soldDate: string;
+  transactionNo: string;
+  addedOpen?: boolean;
+  addedYear?: number | null;
+  offListRecord?: string | null;
+  openYear?: number | null;
+  openYearRecord?: string | null;
+};
+
+/** The year a record belongs to: its batch's transfer date. */
+export const yearOf = (c: { transferDate: string | null }) => (c.transferDate ? Number(c.transferDate.slice(0, 4)) : null);
+/** Only the records whose batch was transferred in that year. */
+export const inYear = <T extends { transferDate: string | null }>(rows: T[], year: number) => rows.filter((r) => yearOf(r) === year);
 
 /** Master Sheet: one line per cow in family order. Final Destination: Culled if any record says so, else the owner of her Safe latest record. */
 export function masterSheet(calc: Calc[]) {

@@ -1,4 +1,4 @@
-import { clearPregDrafts, confirmPregCheck, savePregSettings, setPregDraft } from "@/lib/server/records";
+import { clearPregDrafts, confirmPregCheck, savePregSettings, setPregDraft, setPregDraftDate } from "@/lib/server/records";
 import { handle, HttpError, staffApi } from "@/lib/server/session";
 
 export const maxDuration = 60;
@@ -8,6 +8,7 @@ export const POST = handle(async (req) => {
   const b = await req.json();
   if (b.action === "settings") return savePregSettings(m.organizationId, b);
   if (b.action === "draft") return setPregDraft(m.organizationId, String(b.id), b.result);
+  if (b.action === "draftDate") return setPregDraftDate(m.organizationId, String(b.id), b.date);
   if (b.action === "confirm") return confirmPregCheck(m.organizationId);
   if (b.action === "clear") return clearPregDrafts(m.organizationId);
   throw new HttpError(400, "Unknown step.");

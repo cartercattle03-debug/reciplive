@@ -4,17 +4,22 @@ import { PasteTransfers } from "@/components/PasteTransfers";
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, dateCell, numCell } from "@/lib/cells";
-import { DELIVERY, EMBRYO_TYPES, STATUSES } from "@/lib/recip";
+import { DELIVERY, EMBRYO_TYPES, STATUSES, inYear } from "@/lib/recip";
+import { pickedYear } from "@/lib/server/year";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
-type SP = { batch?: string; owner?: string; status?: string };
+type SP = { batch?: string; owner?: string; status?: string; years?: string };
 
 /** The Data tab: one row per cow per transfer (or Pass). Only what's typed shows - the rest is worked out. */
 export default async function Transfers({ searchParams }: { searchParams: SP }) {
   const m = await staffPage();
-  const { calc, lists } = await loadRanch(m.organizationId);
+  const { calc: everything, lists } = await loadRanch(m.organizationId);
+  const year = pickedYear();
+  const allYears = searchParams.years === "all";
+  const calc = allYears ? everything : inYear(everything, year);
   const batches = lists.batches.map((b) => b.label);
+  const yearBatches = lists.batches.filter((b) => allYears || b.transferDate?.startsWith(String(year))).map((b) => b.label);
   const f = { batch: searchParams.batch ?? "", owner: searchParams.owner ?? "", status: searchParams.status ?? "" };
   const rows = calc
     .filter((c) => !f.batch || c.batch === f.batch)
@@ -48,13 +53,14 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       <PageHeader title="Transfers" sub="One line per cow per transfer - or a Pass (a chute visit with no transfer). Click a cream cell to change it. Attempt #, Total Attempts, Repeat Flag, Due Date and Embryo Age work themselves out.">
         <PasteTransfers />
       </PageHeader>
-      <AddTransfer lists={{ batches, owners: lists.owners, companies: lists.companies, grades: lists.grades }} />
+      <AddTransfer lists={{ batches, owners: lists.owners, companies: lists.companies, grades: lists.grades }} start={yearBatches[yearBatches.length - 1]} />
       <FilterForm>
-        <Pick name="batch" label="Group" value={f.batch} options={batches} />
+        <Pick name="years" label="Years" value={allYears ? "all" : ""} options={["all"]} all={`${year} only`} />
+        <Pick name="batch" label="Group" value={f.batch} options={yearBatches} />
         <Pick name="owner" label="Owner" value={f.owner} options={lists.owners} />
         <Pick name="status" label="Status" value={f.status} options={[...STATUSES, "(blank)"]} />
         <span className="pb-2 text-xs text-slate-500">
-          {rows.length} of {calc.length} records
+          {rows.length} of {calc.length} records{allYears ? " (all years)" : ` in ${year}`}
         </span>
       </FilterForm>
       <Table

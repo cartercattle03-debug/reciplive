@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, dateCell, numCell } from "@/lib/cells";
 import { prisma } from "@/lib/prisma";
-import { PREG_RESULTS, pregCheckList, showDate } from "@/lib/recip";
+import { PREG_RESULTS, pregCheckList, ranchToday, showDate } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
@@ -19,31 +19,30 @@ export default async function PregCheck() {
     key: c.id,
     cells: [
       batchCell(c),
-      cowCell(c.cowId),
-      { t: c.mating },
-      { t: c.owner },
+      { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
       numCell(c.embryoAge),
+      { t: c.pregDraft ?? "", cls: c.pregDraft ? `st-${c.pregDraft}` : "", edit: { api: "preg", id: c.id, field: "result", kind: "select", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
+      c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
       { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
       dateCell(c.dueDate),
-      { t: c.pregDraft ?? "", cls: c.pregDraft ? `st-${c.pregDraft}` : "", edit: { api: "preg", id: c.id, field: "result", kind: "select", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
+      { t: c.notes, edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } },
     ],
   }));
   return (
     <div>
       <PageHeader
         title="Preg Check"
-        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages."
+        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Picking a Result fills in today as its Check Date (click the date to change it); taking the Result back off clears it."
       >
-        <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} hasDate={!!org?.pregDate} />
+        <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} />
       </PageHeader>
       <PregSettings s={{ pregDate: org?.pregDate ?? "", pregBatch: org?.pregBatch ?? "", pregMinAge: org?.pregMinAge?.toString() ?? "", pregMaxAge: org?.pregMaxAge?.toString() ?? "" }} batches={lists.batches.map((b) => b.label)} />
       <p className="view-only mb-3 text-sm text-slate-600">
         Showing: {org?.pregBatch ? `Group ${org.pregBatch}` : "any group"}
         {org?.pregMinAge != null || org?.pregMaxAge != null ? `, embryo age ${org?.pregMinAge ?? "any"} to ${org?.pregMaxAge ?? "any"} days` : ""}
-        {org?.pregDate ? ` · check date ${showDate(org.pregDate)}` : ""}
       </p>
       <div className="print-only mb-2 text-sm">
-        <b>{m.ranch} - Preg Check {showDate(org?.pregDate)}</b> {org?.pregBatch ? ` · Group ${org.pregBatch}` : ""}
+        <b>{m.ranch} - Preg Check {showDate(ranchToday())}</b> {org?.pregBatch ? ` · Group ${org.pregBatch}` : ""}
         {org?.pregMinAge != null || org?.pregMaxAge != null ? ` · Age ${org?.pregMinAge ?? ""}-${org?.pregMaxAge ?? ""} days` : ""}
       </div>
       <div className="mb-3 flex flex-wrap gap-2 text-sm">
@@ -60,7 +59,7 @@ export default async function PregCheck() {
         ))}
       </div>
       <Table
-        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Age (Days)" }, { label: "Now" }, { label: "Due Date" }, { label: "PREG CHECK RESULT" }]}
+        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Due Date" }, { label: "Notes" }]}
         rows={rows}
         empty="No cows due with this Group / age range."
       />

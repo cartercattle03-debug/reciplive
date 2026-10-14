@@ -12,7 +12,7 @@ export type Step = {
   date: string | null;
   /** Text shown when the date is a season ("Fall 2025") or isn't recorded. */
   when: string;
-  process: "Purchased" | "Transfer" | "Pass" | "Preg Check" | "Delivered" | "Culled" | "Sold";
+  process: "Purchased" | "Transfer" | "Pass" | "Preg Check" | "Delivered" | "Culled" | "Open List" | "Sold";
   batch: string;
   mating: string;
   owner: string;
@@ -58,6 +58,9 @@ export function cowArchive(calc: Calc[], archive: ArchiveRow[], cows: Map<string
     // Culls: the dated ones, plus a Culled record from before dates were kept.
     const culls = events.filter((e) => e.cowId === id && e.kind === "Culled");
     for (const e of culls) steps.push({ ...base, date: ymd(e.date), when: "", process: "Culled", result: e.detail, order: 9500 });
+    // Open list steps: added, taken off (gone / sold), moved to another year.
+    for (const e of events.filter((e) => e.cowId === id && e.kind !== "Culled"))
+      steps.push({ ...base, date: ymd(e.date), when: "", process: "Open List", result: e.kind, notes: e.detail, order: 9400 });
     for (const c of mine.filter((c) => c.status === "Culled" && !culls.some((e) => e.transferId === c.id)))
       steps.push({ ...base, date: null, when: "date not recorded", process: "Culled", batch: c.batch, order: 9600 });
     if (x && (x.salePrice !== null || x.soldDate || x.transactionNo))

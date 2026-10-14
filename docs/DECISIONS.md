@@ -12,3 +12,7 @@
 - 2026-10-14: Red ✕ to delete beside every Transfers line (asks first, Undo keeps a copy); red ✕ clears a line on the Add transfers grid.
 - 2026-10-14: Open Inventory gets a Cull tick box (Cull checked = her record turns Culled, dated) and an Edit pop-up for her latest record.
 - 2026-10-14: Master Archive: each cow's purchase, every transfer / Pass, every preg check, delivery, cull and sale in order - built live from the records (new CowEvent table holds cull dates). Also at the bottom of Cow Lookup.
+- 2026-10-14: Year box at the top; a new year (2027) starts a fresh slate on Dashboard, Transfers, 75+ Day, Breakdowns, Customer Search and Open Inventory.
+- 2026-10-14: Open Inventory by year: add new cows, tick to Cull or Move to next year's opens, red X takes a gone cow off the list. A Nov/Dec transfer checked Open in Jan/Feb falls to the new year's opens.
+- 2026-10-14: Preg Check columns: Group, Cow ID, Days Bred, Result, Check Date, Status, Due Date, Notes (Mating / Owner show when pointing at the Cow ID).
+- 2026-10-14: Each preg check result gets its own Check Date - today when picked, cleared if the result is taken back off. The page-wide Date box is gone.

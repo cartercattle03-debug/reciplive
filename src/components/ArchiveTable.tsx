@@ -3,7 +3,7 @@ import { cowCell, money, numCell } from "@/lib/cells";
 import { showDate } from "@/lib/recip";
 import type { Step } from "@/lib/cowArchive";
 
-const TONE: Record<string, string> = { Purchased: "text-brand-700", Transfer: "", Pass: "text-slate-500", "Preg Check": "text-amber-800", Delivered: "text-emerald-700", Culled: "text-red-700", Sold: "text-brand-700" };
+const TONE: Record<string, string> = { Purchased: "text-brand-700", Transfer: "", Pass: "text-slate-500", "Preg Check": "text-amber-800", Delivered: "text-emerald-700", Culled: "text-red-700", "Open List": "text-slate-600", Sold: "text-brand-700" };
 
 /** A cow's whole story, one line per step, in order. With every cow, a heavy line marks where the next cow starts. */
 export function ArchiveTable({ steps, showCow = true }: { steps: Step[]; showCow?: boolean }) {

@@ -10,6 +10,7 @@ const map = {
   "next/navigation": path.join(HERE, "stub-nav.js"),
   bcryptjs: path.join(HERE, "stub-bcrypt.js"),
   "next/link": path.join(HERE, "stub-link.js"),
+  "next/headers": path.join(HERE, "stub-headers.js"),
   react: require.resolve("/home/claude/.npm-global/lib/node_modules/react"),
   "react/jsx-runtime": require.resolve("/home/claude/.npm-global/lib/node_modules/react/jsx-runtime"),
   "react-dom/server": require.resolve("/home/claude/.npm-global/lib/node_modules/react-dom/server"),

@@ -25,9 +25,9 @@ const used = (l: Line) => COLS.some((c) => c.k !== "status" && l[c.k].trim());
  * Add a whole batch at once: 10 lines to start, "+ 10 more lines" as needed, one Add button for all of them.
  * Pasting a column copied from a sheet (Cow IDs, matings ...) into any box fills that column on down, adding lines as it goes.
  */
-export function AddTransfer({ lists }: { lists: Lists }) {
+export function AddTransfer({ lists, start }: { lists: Lists; /** The group picked to start with (the year's newest). */ start?: string }) {
   const router = useRouter();
-  const [batch, setBatch] = useState(lists.batches[lists.batches.length - 1] ?? "");
+  const [batch, setBatch] = useState(start ?? lists.batches[lists.batches.length - 1] ?? "");
   const [rows, setRows] = useState<Line[]>(lines(10));
   const [busy, setBusy] = useState(false);
   const [bad, setBad] = useState<number[]>([]);

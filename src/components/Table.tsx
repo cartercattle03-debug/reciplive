@@ -23,7 +23,7 @@ export type Cell = {
   href?: string;
   title?: string;
   /** A Delete button for this transfer record (asks first; Undo can bring it back). */
-  del?: { id: string; what: string };
+  del?: { id: string; what: string; /** Open list: the red X takes her off the list instead of deleting a record. */ off?: boolean };
   /** A tick box (the record id) - Open Inventory's Cull. */
   pick?: string;
   /** An Edit button opening her record in a pop-up. */
@@ -35,11 +35,33 @@ export type Col = { label: string; title?: string; noSort?: boolean };
 async function save(e: Edit, value: string) {
   if (e.api === "transfers") return post("/api/transfers", { action: "update", id: e.id, field: e.field, value });
   if (e.api === "cows") return post("/api/cows", { cowId: e.id, field: e.field, value });
+  if (e.field === "checkDate") return post("/api/preg", { action: "draftDate", id: e.id, date: value });
   return post("/api/preg", { action: "draft", id: e.id, result: value });
 }
 
-function DeleteButton({ id, what }: { id: string; what: string }) {
+function DeleteButton({ id, what, off }: { id: string; what: string; off?: boolean }) {
   const router = useRouter();
+  if (off)
+    return (
+      <button
+        type="button"
+        title={`Take ${what} off the open list`}
+        aria-label={`Take ${what} off the open list`}
+        className="edit-only rounded px-1.5 text-base font-bold leading-none text-red-600 hover:bg-red-50 hover:text-red-700"
+        onClick={async () => {
+          if (!(await ask(`Take ${what} off the open list?\n\nUse this for a cow that's gone (sold, died, moved). Her records stay, and the date goes in her Master Archive. To cull her instead, tick Cull.`, "Take her off"))) return;
+          try {
+            await post("/api/open", { action: "off", cowIds: [id] });
+            toast(`${what} is off the open list.`);
+            router.refresh();
+          } catch (e) {
+            toast((e as Error).message, true);
+          }
+        }}
+      >
+        ✕
+      </button>
+    );
   return (
     <button
       type="button"
@@ -147,7 +169,7 @@ export function Table({
   search,
   maxHeight = true,
   lists,
-  cull,
+  picks,
 }: {
   cols: Col[];
   rows: Row[];
@@ -156,14 +178,13 @@ export function Table({
   maxHeight?: boolean;
   /** Choices for the Edit pop-up. */
   lists?: EditLists;
-  /** Tick boxes are for culling: a "Cull checked" button shows. */
-  cull?: boolean;
+  /** What the tick boxes do: one button each, shown once something is ticked. Posts { action, cowIds, ...extra } to url. */
+  picks?: { label: string; url: string; action: string; ask: string; danger?: boolean; extra?: Record<string, unknown> }[];
 }) {
   const router = useRouter();
   const [sort, setSort] = useState<{ i: number; dir: 1 | -1 } | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const pickedCows = rows.filter((r) => r.cells.some((c) => c.pick && picked.includes(c.pick)));
   const [q, setQ] = useState("");
   const shown = useMemo(() => {
     let out = rows;
@@ -186,37 +207,40 @@ export function Table({
   }, [rows, sort, q]);
   return (
     <div>
-      {(search || cull) && (
+      {(search || picks) && (
         <div className="no-print mb-2 flex flex-wrap items-center gap-2">
           {search && <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />}
           {q && <span className="text-xs text-slate-500">{shown.length} of {rows.length}</span>}
-          {cull && picked.length > 0 && (
-            <span className="edit-only ml-auto flex items-center gap-2">
+          {picks && picked.length > 0 && (
+            <span className="edit-only ml-auto flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-500">{picked.length} ticked</span>
               <button type="button" className="btn-quiet" onClick={() => setPicked([])}>
                 Untick all
               </button>
-              <button
-                type="button"
-                className="btn-danger border-red-600 bg-red-600 text-white hover:bg-red-700"
-                disabled={busy}
-                onClick={async () => {
-                  const names = pickedCows.map((r) => r.cells.find((c) => c.href)?.t ?? "").filter(Boolean);
-                  if (!(await ask(`Cull ${picked.length} cow${picked.length === 1 ? "" : "s"}?\n\n${names.join(", ")}\n\nEach one's record turns Culled, today's date goes in her Master Archive, and she leaves Open Inventory. Account > Undo can take it back.`, `Cull ${picked.length}`))) return;
-                  setBusy(true);
-                  try {
-                    const r = await post("/api/transfers", { action: "cull", ids: picked });
-                    toast(`${r.culled} culled.`);
-                    setPicked([]);
-                    router.refresh();
-                  } catch (e) {
-                    toast((e as Error).message, true);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Cull checked ({picked.length})
-              </button>
+              {picks.map((p) => (
+                <button
+                  key={p.action}
+                  type="button"
+                  className={p.danger ? "btn-danger border-red-600 bg-red-600 text-white hover:bg-red-700" : "btn"}
+                  disabled={busy}
+                  onClick={async () => {
+                    if (!(await ask(p.ask.replace("{n}", String(picked.length)).replace("{names}", picked.join(", ")), `${p.label} (${picked.length})`))) return;
+                    setBusy(true);
+                    try {
+                      await post(p.url, { action: p.action, cowIds: picked, ...(p.extra ?? {}) });
+                      toast(`Done - ${picked.length} cow${picked.length === 1 ? "" : "s"}.`);
+                      setPicked([]);
+                      router.refresh();
+                    } catch (e) {
+                      toast((e as Error).message, true);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  {p.label} ({picked.length})
+                </button>
+              ))}
             </span>
           )}
         </div>
@@ -253,14 +277,14 @@ export function Table({
                     {c.pick ? (
                       <input
                         type="checkbox"
-                        aria-label="Cull"
+                        aria-label="Tick"
                         className="edit-only h-4 w-4 cursor-pointer accent-red-600"
                         checked={picked.includes(c.pick)}
                         onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c.pick!] : p.filter((x) => x !== c.pick)))}
                       />
                     ) : c.editRow && lists ? (
                       <EditRecord v={c.editRow} lists={lists} />
-                    ) : c.del ? <DeleteButton id={c.del.id} what={c.del.what} /> : c.edit ? <EditCell e={c.edit} shown={c.t} /> : c.href ? <a className="font-semibold text-brand-600 underline-offset-2 hover:underline" href={c.href}>{c.t}</a> : c.t}
+                    ) : c.del ? <DeleteButton id={c.del.id} what={c.del.what} off={c.del.off} /> : c.edit ? <EditCell e={c.edit} shown={c.t} /> : c.href ? <a className="font-semibold text-brand-600 underline-offset-2 hover:underline" href={c.href}>{c.t}</a> : c.t}
                   </td>
                 ))}
               </tr>

@@ -9,8 +9,9 @@ const { renderToString } = require("react-dom/server");
 const page = (p: string) => require("../src/app/" + p).default;
 
 let fails = 0;
-async function show(name: string, p: string, props: any, must: string[] = [], member = "owner") {
+async function show(name: string, p: string, props: any, must: string[] = [], member = "owner", year = 2026) {
   (global as any).SESSION = { user: { id: (global as any)[member] } };
+  (global as any).YEAR = year;
   try {
     const el = await page(p)(props);
     const html: string = renderToString(el).replace(/<!-- -->/g, "");
@@ -52,12 +53,13 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("transfers", "(staff)/transfers/page", { searchParams: {} }, ["Add transfers", "6148", "Casino x 2246", "503 of 503"]);
   await show("transfers filtered", "(staff)/transfers/page", { searchParams: { batch: "3-12", status: "Safe" } }, ["of 503 records"]);
   await rec.setPregDraft(org.id, (await prisma.transfer.findFirst({ where: { organizationId: org.id, status: "Probable" } }))!.id, "Safe");
-  await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["PREG CHECK RESULT", "Confirm &amp; Archive (1)", "Total Cows", "Cows Checked"]);
+  await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["Days Bred", "Result", "Confirm &amp; Archive (1)", "Total Cows", "Cows Checked"]);
   await show("75+ day", "(staff)/day75/page", { searchParams: {} }, ["Undelivered", "Delivered"]);
   for (const s of ["Cow ID", "Repeat Flag", "Total Attempts", "Times Passed", "Date Checked Open"]) await show(`open sort ${s}`, "(staff)/open/page", { searchParams: { sort: s } }, ["Open Inventory", "NEVER SETTLED"]);
   await show("master archive", "(staff)/archive/page", { searchParams: {} }, ["Master Archive", "Purchased", "Preg Check", "Transfer"]);
   await show("master archive one cow", "(staff)/archive/page", { searchParams: { cow: "348-1" } }, ["1 cow", "Sold"]);
-  await show("open has cull + edit", "(staff)/open/page", { searchParams: {} }, ["Cull", "Edit"]);
+  await show("open has tick, cull, move, add, edit", "(staff)/open/page", { searchParams: {} }, ["Tick", "Edit", "+ Add cows", "Open Inventory - 2026"]);
+  await show("dashboard 2027 is a fresh slate", "(staff)/dashboard/page", { searchParams: {} }, ["No transfers in 2027 yet"], "owner", 2027);
   await show("lookup 054", "(staff)/lookup/page", { searchParams: { cow: "054" } }, ["Cow 054", "Lifetime Attempts", "Her full archive"]);
   await show("lookup none", "(staff)/lookup/page", { searchParams: { cow: "nope" } }, ["No records for Cow ID nope"]);
   await show("repeats", "(staff)/repeats/page", { searchParams: {} }, ["1st Attempt", "Settled After 2 Tries"]);

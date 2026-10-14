@@ -5,10 +5,14 @@ import { PageHeader } from "@/components/Shell";
 import { customerParams, type SP } from "@/lib/customerParams";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
+import { inYear } from "@/lib/recip";
+import { pickedYear } from "@/lib/server/year";
 
 export default async function CustomerSearch({ searchParams }: { searchParams: SP }) {
   const m = await staffPage();
-  const { calc, lists, today } = await loadRanch(m.organizationId);
+  const { calc: all, lists, today } = await loadRanch(m.organizationId);
+  const year = pickedYear();
+  const calc = inYear(all, year);
   const owner = typeof searchParams.owner === "string" ? searchParams.owner : "";
   const { f, show } = customerParams(searchParams, owner);
   return (
@@ -20,7 +24,7 @@ export default async function CustomerSearch({ searchParams }: { searchParams: S
         <input type="hidden" name="go" value="1" />
         <Pick name="owner" label="Owner" value={owner} options={lists.owners} all="Pick an owner" />
         <Pick name="sort" label="Sort By" value={f.sort} options={["Cow ID", "Mating"]} all={null} />
-        <Checks name="b" label="Batch" options={lists.batches.map((b) => b.label)} on={f.batches} />
+        <Checks name="b" label={`Batch (${year})`} options={lists.batches.filter((b) => b.transferDate?.startsWith(String(year))).map((b) => b.label)} on={f.batches} />
         <Checks name="s" label="Status" options={["Safe", "Probable", "Pending", "Open"]} on={f.statuses} />
         <Checks name="m" label="Show on the report" options={[...METRICS]} on={show} />
       </FilterForm>

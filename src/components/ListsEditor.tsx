@@ -28,13 +28,14 @@ export function BatchList({ batches }: { batches: Batch[] }) {
   return (
     <div className="card overflow-hidden">
       <div className="bg-brand-600 px-3 py-2 text-sm font-semibold text-white">Groups (batches)</div>
-      <p className="px-3 pt-2 text-xs text-slate-500">In time order - the order decides which record is a cow&apos;s latest. The label stays text (8-15 never turns into a date).</p>
+      <p className="px-3 pt-2 text-xs text-slate-500">In time order - the order decides which record is a cow&apos;s latest. A group belongs to the year of its transfer date - to start a new year, add its first group with a date in that year. The label stays text (8-15 never turns into a date).</p>
       <table className="keep-width m-2 text-sm">
         <thead>
           <tr className="text-xs text-slate-500">
             <th className="px-2">Order</th>
             <th className="px-2">Group</th>
             <th className="px-2">Transfer Date</th>
+            <th className="px-2">Year</th>
             <th className="px-2">Records</th>
             <th></th>
           </tr>
@@ -53,6 +54,7 @@ export function BatchList({ batches }: { batches: Batch[] }) {
               <td className="tc editable">
                 <input type="date" className="cell-select" defaultValue={b.transferDate ?? ""} onChange={(e) => e.target.value && act({ action: "updateBatch", id: b.id, transferDate: e.target.value }, "Transfer date saved.")} />
               </td>
+              <td className="tc">{b.transferDate?.slice(0, 4) ?? ""}</td>
               <td className="tc">{b.uses}</td>
               <td className="tc">
                 {b.uses === 0 && (

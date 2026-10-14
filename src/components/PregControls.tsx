@@ -22,10 +22,6 @@ export function PregSettings({ s, batches }: { s: S; batches: string[] }) {
   return (
     <div className="card no-print edit-only mb-3 flex flex-wrap items-end gap-3 p-3">
       <label className="text-xs font-medium text-slate-600">
-        Date
-        <input type="date" className="field mt-0.5 w-40" value={f.pregDate} onChange={(e) => save("pregDate", e.target.value)} />
-      </label>
-      <label className="text-xs font-medium text-slate-600">
         Group
         <select className="field mt-0.5 w-28" value={f.pregBatch} onChange={(e) => save("pregBatch", e.target.value)}>
           <option value="">Any group</option>
@@ -47,7 +43,7 @@ export function PregSettings({ s, batches }: { s: S; batches: string[] }) {
   );
 }
 
-export function PregButtons({ typed, offList, hasDate }: { typed: number; offList: number; hasDate: boolean }) {
+export function PregButtons({ typed, offList }: { typed: number; offList: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
@@ -67,12 +63,11 @@ export function PregButtons({ typed, offList, hasDate }: { typed: number; offLis
         Clear typed results
       </button>
       <button
-        className={typed && hasDate ? "btn-go" : "btn"}
+        className={typed ? "btn-go" : "btn"}
         disabled={!typed || busy}
         onClick={async () => {
-          if (!hasDate) return toast("Enter the preg check Date first.", true);
           const extra = offList ? `\n\n${offList} of them belong to cows not on the list showing now (typed under another Group or age range) - they are confirmed too.` : "";
-          if (!(await ask(`Confirm ${typed} result${typed === 1 ? "" : "s"}? Each goes onto her record and into the Preg Check Archive.${extra}\n\nAccount > Undo can take it back.`, "Confirm & Archive"))) return;
+          if (!(await ask(`Confirm ${typed} result${typed === 1 ? "" : "s"}? Each goes onto her record and into the Preg Check Archive with its own Check Date.${extra}\n\nAccount > Undo can take it back.`, "Confirm & Archive"))) return;
           setBusy(true);
           try {
             const r = await post("/api/preg", { action: "confirm" });
