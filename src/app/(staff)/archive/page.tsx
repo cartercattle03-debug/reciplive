@@ -2,10 +2,10 @@ import { ArchiveTable } from "@/components/ArchiveTable";
 import { PageHeader } from "@/components/Shell";
 import { cowArchive } from "@/lib/cowArchive";
 import { loadRanch } from "@/lib/server/data";
-import { staffPage } from "@/lib/server/session";
+import { ownerPage } from "@/lib/server/session";
 
 export default async function MasterArchive({ searchParams }: { searchParams: { cow?: string } }) {
-  const m = await staffPage();
+  const m = await ownerPage();
   const { calc, archive, cows, events } = await loadRanch(m.organizationId);
   const cow = (searchParams.cow ?? "").trim();
   const steps = cowArchive(calc, archive, cows, events, cow || undefined);

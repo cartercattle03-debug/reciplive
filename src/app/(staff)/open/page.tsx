@@ -46,7 +46,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
         title={`Open Inventory - ${year}`}
         sub={`Every cow open in ${year}, ready for her next attempt: checked Open in ${year} (a Nov / Dec transfer checked Open in January lands in the new year), a Pass, or added here. She drops off when a new transfer goes in for her. Tick cows to cull them or move them to ${year + 1}'s opens; the red ✕ takes a gone cow off the list. Yellow = passed over twice or more.`}
       >
-        <AddOpenCows year={year} />
+        {m.role === "OWNER" && <AddOpenCows year={year} />}
       </PageHeader>
       <FilterForm>
         <Pick name="sort" label="Sort By" value={sort} options={[...OPEN_SORTS]} all={null} />

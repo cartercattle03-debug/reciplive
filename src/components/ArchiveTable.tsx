@@ -6,7 +6,7 @@ import type { Step } from "@/lib/cowArchive";
 const TONE: Record<string, string> = { Purchased: "text-brand-700", Transfer: "", Pass: "text-slate-500", "Preg Check": "text-amber-800", Delivered: "text-emerald-700", Culled: "text-red-700", "Open List": "text-slate-600", Sold: "text-brand-700" };
 
 /** A cow's whole story, one line per step, in order. With every cow, a heavy line marks where the next cow starts. */
-export function ArchiveTable({ steps, showCow = true }: { steps: Step[]; showCow?: boolean }) {
+export function ArchiveTable({ steps, showCow = true, showMoney = true }: { steps: Step[]; showCow?: boolean; showMoney?: boolean }) {
   const rows: Row[] = steps.map((s, i) => ({
     key: `${s.cowId}-${i}`,
     cls: showCow && i > 0 && steps[i - 1].cowId !== s.cowId ? "cow-break" : "",
@@ -22,14 +22,14 @@ export function ArchiveTable({ steps, showCow = true }: { steps: Step[]; showCow
       { t: s.grade },
       { t: s.company },
       { t: s.result, cls: s.result ? `st-${s.result.replace(/\s/g, "")}` : "" },
-      { t: money(s.money), s: s.money ?? "" },
+      ...(showMoney ? [{ t: money(s.money), s: s.money ?? "" }] : []),
       { t: s.notes },
     ],
   }));
   return (
     <Table
       search={showCow}
-      cols={[...(showCow ? [{ label: "Cow ID" }] : []), { label: "Date" }, { label: "Process" }, { label: "Attempt #" }, { label: "Group" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Result / Status" }, { label: "Price" }, { label: "Notes" }]}
+      cols={[...(showCow ? [{ label: "Cow ID" }] : []), { label: "Date" }, { label: "Process" }, { label: "Attempt #" }, { label: "Group" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Result / Status" }, ...(showMoney ? [{ label: "Price" }] : []), { label: "Notes" }]}
       rows={rows}
       empty="Nothing on record yet."
       maxHeight={showCow}

@@ -108,9 +108,17 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   }
   // Manager: sees every page, view only - every save refused.
   const mlay = await show("manager layout is view only", "(staff)/layout", { children: "x" }, ["data-view", "View only", "Dashboard"], "mgr");
-  if (/>Billing</.test(mlay)) { fails++; console.log("FAIL manager menu shows Billing"); } else console.log("ok   manager menu has no Billing tab");
-  await show("owner menu has Billing", "(staff)/layout", { children: "x" }, [">Billing<"]);
+  if (/>Billing<|>Master Sheet<|>Master Archive</.test(mlay)) { fails++; console.log("FAIL manager menu shows a money tab"); } else console.log("ok   manager menu has no Billing / Master Sheet / Master Archive");
+  await show("owner menu has Billing", "(staff)/layout", { children: "x" }, [">Billing<", ">Master Sheet<", ">Master Archive<"]);
   await show("manager sees transfers", "(staff)/transfers/page", { searchParams: {} }, ["6148"], "mgr");
+  await show("manager kept off Master Sheet", "(staff)/master/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
+  await show("manager kept off Master Archive", "(staff)/archive/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
+  const olk = await show("owner lookup 348-1 shows money", "(staff)/lookup/page", { searchParams: { cow: "348-1" } }, ["Cow 348-1", "Price", "Sold"]);
+  const mlk = await show("manager lookup 348-1", "(staff)/lookup/page", { searchParams: { cow: "348-1" } }, ["Cow 348-1", "Her full archive"], "mgr");
+  if (/\$\d|>Price<|Purchased|>Sold<|Cost /.test(mlk)) { fails++; console.log("FAIL manager lookup shows money"); } else console.log("ok   manager lookup shows no money");
+  if (!/\$\d/.test(olk)) { fails++; console.log("FAIL owner lookup lost the money"); }
+  const mop = await show("manager open inventory", "(staff)/open/page", { searchParams: {} }, ["Open Inventory"], "mgr");
+  if (/Purchase Date/.test(mop)) { fails++; console.log("FAIL manager open page has purchase form"); }
   await show("manager kept off Import", "(staff)/import/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
   const { staffApi } = require("../src/lib/server/session");
   (global as any).SESSION = { user: { id: mu.id } };

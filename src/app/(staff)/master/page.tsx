@@ -3,10 +3,10 @@ import { Table, type Row } from "@/components/Table";
 import { cowCell, money } from "@/lib/cells";
 import { compareFamily, masterSheet } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
-import { staffPage } from "@/lib/server/session";
+import { ownerPage } from "@/lib/server/session";
 
 export default async function Master() {
-  const m = await staffPage();
+  const m = await ownerPage();
   const { calc, cows } = await loadRanch(m.organizationId);
   const lines = masterSheet(calc);
   // A Master Sheet line for a cow with no transfers (yet) still shows.

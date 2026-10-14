@@ -39,7 +39,7 @@ export async function staffPage(): Promise<Member> {
   if (m.role === "CUSTOMER") redirect("/my");
   return m;
 }
-/** For an owner-only page (Billing): a Manager login goes back to the Dashboard - no access to billing (Carter, 2026-10-14). */
+/** For an owner-only page (Billing, Master Sheet, Master Archive): a Manager login goes back to the Dashboard - no access to anything money or customer contact info (Carter, 2026-10-14). */
 export async function ownerPage(): Promise<Member> {
   const m = await staffPage();
   if (m.role !== "OWNER") redirect("/dashboard");

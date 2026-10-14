@@ -26,8 +26,8 @@ export const TAB_GROUPS: { name: string; tabs: { href: string; label: string; ow
     name: "Cow records",
     tabs: [
       { href: "/lookup", label: "Cow Lookup" },
-      { href: "/master", label: "Master Sheet" },
-      { href: "/archive", label: "Master Archive" },
+      { href: "/master", label: "Master Sheet", ownerOnly: true },
+      { href: "/archive", label: "Master Archive", ownerOnly: true },
     ],
   },
   {
@@ -40,7 +40,7 @@ export const TAB_GROUPS: { name: string; tabs: { href: string; label: string; ow
 ];
 export const TABS = TAB_GROUPS.flatMap((g) => g.tabs);
 
-/** owner = false hides the owner-only tabs (Billing): a Manager login has no access to billing (Carter, 2026-10-14). */
+/** owner = false hides the owner-only tabs (Billing, Master Sheet, Master Archive): a Manager login sees nothing about money or customer contact info (Carter, 2026-10-14). */
 export function Nav({ owner = true }: { owner?: boolean }) {
   const path = usePathname() ?? "";
   return (

@@ -10,7 +10,12 @@ import { cowArchive } from "@/lib/cowArchive";
 
 export default async function CowLookup({ searchParams }: { searchParams: { cow?: string } }) {
   const m = await staffPage();
-  const { calc, cows, archive, events } = await loadRanch(m.organizationId);
+  const R = await loadRanch(m.organizationId);
+  const { calc, archive, events } = R;
+  // A Manager login sees nothing about money (Carter, 2026-10-14): her purchase, cost, loan, sale and transaction # stay off the
+  // page - so her archive below has no Purchased or Sold lines and no Price column.
+  const owner = m.role === "OWNER";
+  const cows = owner ? R.cows : new Map<string, never>();
   const id = (searchParams.cow ?? "").trim();
   const h = id ? cowHistory(calc, id) : [];
   const last = h[h.length - 1];
@@ -48,7 +53,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
           <h2 className="mb-1.5 text-sm font-semibold text-brand-700">Transfers</h2>
           <Table cols={[{ label: "Attempt #" }, { label: "Batch" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Transfer Date" }, { label: "Delivery Status" }, { label: "Notes" }]} rows={rows} maxHeight={false} />
           <h2 className="mb-1.5 mt-6 text-sm font-semibold text-brand-700">Her full archive, in order</h2>
-          <ArchiveTable steps={cowArchive(calc, archive, cows, events, last.cowId)} showCow={false} />
+          <ArchiveTable steps={cowArchive(calc, archive, cows, events, last.cowId)} showCow={false} showMoney={owner} />
         </>
       )}
     </div>
