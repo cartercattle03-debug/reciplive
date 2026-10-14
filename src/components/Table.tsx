@@ -284,7 +284,7 @@ export function Table({
                       />
                     ) : c.editRow && lists ? (
                       <EditRecord v={c.editRow} lists={lists} />
-                    ) : c.del ? <DeleteButton id={c.del.id} what={c.del.what} off={c.del.off} /> : c.edit ? <EditCell e={c.edit} shown={c.t} /> : c.href ? <a className="font-semibold text-brand-600 underline-offset-2 hover:underline" href={c.href}>{c.t}</a> : c.t}
+                    ) : c.del ? <DeleteButton id={c.del.id} what={c.del.what} off={c.del.off} /> : c.edit ? <EditCell e={c.edit} shown={c.t} /> : c.href ? <a className="font-bold text-black underline-offset-2 hover:underline" href={c.href}>{c.t}</a> : c.t}
                   </td>
                 ))}
               </tr>

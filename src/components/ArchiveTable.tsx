@@ -15,7 +15,7 @@ export function ArchiveTable({ steps, showCow = true }: { steps: Step[]; showCow
       { t: s.date ? showDate(s.date) : s.when, s: s.date ?? "" },
       { t: s.process, cls: `font-semibold ${TONE[s.process] ?? ""}` },
       numCell(s.attempt),
-      { t: s.batch },
+      { t: s.batch, cls: "grp" },
       { t: s.mating },
       { t: s.owner },
       { t: s.embryoType },

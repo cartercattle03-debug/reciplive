@@ -69,7 +69,7 @@ export default async function Dashboard() {
           <tbody>
             {g.rows.map((r, i) => (
               <tr key={r.value} className="even:bg-stripe">
-                <td className="tc font-semibold">{r.value}</td>
+                <td className="tc grp">{r.value}</td>
                 <td className="tc">{yb[i]?.transferDate ? new Date(yb[i].transferDate + "T12:00:00").toLocaleDateString("en-US") : ""}</td>
                 {[r.total, r.pass, r.safe, r.probable, r.pending, r.open, r.unchecked].map((n, k) => (
                   <td key={k} className="tc">{n}</td>

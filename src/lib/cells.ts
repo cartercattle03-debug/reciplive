@@ -14,4 +14,4 @@ export const textCell = (t: string): Cell => ({ t });
 export const money = (n: number | null) => (n === null || n === undefined ? "" : "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 /** Batch sorts by its place in time, not its letters. */
-export const batchCell = (c: Calc): Cell => ({ t: c.batch, s: c.batchOrder });
+export const batchCell = (c: Calc): Cell => ({ t: c.batch, s: c.batchOrder, cls: "grp" });

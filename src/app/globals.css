@@ -156,3 +156,11 @@ tr.cow-break > td {
 main table tbody td.tc {
   border-bottom: 1px solid #6b7280;
 }
+
+/* Cow IDs read black everywhere (Carter, 2026-10-14); the Group column carries the blue. */
+td.tc.grp,
+td.tc.grp .ic,
+td.tc.grp select {
+  color: #0369a1 !important;
+  font-weight: 700;
+}
