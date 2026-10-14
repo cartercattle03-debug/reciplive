@@ -22,3 +22,4 @@
 - 2026-10-14: Table rows: light gray every other row + thin charcoal line under each row (look D).
 - 2026-10-14: Page tabs on a solid blue bar, white bold text; the open page is a white tab with a copper line.
 - 2026-10-14: Cow IDs black on every page; the Group column is the blue one.
+- 2026-10-14: Preg Check: Status next to Result; only the Result column is cream-shaded (others still click to edit); Notes twice as wide (also on Transfers and Open Inventory).

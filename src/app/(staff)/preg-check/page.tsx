@@ -23,11 +23,11 @@ export default async function PregCheck() {
       { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
       numCell(c.embryoAge),
       { t: c.pregDraft ?? "", cls: c.pregDraft ? `st-${c.pregDraft}` : "", edit: { api: "preg", id: c.id, field: "result", kind: "select", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
-      c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
       { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
-      { t: c.mating, edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
-      { ...dateCell(c.dueDate), cls: c.dueOverride ? "font-semibold" : "", title: c.dueOverride ? "Typed in by hand" : "Transfer date + 276", edit: { api: "transfers", id: c.id, field: "dueOverride", kind: "date", value: c.dueDate ?? "" } },
-      { t: c.notes, edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } },
+      c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), cls: "noshade", edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
+      { t: c.mating, cls: "noshade", edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
+      { ...dateCell(c.dueDate), cls: "noshade" + (c.dueOverride ? " font-semibold" : ""), title: c.dueOverride ? "Typed in by hand" : "Transfer date + 276", edit: { api: "transfers", id: c.id, field: "dueOverride", kind: "date", value: c.dueDate ?? "" } },
+      { t: c.notes, cls: "noshade notes", edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } },
     ],
   }));
   return (
@@ -62,7 +62,7 @@ export default async function PregCheck() {
         ))}
       </div>
       <Table
-        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
+        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
         rows={rows}
         empty="No cows due with this Group / age range."
       />

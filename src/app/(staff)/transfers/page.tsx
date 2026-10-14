@@ -40,7 +40,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       { t: c.company, edit: ed(c.id, "company", c.company, "select", lists.companies) },
       { t: c.status, cls: c.status ? `st-${c.status.replace(/\s/g, "")}` : "", edit: ed(c.id, "status", c.status, "select", [...STATUSES]) },
       { t: c.deliveryStatus, edit: ed(c.id, "deliveryStatus", c.deliveryStatus, "select", [...DELIVERY]) },
-      { t: c.notes, edit: ed(c.id, "notes", c.notes) },
+      { t: c.notes, cls: "notes", edit: ed(c.id, "notes", c.notes) },
       numCell(c.attemptNo),
       numCell(c.totalAttempts),
       { t: c.repeatFlag, cls: c.repeatFlag === "NEVER SETTLED" ? "text-red-700" : "" },

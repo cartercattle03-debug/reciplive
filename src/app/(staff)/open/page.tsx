@@ -35,7 +35,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
         { t: c?.status ?? "", cls: c ? `st-${c.status}` : "" },
         { t: c?.batch ?? "", s: c?.batchOrder ?? 0, cls: "grp" },
         dateCell(e.dateCheckedOpen),
-        c ? { t: c.notes, edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } } : { t: "" },
+        c ? { t: c.notes, cls: "notes", edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } } : { t: "" },
         c ? { t: "", editRow: { id: c.id, batch: c.batch, cowId: c.cowId, mating: c.mating, owner: c.owner, embryoType: c.embryoType, grade: c.grade, company: c.company, status: c.status, notes: c.notes } } : { t: "" },
       ],
     };

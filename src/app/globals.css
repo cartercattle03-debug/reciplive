@@ -164,3 +164,17 @@ td.tc.grp select {
   color: #0369a1 !important;
   font-weight: 700;
 }
+
+/* A cell can stay clickable without the cream shading (Preg Check: only Result is shaded). */
+td.tc.editable.noshade,
+tbody tr:nth-child(even) td.tc.editable.noshade {
+  background-color: transparent;
+}
+/* Notes: twice as wide, and the typing box fills it. */
+td.tc.notes {
+  min-width: 16rem;
+  white-space: normal;
+}
+td.tc.notes .cell-input {
+  width: 100%;
+}
