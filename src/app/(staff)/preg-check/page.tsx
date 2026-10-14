@@ -46,16 +46,16 @@ export default async function PregCheck() {
         <b>{m.ranch} - Preg Check {showDate(org?.pregDate)}</b> {org?.pregBatch ? ` · Group ${org.pregBatch}` : ""}
         {org?.pregMinAge != null || org?.pregMaxAge != null ? ` · Age ${org?.pregMinAge ?? ""}-${org?.pregMaxAge ?? ""} days` : ""}
       </div>
-      <div className="mb-3 flex flex-wrap gap-2 text-xs">
+      <div className="mb-3 flex flex-wrap gap-2 text-sm">
         {[
-          ["On the list", String(list.length)],
-          ["Results typed", String(results.length)],
-          ["% Probable", pct("Probable")],
-          ["% Safe", pct("Safe")],
-          ["% Open", pct("Open")],
-        ].map(([k, v]) => (
-          <span key={k} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-            {k} <strong className="ml-0.5 text-slate-900">{v}</strong>
+          ["Total Cows", String(list.length), "border-slate-200 bg-white text-slate-700"],
+          ["Cows Checked", String(results.length), "border-slate-200 bg-white text-slate-700"],
+          ["% Probable", pct("Probable"), "border-amber-300 bg-amber-100 text-amber-900"],
+          ["% Safe", pct("Safe"), "border-emerald-300 bg-emerald-100 text-emerald-900"],
+          ["% Open", pct("Open"), "border-red-300 bg-red-100 text-red-900"],
+        ].map(([k, v, tone]) => (
+          <span key={k} className={"rounded-md border px-3 py-1.5 font-medium " + tone}>
+            {k} <strong className="ml-1 text-base">{v}</strong>
           </span>
         ))}
       </div>
