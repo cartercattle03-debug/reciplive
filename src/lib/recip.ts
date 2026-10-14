@@ -129,14 +129,15 @@ export type CullNote = { transferId: string | null; detail: string };
 /**
  * What a record's transfer actually came to, for the pregnancy-rate math (Carter, 2026-10-14):
  * culling a cow doesn't erase the result - a cow called Open and then culled still counts against the Open number.
- * A culled record counts as Open - unless she was confirmed Safe on it first (that pregnancy stands), or it was
- * a Pass (no transfer, so it never counts). Culled after only a Probable = not confirmed = Open.
+ * A culled record counts as Open - a failed pregnancy, even one that was checked Safe first (Carter, 2026-10-14: cow 6019).
+ * Only two exceptions: a culled Pass stays a Pass (no transfer, never counts), and a cow already marked Delivered
+ * keeps her Safe (the calf came).
  */
-function outcomeOf(r: Transfer, lastResult: Map<string, string>, culls: CullNote[]): string {
+function outcomeOf(r: Transfer, _lastResult: Map<string, string>, culls: CullNote[]): string {
   if (r.status !== "Culled") return r.status;
-  if (lastResult.get(`${norm(r.batch)}|${norm(r.cowId)}|${norm(r.mating).toLowerCase()}`) === "Safe") return "Safe";
+  if (r.deliveryStatus === "Delivered") return "Safe";
   const was = culls.find((c) => c.transferId === r.id)?.detail.match(/^was (\w[\w ]*)$/)?.[1];
-  if (was === "Safe" || was === "Pass") return was;
+  if (was === "Pass") return "Pass";
   return "Open";
 }
 

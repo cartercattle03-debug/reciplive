@@ -25,7 +25,8 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - One Transfer row per cow per transfer, or a **Pass** (chute visit, no transfer). Pass counts toward Total Attempts.
 - **Latest record** = highest batch order (Lists), then last entered. Current status always reads from it.
 - Pregnancy Rate = (Safe + Probable) / (Safe + Open + Probable). Pending and Pass never count. A **Culled** record still counts
-  (Carter, 2026-10-14): as Open - or Safe if she was confirmed Safe on it before the cull, or Pass if it was a Pass (`outcome` in recip.ts).
+  (Carter, 2026-10-14): as Open, a failed pregnancy - even if she was checked Safe first. A culled Pass stays a Pass; a cow already
+  marked Delivered keeps her Safe (`outcome` in recip.ts).
 - Never Settled = 0 Safe and 2+ Open. Repeat = 2+ records otherwise. Single = 1 record.
 - Due Date = transfer date + 276. Embryo Age = days since transfer + 7.
 - Preg Check list = latest record Pending / Probable / blank, filtered by Group or Min/Max age. Results are drafts on
