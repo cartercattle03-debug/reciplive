@@ -20,14 +20,17 @@ export const TABS: { href: string; label: string }[] = [
 export function Nav() {
   const path = usePathname() ?? "";
   return (
-    <nav className="no-print flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3">
+    <nav className="no-print flex gap-1 overflow-x-auto bg-brand-600 px-3 pt-1.5 shadow-sm">
       {TABS.map((t) => {
         const on = path === t.href || path.startsWith(t.href + "/");
         return (
           <Link
             key={t.href}
             href={t.href}
-            className={"whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition " + (on ? "border-rust text-brand-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900")}
+            className={
+              "whitespace-nowrap rounded-t-md border-b-[3px] px-3.5 py-2.5 text-[15px] font-semibold transition " +
+              (on ? "border-rust bg-white text-brand-700" : "border-transparent text-white/90 hover:bg-brand-700 hover:text-white")
+            }
           >
             {t.label}
           </Link>
