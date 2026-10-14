@@ -43,6 +43,7 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - Customer logins (role CUSTOMER + ownerName) see only that owner's records, read only.
 - Manager logins are view only (Carter, 2026-10-14): every page, but no changes, no imports, no print / download. Only the OWNER saves (`staffApi`).
 - Big steps (import, Confirm & Archive, delete, cull, Undo) go through `withSnapshot()`.
+- Billing (`lib/billing.ts`, `lib/server/billing.ts`, /billing): bills Safe records (outcome Safe) not on an open invoice; one invoice per owner; price / lines / adjustments editable until Void; QuickBooks Online CSV import (`qboCsv`). Invoices are not in Undo snapshots on purpose.
 - Master Archive (`src/lib/cowArchive.ts`) is built live from Transfer + PregArchive + CowRecord + CowEvent (cull dates) - nothing stored twice.
 
 ## Workbook import clean-ups (found in Carter's file, 2026-10-14)

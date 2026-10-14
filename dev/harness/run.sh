@@ -7,3 +7,4 @@ python3 "$TC/genschema.py" "$HERE/../../prisma/schema.prisma" "$TC/schema2.json"
 python3 "$TC/make-prisma-types.py" "$HERE/../../prisma/schema.prisma" "$TC/node_modules/@prisma/client/index.d.ts" >/dev/null
 tsc -p "$HERE/tsconfig.test.json" >/dev/null || true
 node -r "$HERE/stubs.js" "$TC/out/dev/t_flow.js"
+node -r "$HERE/stubs.js" "$TC/out/dev/t_billing.js"

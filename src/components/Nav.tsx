@@ -14,6 +14,7 @@ export const TABS: { href: string; label: string }[] = [
   { href: "/customer", label: "Customer Search" },
   { href: "/master", label: "Master Sheet" },
   { href: "/archive", label: "Master Archive" },
+  { href: "/billing", label: "Billing" },
   { href: "/lists", label: "Lists" },
 ];
 

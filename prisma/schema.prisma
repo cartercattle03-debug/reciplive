@@ -32,6 +32,14 @@ model Organization {
   pregBatch  String?
   pregMinAge Int?
   pregMaxAge Int?
+  // Billing (Carter, 2026-10-14): one price per confirmed 75-day pregnancy, the QuickBooks Product/Service it bills
+  // as, payment terms in days, and the next invoice number.
+  invoicePrice  Float?
+  invoiceItem   String?
+  invoiceTerms  Int?
+  nextInvoiceNo Int?
+  /// The QuickBooks Product/Service an adjustment line bills as.
+  adjustItem    String?
 
   memberships Membership[]
   batches     Batch[]
@@ -41,6 +49,7 @@ model Organization {
   cows        CowRecord[]
   snapshots   Snapshot[]
   events      CowEvent[]
+  invoices    Invoice[]
 }
 
 model User {
@@ -189,4 +198,49 @@ model CowEvent {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, cowId])
+}
+
+/// An invoice for confirmed 75-day pregnancies. Void keeps it on file and frees its cows to be billed again.
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  number         Int
+  owner          String
+  /// The QuickBooks customer name (starts as the owner).
+  billTo         String
+  invoiceDate    String
+  dueDate        String
+  price          Float
+  item           String
+  memo           String        @default("")
+  status         String        @default("Open")
+  exportedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  lines          InvoiceLine[]
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, number])
+}
+
+/// One line on an invoice: a confirmed pregnancy (a copy of what was billed, as it was that day) or an adjustment
+/// (a discount / credit as a minus amount, or an extra charge) with its own description.
+model InvoiceLine {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  organizationId String
+  kind           String   @default("Pregnancy")
+  description    String   @default("")
+  position       Int      @default(0)
+  transferId     String?
+  cowId          String   @default("")
+  batch          String   @default("")
+  transferDate   String?
+  mating         String   @default("")
+  dueDate        String?
+  confirmedDate  String?
+  daysPreg       Int?
+  amount         Float
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, transferId])
 }
