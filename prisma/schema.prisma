@@ -40,6 +40,7 @@ model Organization {
   archive     PregArchive[]
   cows        CowRecord[]
   snapshots   Snapshot[]
+  events      CowEvent[]
 }
 
 model User {
@@ -160,4 +161,20 @@ model Snapshot {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
+}
+
+/// Something that happened to a cow that isn't a transfer or a preg check - so far a cull (with its date).
+/// The Master Archive reads these alongside her transfers, preg checks, delivery and the Master Sheet.
+model CowEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  cowId          String
+  date           String
+  kind           String
+  detail         String       @default("")
+  transferId     String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, cowId])
 }

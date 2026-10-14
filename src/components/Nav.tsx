@@ -13,6 +13,7 @@ export const TABS: { href: string; label: string }[] = [
   { href: "/breakdowns", label: "Breakdowns" },
   { href: "/customer", label: "Customer Search" },
   { href: "/master", label: "Master Sheet" },
+  { href: "/archive", label: "Master Archive" },
   { href: "/lists", label: "Lists" },
 ];
 

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
+import { EditRecord, type EditLists, type RecordValues } from "./EditRecord";
 
 /** What a cell can save to. Kept as plain data so a server page can hand it over. */
 export type Edit = {
@@ -23,6 +24,10 @@ export type Cell = {
   title?: string;
   /** A Delete button for this transfer record (asks first; Undo can bring it back). */
   del?: { id: string; what: string };
+  /** A tick box (the record id) - Open Inventory's Cull. */
+  pick?: string;
+  /** An Edit button opening her record in a pop-up. */
+  editRow?: RecordValues;
 };
 export type Row = { key: string; cells: Cell[]; cls?: string };
 export type Col = { label: string; title?: string; noSort?: boolean };
@@ -38,7 +43,9 @@ function DeleteButton({ id, what }: { id: string; what: string }) {
   return (
     <button
       type="button"
-      className="edit-only rounded px-2 text-xs font-medium text-red-700 hover:bg-red-50"
+      title={`Delete ${what}`}
+      aria-label={`Delete ${what}`}
+      className="edit-only rounded px-1.5 text-base font-bold leading-none text-red-600 hover:bg-red-50 hover:text-red-700"
       onClick={async () => {
         if (!(await ask(`Delete ${what}?\n\nA copy is kept - Account > Undo can bring it back.`, "Delete"))) return;
         try {
@@ -50,7 +57,7 @@ function DeleteButton({ id, what }: { id: string; what: string }) {
         }
       }}
     >
-      Delete
+      ✕
     </button>
   );
 }
@@ -133,8 +140,30 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
  * The one table every page uses: navy heading row that stays put while scrolling, tan stripes,
  * click a heading to sort (again to reverse), click a cream cell to change it.
  */
-export function Table({ cols, rows, empty = "Nothing here yet.", search, maxHeight = true }: { cols: Col[]; rows: Row[]; empty?: string; search?: boolean; maxHeight?: boolean }) {
+export function Table({
+  cols,
+  rows,
+  empty = "Nothing here yet.",
+  search,
+  maxHeight = true,
+  lists,
+  cull,
+}: {
+  cols: Col[];
+  rows: Row[];
+  empty?: string;
+  search?: boolean;
+  maxHeight?: boolean;
+  /** Choices for the Edit pop-up. */
+  lists?: EditLists;
+  /** Tick boxes are for culling: a "Cull checked" button shows. */
+  cull?: boolean;
+}) {
+  const router = useRouter();
   const [sort, setSort] = useState<{ i: number; dir: 1 | -1 } | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const pickedCows = rows.filter((r) => r.cells.some((c) => c.pick && picked.includes(c.pick)));
   const [q, setQ] = useState("");
   const shown = useMemo(() => {
     let out = rows;
@@ -157,10 +186,39 @@ export function Table({ cols, rows, empty = "Nothing here yet.", search, maxHeig
   }, [rows, sort, q]);
   return (
     <div>
-      {search && (
-        <div className="no-print mb-2 flex items-center gap-2">
-          <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />
+      {(search || cull) && (
+        <div className="no-print mb-2 flex flex-wrap items-center gap-2">
+          {search && <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />}
           {q && <span className="text-xs text-slate-500">{shown.length} of {rows.length}</span>}
+          {cull && picked.length > 0 && (
+            <span className="edit-only ml-auto flex items-center gap-2">
+              <button type="button" className="btn-quiet" onClick={() => setPicked([])}>
+                Untick all
+              </button>
+              <button
+                type="button"
+                className="btn-danger border-red-600 bg-red-600 text-white hover:bg-red-700"
+                disabled={busy}
+                onClick={async () => {
+                  const names = pickedCows.map((r) => r.cells.find((c) => c.href)?.t ?? "").filter(Boolean);
+                  if (!(await ask(`Cull ${picked.length} cow${picked.length === 1 ? "" : "s"}?\n\n${names.join(", ")}\n\nEach one's record turns Culled, today's date goes in her Master Archive, and she leaves Open Inventory. Account > Undo can take it back.`, `Cull ${picked.length}`))) return;
+                  setBusy(true);
+                  try {
+                    const r = await post("/api/transfers", { action: "cull", ids: picked });
+                    toast(`${r.culled} culled.`);
+                    setPicked([]);
+                    router.refresh();
+                  } catch (e) {
+                    toast((e as Error).message, true);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Cull checked ({picked.length})
+              </button>
+            </span>
+          )}
         </div>
       )}
       <div className={"card overflow-auto print-full " + (maxHeight ? "max-h-[calc(100vh-14rem)]" : "")}>
@@ -192,7 +250,17 @@ export function Table({ cols, rows, empty = "Nothing here yet.", search, maxHeig
               <tr key={r.key} className={"even:bg-stripe " + (r.cls ?? "")}>
                 {r.cells.map((c, i) => (
                   <td key={i} title={c.title} className={"tc " + (c.edit ? "editable " : "") + (c.cls ?? "")}>
-                    {c.del ? <DeleteButton id={c.del.id} what={c.del.what} /> : c.edit ? <EditCell e={c.edit} shown={c.t} /> : c.href ? <a className="font-semibold text-brand-600 underline-offset-2 hover:underline" href={c.href}>{c.t}</a> : c.t}
+                    {c.pick ? (
+                      <input
+                        type="checkbox"
+                        aria-label="Cull"
+                        className="edit-only h-4 w-4 cursor-pointer accent-red-600"
+                        checked={picked.includes(c.pick)}
+                        onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c.pick!] : p.filter((x) => x !== c.pick)))}
+                      />
+                    ) : c.editRow && lists ? (
+                      <EditRecord v={c.editRow} lists={lists} />
+                    ) : c.del ? <DeleteButton id={c.del.id} what={c.del.what} /> : c.edit ? <EditCell e={c.edit} shown={c.t} /> : c.href ? <a className="font-semibold text-brand-600 underline-offset-2 hover:underline" href={c.href}>{c.t}</a> : c.t}
                   </td>
                 ))}
               </tr>

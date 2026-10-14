@@ -54,7 +54,38 @@ export async function updateTransfer(orgId: string, id: string, field: string, v
   const row = await prisma.transfer.findFirst({ where: { id, organizationId: orgId } });
   if (!row) throw new HttpError(404, "That record is gone - refresh the page.");
   const v = await checkValue(orgId, field as TransferField, value);
-  await prisma.transfer.update({ where: { id }, data: { [field]: v } as any });
+  await atomic(async () => {
+    await prisma.transfer.update({ where: { id }, data: { [field]: v } as any });
+    // A cull keeps its date in her archive, however it was made.
+    if (field === "status" && v === "Culled" && row.status !== "Culled") await logCull(orgId, row.cowId, row.id, row.status);
+  });
+}
+
+async function logCull(orgId: string, cowId: string, transferId: string, was: string) {
+  await prisma.cowEvent.create({ data: { organizationId: orgId, cowId, date: ranchToday(), kind: "Culled", detail: was ? `was ${was}` : "", transferId } });
+}
+
+/** Edit from a pop-up (Open Inventory): only the columns that changed, all or nothing. */
+export async function editTransfer(orgId: string, id: string, patch: Record<string, unknown>) {
+  const fields = Object.keys(patch ?? {}).filter((f) => (TRANSFER_FIELDS as readonly string[]).includes(f));
+  if (!fields.length) throw new HttpError(400, "Nothing changed.");
+  await atomic(async () => {
+    for (const f of fields) await updateTransfer(orgId, id, f, patch[f]);
+  });
+}
+
+/** Cull the checked cows: her record (the latest one, from Open Inventory) turns Culled and the date goes in her archive. */
+export async function cullTransfers(orgId: string, ids: string[]) {
+  const rows = await prisma.transfer.findMany({ where: { organizationId: orgId, id: { in: ids } } });
+  const todo = rows.filter((r) => r.status !== "Culled");
+  if (!todo.length) throw new HttpError(400, "Tick at least one cow to cull.");
+  return withSnapshot(orgId, `Culled ${todo.length} cow${todo.length === 1 ? "" : "s"} (${todo.slice(0, 5).map((r) => r.cowId).join(", ")}${todo.length > 5 ? " ..." : ""})`, async () => {
+    for (const r of todo) {
+      await prisma.transfer.update({ where: { id: r.id }, data: { status: "Culled" } });
+      await logCull(orgId, r.cowId, r.id, r.status);
+    }
+    return { culled: todo.length };
+  });
 }
 
 /** New rows go on the end of the list, in the order given. All-or-nothing. */
@@ -283,6 +314,7 @@ export async function importWorkbook(orgId: string, p: ParsedWorkbook) {
   return withSnapshot(orgId, `Workbook import (${p.transfers.length} transfers)`, async () => {
     const w = { where: { organizationId: orgId } };
     await prisma.pregArchive.deleteMany(w);
+    await prisma.cowEvent.deleteMany(w);
     await prisma.transfer.deleteMany(w);
     await prisma.cowRecord.deleteMany(w);
     await prisma.batch.deleteMany(w);

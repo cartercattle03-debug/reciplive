@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { calculate, ranchToday, type ArchiveRow, type Calc, type CowExtra, type Transfer } from "@/lib/recip";
+import type { CowEventRow } from "@/lib/cowArchive";
 
 export type Lists = {
   batches: { id: string; label: string; transferDate: string | null; order: number }[];
@@ -19,11 +20,12 @@ export async function loadLists(orgId: string): Promise<Lists> {
 
 /** Everything a page needs: the transfer list worked out live, the lists, the archive and the Master Sheet entries. */
 export async function loadRanch(orgId: string, opts: { owner?: string | null } = {}) {
-  const [lists, rows, archiveRows, cowRows] = await Promise.all([
+  const [lists, rows, archiveRows, cowRows, eventRows] = await Promise.all([
     loadLists(orgId),
     prisma.transfer.findMany({ where: { organizationId: orgId }, orderBy: { seq: "asc" } }),
     prisma.pregArchive.findMany({ where: { organizationId: orgId }, orderBy: [{ checkDate: "asc" }, { createdAt: "asc" }] }),
     prisma.cowRecord.findMany({ where: { organizationId: orgId } }),
+    prisma.cowEvent.findMany({ where: { organizationId: orgId }, orderBy: [{ date: "asc" }, { createdAt: "asc" }] }),
   ]);
   const byLabel = new Map(lists.batches.map((b) => [b.label.toLowerCase(), b]));
   const transfers: Transfer[] = rows.map((r) => {
@@ -56,5 +58,6 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
     calc = calc.filter((c) => c.owner.toLowerCase() === o);
   }
   const cows = new Map<string, CowExtra>(cowRows.map((c) => [c.cowId, { cowId: c.cowId, purchaseDate: c.purchaseDate, loanLocation: c.loanLocation, cost: c.cost, salePrice: c.salePrice, soldDate: c.soldDate, transactionNo: c.transactionNo }]));
-  return { lists, calc, archive, archiveRows, cows, today };
+  const events: CowEventRow[] = eventRows.map((e) => ({ cowId: e.cowId, date: e.date, kind: e.kind, detail: e.detail, transferId: e.transferId }));
+  return { lists, calc, archive, archiveRows, cows, events, today };
 }

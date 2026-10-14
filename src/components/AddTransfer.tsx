@@ -130,7 +130,22 @@ export function AddTransfer({ lists }: { lists: Lists }) {
               const pass = r.status === "Pass";
               return (
                 <tr key={i} className={bad.includes(i) ? "bg-red-50" : ""}>
-                  <td className="px-1 text-xs text-slate-400">{i + 1}</td>
+                  <td className="whitespace-nowrap px-1 text-xs text-slate-400">
+                    <button
+                      type="button"
+                      title="Clear this line"
+                      aria-label={`Clear line ${i + 1}`}
+                      className="mr-1 rounded px-1 text-base font-bold leading-none text-red-600 hover:bg-red-50"
+                      onClick={() => setRows((rs) => {
+                        const out = rs.filter((_, j) => j !== i);
+                        while (out.length < 10 || out.length % 10) out.push(blankLine());
+                        return out;
+                      })}
+                    >
+                      ✕
+                    </button>
+                    {i + 1}
+                  </td>
                   {COLS.map((c) => (
                     <td key={c.k} className="px-0.5 py-0.5">
                       {c.pick ? (

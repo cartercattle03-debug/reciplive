@@ -55,7 +55,10 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["PREG CHECK RESULT", "Confirm &amp; Archive (1)", "On the list"]);
   await show("75+ day", "(staff)/day75/page", { searchParams: {} }, ["Undelivered", "Delivered"]);
   for (const s of ["Cow ID", "Repeat Flag", "Total Attempts", "Times Passed", "Date Checked Open"]) await show(`open sort ${s}`, "(staff)/open/page", { searchParams: { sort: s } }, ["Open Inventory", "NEVER SETTLED"]);
-  await show("lookup 054", "(staff)/lookup/page", { searchParams: { cow: "054" } }, ["Cow 054", "Lifetime Attempts"]);
+  await show("master archive", "(staff)/archive/page", { searchParams: {} }, ["Master Archive", "Purchased", "Preg Check", "Transfer"]);
+  await show("master archive one cow", "(staff)/archive/page", { searchParams: { cow: "348-1" } }, ["1 cow", "Sold"]);
+  await show("open has cull + edit", "(staff)/open/page", { searchParams: {} }, ["Cull", "Edit"]);
+  await show("lookup 054", "(staff)/lookup/page", { searchParams: { cow: "054" } }, ["Cow 054", "Lifetime Attempts", "Her full archive"]);
   await show("lookup none", "(staff)/lookup/page", { searchParams: { cow: "nope" } }, ["No records for Cow ID nope"]);
   await show("repeats", "(staff)/repeats/page", { searchParams: {} }, ["1st Attempt", "Settled After 2 Tries"]);
   for (const by of ["batch", "owner", "company", "embryoType", "grade"]) await show(`breakdowns ${by}`, "(staff)/breakdowns/page", { searchParams: { by } }, ["Pregnancy Rate", "TOTAL"]);

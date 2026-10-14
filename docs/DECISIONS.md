@@ -9,3 +9,6 @@
 - 2026-10-14: "Confirm Delivery Updates" (in How To Use but never written) isn't needed - delivery saves as it's picked.
 - 2026-10-14: Add transfers is a 10-line grid (+10 more lines, paste a column to fill down, one Add for all) - batches run 40-100+ transfers.
 - 2026-10-14: Manager login = view only: sees every page, no changes, no import, no print/download buttons. Only the owner saves.
+- 2026-10-14: Red ✕ to delete beside every Transfers line (asks first, Undo keeps a copy); red ✕ clears a line on the Add transfers grid.
+- 2026-10-14: Open Inventory gets a Cull tick box (Cull checked = her record turns Culled, dated) and an Edit pop-up for her latest record.
+- 2026-10-14: Master Archive: each cow's purchase, every transfer / Pass, every preg check, delivery, cull and sale in order - built live from the records (new CowEvent table holds cull dates). Also at the bottom of Cow Lookup.

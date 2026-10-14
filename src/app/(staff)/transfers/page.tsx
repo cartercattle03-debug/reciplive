@@ -24,6 +24,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
   const table: Row[] = rows.map((c) => ({
     key: c.id,
     cells: [
+      { t: "", del: { id: c.id, what: `cow ${c.cowId}'s ${c.batch || ""} record` } },
       { ...batchCell(c), edit: ed(c.id, "batch", c.batch, "select", batches) },
       { ...cowCell(c.cowId), edit: ed(c.id, "cowId", c.cowId) },
       { t: c.mating, edit: ed(c.id, "mating", c.mating) },
@@ -40,7 +41,6 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       { t: c.repeatFlag, cls: c.repeatFlag === "NEVER SETTLED" ? "text-red-700" : "" },
       dateCell(c.dueDate),
       numCell(c.embryoAge),
-      { t: "", del: { id: c.id, what: `cow ${c.cowId}'s ${c.batch || ""} record` } },
     ],
   }));
   return (
@@ -60,6 +60,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       <Table
         search
         cols={[
+          { label: "", noSort: true },
           { label: "Group" },
           { label: "Cow ID" },
           { label: "Mating" },
@@ -76,7 +77,6 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
           { label: "Repeat Flag" },
           { label: "Due Date", title: "Transfer date + 276 days" },
           { label: "Embryo Age", title: "Days since transfer + 7" },
-          { label: "", noSort: true },
         ]}
         rows={table}
         empty="No transfers yet - add one above, paste a block, or use Import."

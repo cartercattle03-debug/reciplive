@@ -5,14 +5,15 @@ const KEEP = 15;
 /** Everything on the ranch, as plain data. */
 async function capture(orgId: string) {
   const w = { where: { organizationId: orgId } };
-  const [batches, listItems, transfers, archive, cows] = await Promise.all([
+  const [batches, listItems, transfers, archive, cows, events] = await Promise.all([
     prisma.batch.findMany(w),
     prisma.listItem.findMany(w),
     prisma.transfer.findMany(w),
     prisma.pregArchive.findMany(w),
     prisma.cowRecord.findMany(w),
+    prisma.cowEvent.findMany(w),
   ]);
-  return { batches, listItems, transfers, archive, cows };
+  return { batches, listItems, transfers, archive, cows, events };
 }
 
 /**
@@ -36,10 +37,11 @@ const revive = (rows: Rows) => rows.map((r) => ({ ...r, createdAt: r.createdAt ?
 export async function restoreSnapshot(orgId: string, snapshotId: string) {
   const snap = await prisma.snapshot.findFirst({ where: { id: snapshotId, organizationId: orgId } });
   if (!snap) throw new Error("That backup is no longer kept.");
-  const d = snap.data as unknown as { batches: Rows; listItems: Rows; transfers: Rows; archive: Rows; cows: Rows };
+  const d = snap.data as unknown as { batches: Rows; listItems: Rows; transfers: Rows; archive: Rows; cows: Rows; events?: Rows };
   await withSnapshot(orgId, `Before undo of "${snap.label}"`, async () => {
     const w = { where: { organizationId: orgId } };
     await prisma.pregArchive.deleteMany(w);
+    await prisma.cowEvent.deleteMany(w);
     await prisma.transfer.deleteMany(w);
     await prisma.cowRecord.deleteMany(w);
     await prisma.batch.deleteMany(w);
@@ -49,5 +51,7 @@ export async function restoreSnapshot(orgId: string, snapshotId: string) {
     if (d.transfers.length) await prisma.transfer.createMany({ data: revive(d.transfers) as any });
     if (d.archive.length) await prisma.pregArchive.createMany({ data: revive(d.archive) as any });
     if (d.cows.length) await prisma.cowRecord.createMany({ data: d.cows as any });
+    // A copy taken before culls were kept has no events - those stay empty.
+    if (d.events?.length) await prisma.cowEvent.createMany({ data: revive(d.events) as any });
   });
 }

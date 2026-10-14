@@ -5,10 +5,12 @@ import { cowHistory } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 import { money } from "@/lib/cells";
+import { ArchiveTable } from "@/components/ArchiveTable";
+import { cowArchive } from "@/lib/cowArchive";
 
 export default async function CowLookup({ searchParams }: { searchParams: { cow?: string } }) {
   const m = await staffPage();
-  const { calc, cows } = await loadRanch(m.organizationId);
+  const { calc, cows, archive, events } = await loadRanch(m.organizationId);
   const id = (searchParams.cow ?? "").trim();
   const h = id ? cowHistory(calc, id) : [];
   const last = h[h.length - 1];
@@ -43,7 +45,10 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
               )}
             </div>
           </div>
+          <h2 className="mb-1.5 text-sm font-semibold text-brand-700">Transfers</h2>
           <Table cols={[{ label: "Attempt #" }, { label: "Batch" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Transfer Date" }, { label: "Delivery Status" }, { label: "Notes" }]} rows={rows} maxHeight={false} />
+          <h2 className="mb-1.5 mt-6 text-sm font-semibold text-brand-700">Her full archive, in order</h2>
+          <ArchiveTable steps={cowArchive(calc, archive, cows, events, last.cowId)} showCow={false} />
         </>
       )}
     </div>

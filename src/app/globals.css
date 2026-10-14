@@ -146,3 +146,8 @@ main table {
     display: none !important;
   }
 }
+
+/* Master Archive: a heavy line where the next cow starts. */
+tr.cow-break > td {
+  border-top: 3px solid #1f3a5f !important;
+}

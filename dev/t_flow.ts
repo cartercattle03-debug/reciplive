@@ -6,7 +6,8 @@ import { parseWorkbook } from "../src/lib/workbook";
 import * as rec from "../src/lib/server/records";
 import { loadRanch } from "../src/lib/server/data";
 import { restoreSnapshot } from "../src/lib/server/snapshot";
-import { dashboard, pregCheckList } from "../src/lib/recip";
+import { dashboard, openInventory, pregCheckList } from "../src/lib/recip";
+import { cowArchive } from "../src/lib/cowArchive";
 
 let fails = 0;
 const ok = (name: string, cond: boolean, extra = "") => {
@@ -122,6 +123,37 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   await restoreSnapshot(O, s2.id);
   R = await loadRanch(O);
   ok("undo brings the deleted record back", R.calc.some((x) => x.id === gone.id));
+
+  // ---- Open Inventory: cull checked cows, edit a record, and the Master Archive
+  const opens = openInventory(R.calc, "Cow ID").slice(0, 2);
+  const cu = await rec.cullTransfers(O, opens.map((o) => o.id));
+  R = await loadRanch(O);
+  ok("cull: 2 culled, off Open Inventory", cu.culled === 2 && !openInventory(R.calc).some((o) => opens.some((x) => x.cowId === o.cowId)));
+  ok("cull: dated in her archive", R.events.filter((e) => e.kind === "Culled" && opens.some((o) => o.cowId === e.cowId)).length === 2);
+  const arc = cowArchive(R.calc, R.archive, R.cows, R.events, opens[0].cowId);
+  ok("archive ends with today's cull", arc[arc.length - 1].process === "Culled" && !!arc[arc.length - 1].date, JSON.stringify(arc[arc.length - 1]));
+  const csnap = (await prisma.snapshot.findMany({ where: { organizationId: O }, orderBy: { createdAt: "desc" } }))[0];
+  await restoreSnapshot(O, csnap.id);
+  R = await loadRanch(O);
+  ok("undo cull: back on Open Inventory, cull date gone", openInventory(R.calc).some((o) => o.cowId === opens[0].cowId) && !R.events.some((e) => e.cowId === opens[0].cowId));
+  const o3 = openInventory(R.calc, "Cow ID")[0];
+  await rec.editTransfer(O, o3.id, { notes: "sore foot", status: "Culled", grade: "6-1" });
+  R = await loadRanch(O);
+  const e3 = R.calc.find((x) => x.id === o3.id)!;
+  ok("edit pop-up saves every changed column", e3.notes === "sore foot" && e3.status === "Culled" && e3.grade === "6-1");
+  ok("culled by edit is dated too", R.events.some((e) => e.transferId === o3.id && e.kind === "Culled"));
+  await refuses("edit with a bad value saves nothing", () => rec.editTransfer(O, o3.id, { notes: "changed", status: "Bred" }), "Status must be");
+  R = await loadRanch(O);
+  ok("...notes unchanged", R.calc.find((x) => x.id === o3.id)!.notes === "sore foot");
+  // Master Archive for 348-1: purchase first, then transfers / checks in date order, sale last.
+  const a1 = cowArchive(R.calc, R.archive, R.cows, R.events, "348-1");
+  ok("archive: purchased first with cost", a1[0].process === "Purchased" && a1[0].money === 3500, JSON.stringify(a1[0]));
+  ok("archive: sold last with price", a1[a1.length - 1].process === "Sold" && a1[a1.length - 1].money === 4650);
+  const dated = a1.filter((x) => x.date).map((x) => x.date!);
+  ok("archive: dates in order", dated.every((d, i) => i === 0 || d >= dated[i - 1]), dated.join(","));
+  const all = cowArchive(R.calc, R.archive, R.cows, R.events);
+  ok("archive: every cow, every transfer and every check", new Set(all.map((x) => x.cowId)).size >= 286 && all.filter((x) => x.process === "Transfer" || x.process === "Pass").length === R.calc.length && all.filter((x) => x.process === "Preg Check").length === R.archive.length);
+  console.log("      e.g. 348-1:", a1.map((x) => `${x.date ?? x.when}:${x.process}${x.result ? "=" + x.result : ""}`).join(" | "));
 
   // ---- A whole batch at once (100 lines, as from the Add transfers grid)
   const many = Array.from({ length: 100 }, (_, i) => ({ batch: "8-15", cowId: `B${i + 1}`, mating: "Bulk x 1", owner: "Carter", embryoType: "Frozen", grade: "7-1", company: "605", status: i % 10 === 0 ? "Pass" : "Pending" }));

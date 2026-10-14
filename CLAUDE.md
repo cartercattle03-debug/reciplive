@@ -31,7 +31,8 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - A repeated Cow ID is not a duplicate - the same cow has many records.
 - Customer logins (role CUSTOMER + ownerName) see only that owner's records, read only.
 - Manager logins are view only (Carter, 2026-10-14): every page, but no changes, no imports, no print / download. Only the OWNER saves (`staffApi`).
-- Big steps (import, Confirm & Archive, delete, Undo) go through `withSnapshot()`.
+- Big steps (import, Confirm & Archive, delete, cull, Undo) go through `withSnapshot()`.
+- Master Archive (`src/lib/cowArchive.ts`) is built live from Transfer + PregArchive + CowRecord + CowEvent (cull dates) - nothing stored twice.
 
 ## Workbook import clean-ups (found in Carter's file, 2026-10-14)
 Grades and archive batch names that Sheets turned into dates go back to "7-1" / "4-30"; company 605 stored as a
