@@ -29,6 +29,7 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   const one = ready.find((l) => l.confirmedDate)!;
   const c1 = R.calc.find((c) => c.id === one.transferId)!;
   ok("days pregnant = confirmed - transfer + 7", one.daysPreg === Math.round((Date.parse(one.confirmedDate!) - Date.parse(c1.transferDate!)) / 86400000) + 7, `${one.daysPreg}`);
+  ok("terms start at Due on receipt", (await bill.billingSettings(O)).terms === 0);
   await bill.saveBillingSettings(O, { price: "$450", item: "75 Day Pregnancy", terms: "15", nextNo: "2001" });
   const weldon = ready.filter((l) => l.owner === "Weldon").slice(0, 3);
   const buck = ready.filter((l) => l.owner === "Buck").slice(0, 2);
@@ -103,6 +104,12 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   await rec.updateTransfer(O, safe.transferId, "status", "Culled");
   R = await loadRanch(O);
   ok("culled after Safe: never billable", !billable(R.calc, R.archive, await bill.billedIds(O)).some((l) => l.transferId === safe.transferId));
+  await bill.saveBillingSettings(O, { terms: "0" });
+  const dr = await bill.createInvoices(O, [billable(R.calc, R.archive, await bill.billedIds(O))[0].transferId], "2026-12-01");
+  const drInv = await prisma.invoice.findFirst({ where: { organizationId: O, number: dr.made[0] } });
+  ok("Due on receipt: due date = invoice date", drInv!.dueDate === "2026-12-01");
+  const drCsv = qboCsv(await bill.invoicesForExport(O, [drInv!.id]));
+  ok("QuickBooks file says Due on receipt", drCsv.split("\r\n")[1].includes(",12/01/2026,12/01/2026,Due on receipt,"), drCsv);
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
   process.exit(fails ? 1 : 0);
 })().catch((e) => {

@@ -14,7 +14,7 @@ const money = (v: unknown, what: string) => {
 
 export async function billingSettings(orgId: string) {
   const o = await prisma.organization.findUnique({ where: { id: orgId } });
-  return { price: o?.invoicePrice ?? null, item: o?.invoiceItem || "Confirmed Pregnancy", adjustItem: o?.adjustItem || "Adjustment", terms: o?.invoiceTerms ?? 30, nextNo: o?.nextInvoiceNo ?? 1001 };
+  return { price: o?.invoicePrice ?? null, item: o?.invoiceItem || "Confirmed Pregnancy", adjustItem: o?.adjustItem || "Adjustment", terms: o?.invoiceTerms ?? 0, nextNo: o?.nextInvoiceNo ?? 1001 };
 }
 
 export async function saveBillingSettings(orgId: string, b: Record<string, unknown>) {

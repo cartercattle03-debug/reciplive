@@ -80,6 +80,9 @@ export function lineText(l: InvoiceForExport["lines"][number]) {
  * QuickBooks Online invoice import (Sales > Invoices > Import invoices): one row per pregnancy, rows with the same
  * InvoiceNo make one invoice. Dates are MM/DD/YYYY. The Customer must match the QuickBooks customer name.
  */
+/** QuickBooks term names: 0 days = "Due on receipt" (Carter's terms, 2026-10-14), otherwise "Net 30" style. */
+export const termsName = (days: number) => (days > 0 ? `Net ${days}` : "Due on receipt");
+
 export function qboCsv(invoices: InvoiceForExport[]): string {
   const head = ["InvoiceNo", "Customer", "InvoiceDate", "DueDate", "Terms", "Memo", "Item(Product/Service)", "ItemDescription", "ItemQuantity", "ItemRate", "ItemAmount", "ServiceDate"];
   const d = (s: string | null) => (s ? `${s.slice(5, 7)}/${s.slice(8, 10)}/${s.slice(0, 4)}` : "");
@@ -87,7 +90,7 @@ export function qboCsv(invoices: InvoiceForExport[]): string {
   for (const inv of invoices)
     for (const l of inv.lines)
       out.push(
-        [inv.number, inv.billTo, d(inv.invoiceDate), d(inv.dueDate), `Net ${inv.terms}`, inv.memo, l.kind === "Adjustment" ? inv.adjustItem : inv.item, lineText(l), 1, l.amount.toFixed(2), l.amount.toFixed(2), l.kind === "Adjustment" ? "" : d(l.confirmedDate)]
+        [inv.number, inv.billTo, d(inv.invoiceDate), d(inv.dueDate), termsName(inv.terms), inv.memo, l.kind === "Adjustment" ? inv.adjustItem : inv.item, lineText(l), 1, l.amount.toFixed(2), l.amount.toFixed(2), l.kind === "Adjustment" ? "" : d(l.confirmedDate)]
           .map(csvCell)
           .join(",")
       );
