@@ -43,7 +43,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
           ))}
         </div>
       )}
-      <Table cols={[{ label: "Cow ID" }, { label: "Batch" }, { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." maxHeight={false} />
+      <Table cols={[{ label: "Cow ID" }, { label: "Batch" }, { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." />
     </div>
   );
 }

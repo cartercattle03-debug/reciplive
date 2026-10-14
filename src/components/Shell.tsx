@@ -3,13 +3,14 @@ import { Logo } from "./Logo";
 import { Nav, SignOut } from "./Nav";
 import { AskBox, Toaster } from "./ui";
 import { YearPick } from "./YearPick";
+import { HeaderSize } from "./HeaderSize";
 import type { Member } from "@/lib/server/session";
 
 /** The page frame: logo, ranch name, Import / Account / Log out, then the tabs (same feel as HerdLive). */
 export function Shell({ member, children, customer = false, year }: { member: Member; children: React.ReactNode; customer?: boolean; year?: { year: number; years: number[] } }) {
   return (
     <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" || undefined}>
-      <header className="no-print z-30 bg-white md:sticky md:top-0">
+      <header id="site-header" className="no-print z-30 bg-white md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 px-4 py-2">
           <Link href={customer ? "/my" : "/dashboard"} className="flex items-center">
             <Logo />
@@ -37,6 +38,7 @@ export function Shell({ member, children, customer = false, year }: { member: Me
       </header>
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">{children}</main>
       <footer className="no-print px-4 pb-4 text-center text-[11px] text-slate-400">© {new Date().getFullYear()} RecipLive</footer>
+      <HeaderSize />
       <Toaster />
       <AskBox />
     </div>

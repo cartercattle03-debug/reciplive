@@ -275,7 +275,7 @@ export function Table({
           )}
         </div>
       )}
-      <div className={"card overflow-auto print-full " + (maxHeight ? "max-h-[calc(100vh-14rem)]" : "")}>
+      <div className={"card overflow-auto print-full " + (maxHeight ? "list-box" : "")}>
         <table className="text-sm">
           <thead>
             <tr>

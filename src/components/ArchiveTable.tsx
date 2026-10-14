@@ -32,7 +32,6 @@ export function ArchiveTable({ steps, showCow = true, showMoney = true }: { step
       cols={[...(showCow ? [{ label: "Cow ID" }] : []), { label: "Date" }, { label: "Process" }, { label: "Attempt #" }, { label: "Group" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Result / Status" }, ...(showMoney ? [{ label: "Price" }] : []), { label: "Notes" }]}
       rows={rows}
       empty="Nothing on record yet."
-      maxHeight={showCow}
     />
   );
 }

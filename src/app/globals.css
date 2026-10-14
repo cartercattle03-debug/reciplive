@@ -88,6 +88,13 @@ main table {
   }
 }
 
+/* A list's own scroll box fits the screen under the pinned header, less the page bottom and footer (4.5rem), so even scrolled all the way down its headings stay on screen (Carter, 2026-10-14). */
+.list-box {
+  max-height: calc(100vh - var(--hdr, 0px) - 4.5rem);
+  max-height: calc(100dvh - var(--hdr, 0px) - 4.5rem);
+  scroll-margin-top: var(--hdr, 0px);
+}
+
 @media print {
   .no-print {
     display: none !important;
