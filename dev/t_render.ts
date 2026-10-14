@@ -1,0 +1,77 @@
+// Renders every page (server part awaited, then the whole tree to HTML) on the imported workbook - catches page crashes offline.
+// Run: dev/harness/render.sh
+import * as fs from "fs";
+import { prisma } from "../src/lib/prisma";
+import { parseWorkbook } from "../src/lib/workbook";
+import * as rec from "../src/lib/server/records";
+
+const { renderToString } = require("react-dom/server");
+const page = (p: string) => require("../src/app/" + p).default;
+
+let fails = 0;
+async function show(name: string, p: string, props: any, must: string[] = [], member = "owner") {
+  (global as any).SESSION = { user: { id: (global as any)[member] } };
+  try {
+    const el = await page(p)(props);
+    const html: string = renderToString(el).replace(/<!-- -->/g, "");
+    const missing = must.filter((m) => !html.includes(m));
+    if (missing.length) {
+      fails++;
+      console.log(`FAIL ${name}: missing ${JSON.stringify(missing)}`);
+    } else console.log(`ok   ${name} (${Math.round(html.length / 1024)} KB)`);
+    return html;
+  } catch (e: any) {
+    if (e.redirect && must[0] === "REDIRECT " + e.redirect) {
+      console.log(`ok   ${name} -> ${e.redirect}`);
+      return "";
+    }
+    fails++;
+    console.log(`FAIL ${name}: ${e.stack || e}`);
+    return "";
+  }
+}
+
+(async () => {
+  const org = await prisma.organization.create({ data: { name: "Carter Cattle" } });
+  const u = await prisma.user.create({ data: { email: "o@x.com", name: "Carter", passwordHash: "h:x" } });
+  await prisma.membership.create({ data: { userId: u.id, organizationId: org.id, role: "OWNER" } });
+  const cu = await prisma.user.create({ data: { email: "c@x.com", name: "Lehman", passwordHash: "h:x" } });
+  await prisma.membership.create({ data: { userId: cu.id, organizationId: org.id, role: "CUSTOMER", ownerName: "Lehman" } });
+  (global as any).owner = u.id;
+  (global as any).cust = cu.id;
+
+  // Empty ranch first - every page must still open.
+  for (const p of ["dashboard", "transfers", "preg-check", "day75", "open", "lookup", "repeats", "breakdowns", "customer", "master", "lists", "import"]) await show(`empty ${p}`, `(staff)/${p}/page`, { searchParams: {} });
+
+  const wb = JSON.parse(fs.readFileSync(process.env.WB || "/tmp/claude-0/sav/wb.json", "utf8"));
+  await rec.importWorkbook(org.id, parseWorkbook(wb));
+  await show("dashboard", "(staff)/dashboard/page", { searchParams: {} }, ["452", "Pregnancy rate by group", "3-12", "TOTAL"]);
+  await show("transfers", "(staff)/transfers/page", { searchParams: {} }, ["Add a transfer", "6148", "Casino x 2246", "503 of 503"]);
+  await show("transfers filtered", "(staff)/transfers/page", { searchParams: { batch: "3-12", status: "Safe" } }, ["of 503 records"]);
+  await rec.setPregDraft(org.id, (await prisma.transfer.findFirst({ where: { organizationId: org.id, status: "Probable" } }))!.id, "Safe");
+  await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["PREG CHECK RESULT", "Confirm &amp; Archive (1)", "On the list"]);
+  await show("75+ day", "(staff)/day75/page", { searchParams: {} }, ["Undelivered", "Delivered"]);
+  for (const s of ["Cow ID", "Repeat Flag", "Total Attempts", "Times Passed", "Date Checked Open"]) await show(`open sort ${s}`, "(staff)/open/page", { searchParams: { sort: s } }, ["Open Inventory", "NEVER SETTLED"]);
+  await show("lookup 054", "(staff)/lookup/page", { searchParams: { cow: "054" } }, ["Cow 054", "Lifetime Attempts"]);
+  await show("lookup none", "(staff)/lookup/page", { searchParams: { cow: "nope" } }, ["No records for Cow ID nope"]);
+  await show("repeats", "(staff)/repeats/page", { searchParams: {} }, ["1st Attempt", "Settled After 2 Tries"]);
+  for (const by of ["batch", "owner", "company", "embryoType", "grade"]) await show(`breakdowns ${by}`, "(staff)/breakdowns/page", { searchParams: { by } }, ["Pregnancy Rate", "TOTAL"]);
+  await show("customer none", "(staff)/customer/page", { searchParams: {} }, ["Pick an owner"]);
+  await show("customer Lehman", "(staff)/customer/page", { searchParams: { owner: "Lehman", go: "1", m: ["Total Transferred", "Pregnancy Rate"], s: ["Safe", "Open"], sort: "Mating" } }, ["Lehman - Herd Summary", "Total Transferred"]);
+  await show("master", "(staff)/master/page", { searchParams: {} }, ["Total Cows on List", "$3,500.00", "348-1"]);
+  await show("lists", "(staff)/lists/page", { searchParams: {} }, ["Groups (batches)", "Trans Ova", "Add New Batch"]);
+  await show("account (owner)", "account/page", {}, ["Logins", "Undo", "Workbook import", "c@x.com"]);
+  await show("staff layout", "(staff)/layout", { children: "x" }, ["Dashboard", "Customer Search", "Carter Cattle"]);
+  await show("my (customer)", "my/page", { searchParams: {} }, ["Lehman - your recips", "Total Transferred"], "cust");
+  await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");
+  await show("account (customer)", "account/page", {}, ["Change your password"], "cust");
+  const my = await show("customer sees no other owners", "my/page", { searchParams: {} }, [], "cust");
+  if (/Buck Creek|Weldon/.test(my)) {
+    fails++;
+    console.log("FAIL customer page shows another owner");
+  }
+  (global as any).owner = "nobody";
+  await show("logged out -> login", "(staff)/dashboard/page", { searchParams: {} }, ["REDIRECT /login"]);
+  console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
+  process.exit(fails ? 1 : 0);
+})();

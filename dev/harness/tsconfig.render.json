@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.test.json",
+  "compilerOptions": { "jsx": "react-jsx", "outDir": "/tmp/rltc/outr" },
+  "files": ["/tmp/rltc/stubs.d.ts"],
+  "include": ["/home/claude/reciplive/src/**/*.ts", "/home/claude/reciplive/src/**/*.tsx", "/home/claude/reciplive/dev/t_flow.ts", "/home/claude/reciplive/dev/t_render.ts"]
+}

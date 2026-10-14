@@ -1,0 +1,1 @@
+const React = require("react"); module.exports = function Link(p) { const { href, prefetch, ...rest } = p; return React.createElement("a", { href, ...rest }); }; module.exports.default = module.exports;

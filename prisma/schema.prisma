@@ -1,0 +1,163 @@
+// RecipLive - data model
+//
+// Tab-to-table mapping against the Savannah 2.0 recip workbook:
+//
+//   Transfer     -> Data (one row per cow per transfer, or a Pass)
+//   PregArchive  -> Preg Check Archive
+//   Batch        -> Lists > Group (with its Transfer Date and Group Order)
+//   ListItem     -> Lists > Owner / Company / Grade
+//   CowRecord    -> Master Sheet (purchase, loan location, cost, sale)
+//
+// Everything the sheet worked out with helper columns (Total Attempts, Repeat Flag, Latest Record,
+// Attempt #, Embryo Age, Due Date, the Open Inventory / Preg Check / 75+ Day lists, every
+// breakdown) is computed live when a page loads - see src/lib/recip.ts.
+//
+// Every row carries its ranch (organizationId). Schema changes must be additive: the build runs `prisma db push`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  // Preg Check page settings, so the list reads the same on the office computer and the phone at the chute.
+  pregDate   String?
+  pregBatch  String?
+  pregMinAge Int?
+  pregMaxAge Int?
+
+  memberships Membership[]
+  batches     Batch[]
+  listItems   ListItem[]
+  transfers   Transfer[]
+  archive     PregArchive[]
+  cows        CowRecord[]
+  snapshots   Snapshot[]
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String?
+  email        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  lastLoginAt  DateTime?
+  loginCount   Int          @default(0)
+  memberships  Membership[]
+}
+
+/// OWNER runs the ranch, MANAGER can do everything but logins, CUSTOMER sees only the cows of one owner (ownerName).
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String       @default("OWNER")
+  ownerName      String?
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+/// A transfer group / batch ("3-12"). The label is always text - it never turns into a date.
+model Batch {
+  id             String       @id @default(cuid())
+  organizationId String
+  label          String
+  transferDate   String?
+  order          Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, label])
+}
+
+/// Lists: kind = OWNER | COMPANY | GRADE.
+model ListItem {
+  id             String       @id @default(cuid())
+  organizationId String
+  kind           String
+  value          String
+  order          Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, kind, value])
+}
+
+model Transfer {
+  id             String       @id @default(cuid())
+  organizationId String
+  /// Entry order - breaks ties inside one batch the way row order did on the sheet.
+  seq            Int
+  batch          String       @default("")
+  cowId          String
+  mating         String       @default("")
+  owner          String       @default("")
+  embryoType     String       @default("")
+  grade          String       @default("")
+  company        String       @default("")
+  status         String       @default("")
+  deliveryStatus String       @default("")
+  deliveryDate   String?
+  notes          String       @default("")
+  /// A result typed on the Preg Check page, not yet confirmed. It belongs to this row, so it can't land on another cow.
+  pregDraft      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, cowId])
+}
+
+model PregArchive {
+  id             String       @id @default(cuid())
+  organizationId String
+  checkDate      String
+  batch          String       @default("")
+  cowId          String
+  mating         String       @default("")
+  owner          String       @default("")
+  result         String
+  /// The status the row had before this check was confirmed (for Undo).
+  priorStatus    String?
+  transferId     String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, cowId])
+}
+
+/// Master Sheet: what's typed about a cow herself (not one transfer).
+model CowRecord {
+  id             String       @id @default(cuid())
+  organizationId String
+  cowId          String
+  purchaseDate   String       @default("")
+  loanLocation   String       @default("")
+  cost           Float?
+  salePrice      Float?
+  soldDate       String       @default("")
+  transactionNo  String       @default("")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, cowId])
+}
+
+/// A copy of the ranch's records taken before a big step (import, Confirm & Archive, clear) - Undo puts it back.
+model Snapshot {
+  id             String       @id @default(cuid())
+  organizationId String
+  label          String
+  createdAt      DateTime     @default(now())
+  data           Json
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+}

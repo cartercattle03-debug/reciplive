@@ -1,0 +1,122 @@
+@tailwind base;
+@layer base {
+  input,
+  select,
+  textarea {
+    color: rgb(15 23 42);
+  }
+}
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Spreadsheet-style cells (same as HerdLive): everything centered, black and a little heavy. */
+.tc {
+  @apply whitespace-nowrap border-r border-slate-100 px-2 py-1.5 text-center align-middle last:border-r-0;
+  color: #000;
+  font-weight: 500;
+}
+/* A cell you can type in has the cream of the workbook's input cells. */
+td.tc.editable {
+  background-color: #fff8e1;
+}
+tbody tr:nth-child(even) td.tc.editable {
+  background-color: #fbefd2;
+}
+.ic {
+  @apply -mx-1 block min-h-[1.25rem] w-[calc(100%+0.5rem)] min-w-[2rem] cursor-text rounded px-1 text-center hover:bg-white hover:ring-1 hover:ring-brand-600/40;
+}
+.cell-input {
+  @apply w-28 rounded border border-brand-600 bg-white px-1 py-0.5 text-center text-sm outline-none ring-2 ring-brand-600/30;
+}
+.cell-select {
+  @apply min-w-[5rem] cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-center text-sm font-medium hover:border-slate-300 hover:bg-white;
+  text-align-last: center;
+}
+/* Status colors (the workbook's): Safe green, Open red, Probable amber. */
+.st-Safe { color: #006100 !important; font-weight: 700; }
+.st-Open { color: #9c0006 !important; font-weight: 700; }
+.st-Probable { color: #9c6500 !important; font-weight: 700; }
+.st-Pass, .st-Culled { color: #64748b !important; }
+/* Yellow flags: a cull candidate on Open Inventory, a grid cell still holding a Probable. */
+tr.flag td, td.flag {
+  background-color: #ffeb9c !important;
+}
+
+.btn {
+  @apply inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-go {
+  @apply inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-quiet {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-danger {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-white px-4 py-1.5 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50 disabled:opacity-50;
+}
+.field {
+  @apply w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 shadow-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600;
+}
+.card {
+  @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+}
+.stat {
+  @apply card flex min-w-[9rem] flex-col items-center px-4 py-3 text-center;
+}
+.stat b {
+  @apply text-2xl font-bold text-brand-600;
+}
+.stat span {
+  @apply mt-0.5 text-xs font-medium text-slate-500;
+}
+
+/* One rule for every table (Carter, HerdLive 2026-10-04): centered, and only as wide as its data. */
+main table :is(th, td) {
+  text-align: center;
+}
+main table {
+  width: auto;
+}
+
+@media (max-width: 767px) {
+  .field {
+    font-size: 16px;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    @apply bg-white;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .print-full {
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+  thead th {
+    position: static !important;
+  }
+  tr {
+    break-inside: avoid;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+.print-only {
+  display: none;
+}
