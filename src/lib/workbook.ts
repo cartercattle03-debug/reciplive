@@ -10,6 +10,7 @@
  * Nothing here touches the database.
  */
 import { calculate, type ArchiveRow, type CowExtra, type Transfer } from "./recip";
+import { statusCatchups } from "./reconcile";
 
 export type Cell = string | number | boolean | null;
 export type Workbook = Record<string, Cell[][]>;
@@ -25,6 +26,8 @@ export type ParsedWorkbook = {
   /** What was cleaned up, in plain words, for the import preview. */
   fixes: string[];
   warnings: string[];
+  /** Records put forward to their last preg check on the way in (index into transfers, what Data said, what it is now). */
+  catchups: { index: number; cowId: string; batch: string; was: string; now: string }[];
 };
 
 const DATE_RE = /^D:\d{4}-\d{2}-\d{2}$/;
@@ -65,6 +68,7 @@ const at = (row: Cell[] | undefined, i: number): Cell => (i < 0 || !row ? null :
 
 export function parseWorkbook(wb: Workbook): ParsedWorkbook {
   const fixes: string[] = [];
+  const catchups: ParsedWorkbook["catchups"] = [];
   const warnings: string[] = [];
   let gradeFixed = 0;
   let batchFixed = 0;
@@ -291,10 +295,26 @@ export function parseWorkbook(wb: Workbook): ParsedWorkbook {
     }
   }
 
+  // Statuses that never caught up with their own preg check (mating typed differently on the chute sheet).
+  {
+    const order = new Map(batches.map((b) => [b.label.toLowerCase(), b]));
+    const calc = calculate(
+      transfers.map((t, k) => ({ ...t, id: String(k), batchOrder: order.get(t.batch.toLowerCase())?.order ?? 0, transferDate: order.get(t.batch.toLowerCase())?.transferDate ?? null })),
+      archive,
+      "2000-01-01"
+    );
+    const ups = statusCatchups(calc);
+    for (const u of ups) {
+      catchups.push({ index: Number(u.id), cowId: u.cowId, batch: u.batch, was: u.status, now: u.result });
+      transfers[Number(u.id)].status = u.result;
+    }
+    if (ups.length)
+      fixes.push(`${ups.length} record(s) whose status never caught up with their own preg check now read their last result: ${ups.map((u) => `${u.cowId} (${u.batch}) ${u.status || "blank"} -> ${u.result} on ${u.checkDate}`).join(", ")}.`);
+  }
   if (gradeFixed) fixes.push(`${gradeFixed} grade(s) that Sheets had turned into dates were put back (July 1 -> 7-1).`);
   if (batchFixed) fixes.push(`${batchFixed} batch name(s) that Sheets had turned into dates were put back (4/30/2026 -> 4-30).`);
   if (companyNum) fixes.push(`${companyNum} company entries stored as a number (605) now match the text ones - one company.`);
   if (zeroFixed) fixes.push(`${zeroFixed} Cow ID(s) that lost their leading zero (54) were matched to their cow (054).`);
   if (delivered) fixes.push(`${delivered} delivery line(s) from 75+ Day Cows tied to the right cow's record.`);
-  return { batches: batches.sort((a, b) => a.order - b.order), owners, companies, grades, transfers, archive, cows, fixes, warnings };
+  return { batches: batches.sort((a, b) => a.order - b.order), owners, companies, grades, transfers, archive, cows, fixes, warnings, catchups };
 }

@@ -5,6 +5,7 @@ import { HttpError } from "./session";
 import { withSnapshot } from "./snapshot";
 import { loadRanch } from "./data";
 import { latestRows } from "@/lib/recip";
+import { statusCatchups } from "@/lib/reconcile";
 
 export const TRANSFER_FIELDS = ["batch", "cowId", "mating", "owner", "embryoType", "grade", "company", "status", "deliveryStatus", "deliveryDate", "dueOverride", "notes"] as const;
 export type TransferField = (typeof TRANSFER_FIELDS)[number];
@@ -506,4 +507,16 @@ export async function addPregCow(orgId: string, r: Record<string, unknown>) {
   const twin = calc.find((c) => c.latest && c.cowId.toLowerCase() === cowId.toLowerCase() && c.batch.toLowerCase() === batch.toLowerCase() && (!c.status || c.status === "Pending" || c.status === "Probable"));
   if (twin) throw new HttpError(400, `Cow ${twin.cowId} is already on the sheet in group ${twin.batch} - fix her line there instead.`);
   return addTransfers(orgId, [{ batch, cowId, mating: r.mating, owner: r.owner, embryoType: r.embryoType, grade: r.grade, company: r.company, dueOverride: r.dueOverride, notes: r.notes, status: "Pending" }]);
+}
+
+/** Catch statuses up with their own preg checks (see lib/reconcile.ts). Only the ticked ones; a copy is kept for Undo. */
+export async function applyCatchups(orgId: string, raw: unknown) {
+  const want = new Set((Array.isArray(raw) ? raw : []).map(String));
+  const { calc } = await loadRanch(orgId);
+  const todo = statusCatchups(calc).filter((c) => want.has(c.id));
+  if (!todo.length) throw new HttpError(400, "Nothing to fix - refresh the page.");
+  return withSnapshot(orgId, `Statuses caught up with preg checks (${todo.map((t) => t.cowId).join(", ")})`, async () => {
+    for (const t of todo) await prisma.transfer.update({ where: { id: t.id }, data: { status: t.result } });
+    return { fixed: todo.length };
+  });
 }

@@ -16,6 +16,10 @@ console.log("fixes:", p.fixes);
 console.log("warnings:", p.warnings.slice(0, 20), p.warnings.length);
 console.log("batches:", p.batches, "owners", p.owners.length, "companies", p.companies, "grades", p.grades);
 
+// The import puts three Buck 6-19 cows forward to their 9/16 Safe check (the sheet never wrote it back - the mating was
+// typed differently). For the row-by-row parity with the sheet, put them back the way the sheet had them first.
+eq("import caught up exactly 6300, 6118, 6139 (Buck 6-19, Open -> Safe)", p.catchups.map((c) => `${c.cowId}:${c.was}->${c.now}`).sort(), ["6118:Open->Safe", "6139:Open->Safe", "6300:Open->Safe"]);
+for (const c of p.catchups) p.transfers[c.index].status = c.was;
 const order = new Map(p.batches.map((b) => [b.label, b]));
 const today = process.env.TODAY || "2026-10-14";
 const rows: R.Transfer[] = p.transfers.map((t, i) => ({ ...t, id: String(i), batchOrder: order.get(t.batch)?.order ?? 0, transferDate: order.get(t.batch)?.transferDate ?? null }));
@@ -40,7 +44,9 @@ dataRows.forEach((r: any[], i: number) => {
   check("Repeat Flag", i, c.repeatFlag, r[col("Repeat Flag")]);
   check("Latest Record", i, c.latest ? "Yes" : "", r[col("Latest Record")]);
   check("Attempt #", i, c.attemptNo, r[col("Attempt # for This Cow")]);
-  check("Times Probable", i, c.timesProbable, r[col("Times Probable")]);
+  // 5295 / 5329 / 6299: the 7/28 chute sheet had their matings drag-filled one up (4007 -> 4008, 2253 -> 2254), so the
+  // sheet missed their Probable; RecipLive matches checks by group + Cow ID and counts it (Carter, 2026-10-14).
+  if (!["5295", "5329", "6299"].includes(c.cowId)) check("Times Probable", i, c.timesProbable, r[col("Times Probable")]);
   check("Times Passed", i, c.timesPassed, r[col("Times Passed")]);
   check("Fresh", i, c.freshReceived, r[col("Fresh Transfers Received")]);
   check("Frozen", i, c.frozenReceived, r[col("Frozen Transfers Received")]);

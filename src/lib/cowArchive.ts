@@ -46,14 +46,13 @@ export function cowArchive(calc: Calc[], archive: ArchiveRow[], cows: Map<string
       const pass = c.status === "Pass";
       steps.push({ ...base, date: c.transferDate, when: "", process: pass ? "Pass" : "Transfer", batch: c.batch, mating: c.mating, owner: c.owner, embryoType: c.embryoType, grade: c.grade, company: c.company, result: c.status, notes: c.notes, attempt: c.attemptNo, order: i * 10 });
       // Preg checks on this record (same batch and mating), in date order.
-      archive
-        .filter((a) => a.cowId === id && same(a.batch, c.batch) && same(a.mating, c.mating))
+      [...c.checks]
         .sort((a, b) => a.checkDate.localeCompare(b.checkDate))
         .forEach((a, k) => steps.push({ ...base, date: ymd(a.checkDate), when: "", process: "Preg Check", batch: c.batch, mating: c.mating, owner: a.owner || c.owner, result: a.result, order: i * 10 + 1 + k / 100 }));
       if (c.deliveryStatus === "Delivered" || c.deliveryDate) steps.push({ ...base, date: c.deliveryDate, when: c.deliveryDate ? "" : "date not recorded", process: "Delivered", batch: c.batch, owner: c.owner, result: c.deliveryStatus || "Delivered", order: i * 10 + 5 });
     });
     // Preg check lines whose record is gone (or whose batch / mating was changed) still show, by date.
-    for (const a of archive.filter((a) => a.cowId === id && !mine.some((c) => same(a.batch, c.batch) && same(a.mating, c.mating))))
+    for (const a of archive.filter((a) => a.cowId === id && !mine.some((c) => c.checks.includes(a))))
       steps.push({ ...base, date: ymd(a.checkDate), when: "", process: "Preg Check", batch: a.batch, mating: a.mating, owner: a.owner, result: a.result, order: 9000 });
     // Culls: the dated ones, plus a Culled record from before dates were kept.
     const culls = events.filter((e) => e.cowId === id && e.kind === "Culled");

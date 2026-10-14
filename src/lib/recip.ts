@@ -50,6 +50,10 @@ export type ArchiveRow = { checkDate: string; batch: string; cowId: string; mati
 export type Calc = Transfer & {
   /** What the transfer came to for the pregnancy-rate math: the status, except a Culled record keeps its result (see outcomeOf). */
   outcome: string;
+  /** Her preg checks on this record, oldest first (matched by group + Cow ID - see matchChecks). */
+  checks: ArchiveRow[];
+  /** The day she was last checked Safe on this record. */
+  safeCheckDate: string | null;
   totalAttempts: number;
   safeCount: number;
   openCount: number;
@@ -141,6 +145,32 @@ function outcomeOf(r: Transfer, _lastResult: Map<string, string>, culls: CullNot
   return "Open";
 }
 
+/** A mating as written loosely: "Sure Fire x 91/Z", "Sure Fire x 91Z" and "sure fire x 91 z" are one mating. */
+const looseMating = (m: string) => norm(m).toLowerCase().replace(/[\s/.\-]/g, "");
+
+/**
+ * Which record each preg check belongs to (Carter, 2026-10-14). By group + Cow ID - the mating on a chute sheet isn't
+ * always typed the same as on the transfer ("TB x 70/E" for "Turner Burner x 70/E"), and the old sheet lost three Safes
+ * that way. Only when a cow has two records in one group does the mating decide (loosely), else her last one entered.
+ */
+export function matchChecks(rows: Transfer[], archive: ArchiveRow[]): Map<string, ArchiveRow[]> {
+  const byGroupCow = new Map<string, Transfer[]>();
+  for (const r of rows) {
+    const k = `${norm(r.batch).toLowerCase()}|${norm(r.cowId).toLowerCase()}`;
+    if (!byGroupCow.has(k)) byGroupCow.set(k, []);
+    byGroupCow.get(k)!.push(r);
+  }
+  const out = new Map<string, ArchiveRow[]>();
+  for (const a of [...archive].sort((x, y) => x.checkDate.localeCompare(y.checkDate))) {
+    const cands = byGroupCow.get(`${norm(a.batch).toLowerCase()}|${norm(a.cowId).toLowerCase()}`);
+    if (!cands?.length) continue;
+    const r = cands.length === 1 ? cands[0] : cands.find((c) => looseMating(c.mating) === looseMating(a.mating)) ?? [...cands].sort((x, y) => x.seq - y.seq)[cands.length - 1];
+    if (!out.has(r.id)) out.set(r.id, []);
+    out.get(r.id)!.push(a);
+  }
+  return out;
+}
+
 export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string, culls: CullNote[] = []): Calc[] {
   const byCow = new Map<string, Transfer[]>();
   for (const r of rows) {
@@ -149,21 +179,19 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
     if (!byCow.has(k)) byCow.set(k, []);
     byCow.get(k)!.push(r);
   }
-  // Archive lookups: was this row ever Probable at a check; when was she last checked Open.
-  const probableKeys = new Set<string>();
-  const lastOpen = new Map<string, string>();
+  // Archive lookups: each record's own preg checks; when was she last checked Open.
+  const checksOf = matchChecks(rows, archive);
   const lastResult = new Map<string, string>();
-  for (const a of [...archive].sort((x, y) => x.checkDate.localeCompare(y.checkDate))) lastResult.set(`${norm(a.batch)}|${norm(a.cowId)}|${norm(a.mating).toLowerCase()}`, a.result);
+  const lastOpen = new Map<string, string>();
   for (const a of archive) {
     const cow = norm(a.cowId);
-    if (a.result === "Probable") probableKeys.add(`${norm(a.batch)}|${cow}|${norm(a.mating).toLowerCase()}`);
     if (a.result === "Open" && a.checkDate) {
       const was = lastOpen.get(cow);
       if (!was || a.checkDate > was) lastOpen.set(cow, a.checkDate);
     }
   }
   const order = (r: Transfer) => [r.batchOrder || 0, r.seq] as const;
-  const everProbable = (r: Transfer) => r.status === "Probable" || probableKeys.has(`${norm(r.batch)}|${norm(r.cowId)}|${norm(r.mating).toLowerCase()}`);
+  const everProbable = (r: Transfer) => r.status === "Probable" || (checksOf.get(r.id) ?? []).some((a) => a.result === "Probable");
 
   const out: Calc[] = [];
   for (const r of rows) {
@@ -198,6 +226,8 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
       timesPassed: count("Pass"),
       everProbable: everProbable(r),
       outcome: outcomeOf(r, lastResult, culls),
+      checks: checksOf.get(r.id) ?? [],
+      safeCheckDate: [...(checksOf.get(r.id) ?? [])].reverse().find((a) => a.result === "Safe")?.checkDate || null,
       dateCheckedOpen: r.status === "Open" ? lastOpen.get(cow) ?? null : null,
     });
   }

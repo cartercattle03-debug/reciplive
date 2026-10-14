@@ -33,7 +33,20 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   ok("import counts", r.transfers === 503 && r.archive === 230 && r.cows === 228, JSON.stringify(r));
   let R = await loadRanch(O);
   const d = dashboard(R.calc);
-  ok("dashboard after import matches the sheet", d.totalTransfers === 452 && d.confirmedSafe === 162 && d.probable === 22 && d.currentlyOpen === 44 && d.threePlusOpen === 20, JSON.stringify(d));
+  // The sheet's numbers, plus the three Buck 6-19 cows put forward to their 9/16 Safe (162 -> 165 Safe, 44 -> 41 open).
+  ok("dashboard after import = the sheet + the 3 caught-up Safes", d.totalTransfers === 452 && d.confirmedSafe === 165 && d.probable === 22 && d.currentlyOpen === 41 && d.threePlusOpen === 17, JSON.stringify(d));
+  ok("Buck 6-19 has 7 Safe", R.calc.filter((c) => c.owner === "Buck" && c.batch === "6-19" && c.status === "Safe").length === 7);
+  // The live site was loaded before this fix: the repair step finds them and puts them forward.
+  {
+    const { statusCatchups } = require("../src/lib/reconcile");
+    for (const id of ["6300", "6118", "6139"]) await rec.updateTransfer(O, R.calc.find((c) => c.cowId === id && c.batch === "6-19")!.id, "status", "Open");
+    R = await loadRanch(O);
+    const ups = statusCatchups(R.calc);
+    ok("repair finds exactly the 3", ups.map((u: any) => u.cowId).sort().join() === "6118,6139,6300", JSON.stringify(ups));
+    await rec.applyCatchups(O, ups.map((u: any) => u.id));
+    R = await loadRanch(O);
+    ok("repair: Buck 6-19 back to 7 Safe, nothing left to catch up", R.calc.filter((c) => c.owner === "Buck" && c.batch === "6-19" && c.status === "Safe").length === 7 && statusCatchups(R.calc).length === 0);
+  }
   ok("grades are text, none look like dates", R.calc.every((c) => !/\d{4}/.test(c.grade)));
   ok("company 605 is one value", new Set(R.calc.map((c) => c.company).filter((x) => x.startsWith("605"))).size === 1);
   ok("leading zeros kept", R.calc.some((c) => c.cowId === "054") && R.calc.some((c) => c.cowId === "0018"));
@@ -75,7 +88,7 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   ok("undo: statuses back", R.calc.find((x) => x.id === picks[0].id)?.status === picks[0].status && R.calc.find((x) => x.id === picks[1].id)?.status === picks[1].status);
   ok("undo: archive back", R.archive.length === before);
   ok("undo: 503 records, same ids", R.calc.length === 503 && R.calc.some((x) => x.id === picks[0].id));
-  ok("undo: kept a copy of before-undo", (await prisma.snapshot.count({ where: { organizationId: O } })) === 3);
+  ok("undo: kept a copy of before-undo", (await prisma.snapshot.count({ where: { organizationId: O } })) === 4);
 
   // ---- New batch + transfers, edits
   await rec.addBatch(O, "8-15", "2026-08-15");

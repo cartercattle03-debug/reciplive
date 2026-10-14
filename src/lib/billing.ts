@@ -20,10 +20,8 @@ export type BillLine = {
 const key = (batch: string, cow: string, mating: string) => `${batch.trim().toLowerCase()}|${cow.trim().toLowerCase()}|${mating.trim().toLowerCase()}`;
 
 /** The day she was confirmed: her last Safe preg check on that record. */
-export function confirmedOn(c: Calc, archive: ArchiveRow[]): string | null {
-  const k = key(c.batch, c.cowId, c.mating);
-  const safe = archive.filter((a) => a.result === "Safe" && key(a.batch, a.cowId, a.mating) === k).map((a) => a.checkDate).filter(Boolean).sort();
-  return safe.length ? safe[safe.length - 1] : null;
+export function confirmedOn(c: Calc, _archive?: ArchiveRow[]): string | null {
+  return c.safeCheckDate;
 }
 
 /** Days pregnant on a date: days since transfer + 7 (a 7-day embryo at transfer); a hand-typed Due Date wins. */

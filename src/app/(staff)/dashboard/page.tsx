@@ -2,6 +2,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/Shell";
 import { breakdown, dashboard, inYear, showRate } from "@/lib/recip";
 import { openList } from "@/lib/openList";
+import { Catchups } from "@/components/Catchups";
+import { statusCatchups } from "@/lib/reconcile";
 import { pickedYear, thisYear } from "@/lib/server/year";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
@@ -29,6 +31,7 @@ export default async function Dashboard() {
   return (
     <div>
       <PageHeader title={`Recip program dashboard - ${year}`} sub={`Transfers in ${year} batches, and the ${year} open list. Pick another year in the Year box at the top. Live - every number updates the moment a result is saved.`} />
+      <Catchups list={statusCatchups(all)} />
       {all.length > 0 && calc.length === 0 && <div className="card mb-5 p-5 text-sm">No transfers in {year} yet - a fresh slate. Add the year&apos;s first batch on <Link className="font-semibold text-brand-600 underline" href="/lists">Lists</Link>, with its transfer date.</div>}
       {all.length === 0 && (
         <div className="card mb-5 p-5 text-sm">
