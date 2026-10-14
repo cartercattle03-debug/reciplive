@@ -55,6 +55,7 @@ when exactly one fits; Master Sheet and 75+ Day typed entries are read beside th
 ```bash
 python3 dev/wb2json.py Savannah.xlsx /tmp/wb.json        # the real workbook, as the browser reads it (keep out of the repo)
 WB=/tmp/wb.json tsx dev/t_engine.ts                      # engine vs the workbook's own cached numbers, row by row
+WB=/tmp/wb.json tsx dev/t_breakdowns.ts                  # every breakdown line, total, grid cell, customer, attempt # vs an independent recount
 dev/harness/run.sh                                       # saves on an in-memory fake database (needs /tmp/rltc - see below)
 dev/harness/render.sh                                    # renders every page on the imported data
 ```
