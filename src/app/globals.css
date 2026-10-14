@@ -36,9 +36,9 @@ tbody tr:nth-child(even) td.tc.editable {
   @apply min-w-[5rem] cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-center text-sm font-medium hover:border-slate-300 hover:bg-white;
   text-align-last: center;
 }
-/* Status colors (the workbook's): Safe green, Open red, Probable amber. */
+/* Status colors: Safe green, Open bright red (Carter, 2026-10-14), Probable amber. */
 .st-Safe { color: #006100 !important; font-weight: 700; }
-.st-Open { color: #9c0006 !important; font-weight: 700; }
+.st-Open { color: #e00000 !important; font-weight: 800; }
 .st-Probable { color: #9c6500 !important; font-weight: 700; }
 .st-Pass, .st-Culled { color: #64748b !important; }
 /* Yellow flags: a cull candidate on Open Inventory, a grid cell still holding a Probable. */
