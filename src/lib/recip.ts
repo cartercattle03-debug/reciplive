@@ -48,6 +48,8 @@ export type Transfer = {
 export type ArchiveRow = { checkDate: string; batch: string; cowId: string; mating: string; owner: string; result: string };
 
 export type Calc = Transfer & {
+  /** What the transfer came to for the pregnancy-rate math: the status, except a Culled record keeps its result (see outcomeOf). */
+  outcome: string;
   totalAttempts: number;
   safeCount: number;
   openCount: number;
@@ -121,7 +123,24 @@ const same = (a: string, b: string) => norm(a).toLowerCase() === norm(b).toLower
 // The Data tab's helper columns
 // ---------------------------------------------------------------------------
 
-export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string): Calc[] {
+/** A cull, as far as the math needs it: which record, and what it was before ("was Open"). */
+export type CullNote = { transferId: string | null; detail: string };
+
+/**
+ * What a record's transfer actually came to, for the pregnancy-rate math (Carter, 2026-10-14):
+ * culling a cow doesn't erase the result - a cow called Open and then culled still counts against the Open number.
+ * A culled record counts as Open - unless she was confirmed Safe on it first (that pregnancy stands), or it was
+ * a Pass (no transfer, so it never counts). Culled after only a Probable = not confirmed = Open.
+ */
+function outcomeOf(r: Transfer, lastResult: Map<string, string>, culls: CullNote[]): string {
+  if (r.status !== "Culled") return r.status;
+  if (lastResult.get(`${norm(r.batch)}|${norm(r.cowId)}|${norm(r.mating).toLowerCase()}`) === "Safe") return "Safe";
+  const was = culls.find((c) => c.transferId === r.id)?.detail.match(/^was (\w[\w ]*)$/)?.[1];
+  if (was === "Safe" || was === "Pass") return was;
+  return "Open";
+}
+
+export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string, culls: CullNote[] = []): Calc[] {
   const byCow = new Map<string, Transfer[]>();
   for (const r of rows) {
     const k = norm(r.cowId);
@@ -132,6 +151,8 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
   // Archive lookups: was this row ever Probable at a check; when was she last checked Open.
   const probableKeys = new Set<string>();
   const lastOpen = new Map<string, string>();
+  const lastResult = new Map<string, string>();
+  for (const a of [...archive].sort((x, y) => x.checkDate.localeCompare(y.checkDate))) lastResult.set(`${norm(a.batch)}|${norm(a.cowId)}|${norm(a.mating).toLowerCase()}`, a.result);
   for (const a of archive) {
     const cow = norm(a.cowId);
     if (a.result === "Probable") probableKeys.add(`${norm(a.batch)}|${cow}|${norm(a.mating).toLowerCase()}`);
@@ -175,6 +196,7 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
       timesProbable: mine.filter(everProbable).length,
       timesPassed: count("Pass"),
       everProbable: everProbable(r),
+      outcome: outcomeOf(r, lastResult, culls),
       dateCheckedOpen: r.status === "Open" ? lastOpen.get(cow) ?? null : null,
     });
   }
@@ -186,12 +208,13 @@ export const latestRows = (calc: Calc[]) => calc.filter((c) => c.latest);
 
 export type Counts = { total: number; pass: number; safe: number; probable: number; pending: number; open: number; culled: number; unchecked: number; rate: number | null };
 export function countsOf(rows: Calc[]): Counts {
-  const n = (s: string) => rows.filter((r) => r.status === s).length;
+  // Counted by what each transfer came to - a culled cow still counts under her result (an Open, mostly).
+  const n = (s: string) => rows.filter((r) => r.outcome === s).length;
   const safe = n("Safe");
   const probable = n("Probable");
   const pending = n("Pending");
   const open = n("Open");
-  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: n("Culled"), unchecked: probable + pending, rate: pregRate(safe, probable, open) };
+  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, unchecked: probable + pending, rate: pregRate(safe, probable, open) };
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +225,7 @@ export function dashboard(calc: Calc[]) {
   const cows = calc.filter((c) => norm(c.cowId));
   const latest = latestRows(cows);
   return {
-    totalTransfers: cows.filter((c) => c.status !== "Pass").length,
+    totalTransfers: cows.filter((c) => c.outcome !== "Pass").length,
     confirmedSafe: latest.filter((c) => c.status === "Safe").length,
     probable: cows.filter((c) => c.status === "Probable").length,
     currentlyOpen: latest.filter((c) => c.status === "Open").length,
@@ -315,9 +338,9 @@ export function customerSearch(calc: Calc[], f: CustomerFilter) {
     .filter((c) => !f.batches.length || f.batches.some((b) => same(b, c.batch)))
     .filter((c) => !f.statuses.length || f.statuses.includes(c.status))
     .sort((a, b) => (f.sort === "Mating" ? norm(a.mating).localeCompare(norm(b.mating)) || a.seq - b.seq : compareFamily(a.cowId, b.cowId) || a.seq - b.seq));
-  const safe = rows.filter((c) => c.status === "Safe").length;
-  const probable = rows.filter((c) => c.status === "Probable").length;
-  const open = rows.filter((c) => c.status === "Open").length;
+  const safe = rows.filter((c) => c.outcome === "Safe").length;
+  const probable = rows.filter((c) => c.outcome === "Probable").length;
+  const open = rows.filter((c) => c.outcome === "Open").length;
   return {
     rows,
     totalTransferred: rows.length,

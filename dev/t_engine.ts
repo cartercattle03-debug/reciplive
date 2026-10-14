@@ -19,7 +19,10 @@ console.log("batches:", p.batches, "owners", p.owners.length, "companies", p.com
 const order = new Map(p.batches.map((b) => [b.label, b]));
 const today = process.env.TODAY || "2026-10-14";
 const rows: R.Transfer[] = p.transfers.map((t, i) => ({ ...t, id: String(i), batchOrder: order.get(t.batch)?.order ?? 0, transferDate: order.get(t.batch)?.transferDate ?? null }));
-const calc = R.calculate(rows, p.archive, today);
+const calcNew = R.calculate(rows, p.archive, today);
+// The sheet counted by status, so a culled cow fell out of the rate. Check parity with the sheet the sheet's way
+// (outcome = status), then check the culled-cow rule (Carter, 2026-10-14) on its own below.
+const calc = calcNew.map((c) => ({ ...c, outcome: c.status }));
 
 // Row by row against the Data tab's own helper columns (same row order).
 const D = wb["Data"];
@@ -122,5 +125,15 @@ const CS = (wb["Customer Search"].slice(24) as any[][]).filter((r) => r[0]).map(
 eq("Customer Search Lehman rows", cs.rows.map((c) => c.cowId).sort(), [...CS].sort());
 console.log("delivered on records:", rows.filter((r) => r.deliveryStatus === "Delivered").length, "with date:", rows.filter((r) => r.deliveryDate).length);
 console.log("master lines:", p.cows.length, "archive:", p.archive.length);
+// ---- Culled cows count against the Open number (unless confirmed Safe first, or a Pass)
+const culled = calcNew.filter((c) => c.status === "Culled");
+const k = R.countsOf(calcNew);
+const sheetWay = R.countsOf(calc);
+const culledSafe = culled.filter((c) => c.outcome === "Safe").length;
+eq("every culled record is Open, Safe (confirmed first) or Pass", culled.every((c) => ["Open", "Safe", "Pass"].includes(c.outcome)), true);
+eq("Open = Open + culled (not Safe)", k.open, sheetWay.open + culled.length - culledSafe - culled.filter((c) => c.outcome === "Pass").length);
+eq("Safe = Safe + culled after Safe", k.safe, sheetWay.safe + culledSafe);
+eq("transfers counted the same", k.total, sheetWay.total);
+console.log(`      rate the sheet's way ${R.showRate(sheetWay.rate)} -> with culled cows counted ${R.showRate(k.rate)} (${culled.length} culled, ${culledSafe} of them Safe first)`);
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
 process.exit(fails ? 1 : 0);

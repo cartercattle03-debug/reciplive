@@ -135,8 +135,12 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
 
   // ---- Open Inventory: cull checked cows, edit a record, and the Master Archive
   const opens = openInventory(R.calc, "Cow ID").slice(0, 2);
+  const { countsOf } = require("../src/lib/recip");
+  const kBefore = countsOf(R.calc);
   const cu = await rec.cullCows(O, opens.map((o) => o.cowId));
   R = await loadRanch(O);
+  const kAfter = countsOf(R.calc);
+  ok("culling open cows leaves Open and the rate the same", kAfter.open === kBefore.open && kAfter.rate === kBefore.rate && kAfter.culled === kBefore.culled + opens.filter((o) => o.status === "Open").length, JSON.stringify([kBefore, kAfter]));
   ok("cull: 2 culled, off Open Inventory", cu.culled === 2 && !openInventory(R.calc).some((o) => opens.some((x) => x.cowId === o.cowId)));
   ok("cull: dated in her archive", R.events.filter((e) => e.kind === "Culled" && opens.some((o) => o.cowId === e.cowId)).length === 2);
   const arc = cowArchive(R.calc, R.archive, R.cows, R.events, opens[0].cowId);

@@ -53,7 +53,8 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
   });
   const archive: ArchiveRow[] = archiveRows.map((a) => ({ checkDate: a.checkDate, batch: a.batch, cowId: a.cowId, mating: a.mating, owner: a.owner, result: a.result }));
   const today = ranchToday();
-  let calc: Calc[] = calculate(transfers, archive, today);
+  const culls = eventRows.filter((e) => e.kind === "Culled").map((e) => ({ transferId: e.transferId, detail: e.detail }));
+  let calc: Calc[] = calculate(transfers, archive, today, culls);
   // A customer login: only that owner's records, and only cows that are theirs.
   if (opts.owner) {
     const o = opts.owner.toLowerCase();
