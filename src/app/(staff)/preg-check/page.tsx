@@ -22,7 +22,7 @@ export default async function PregCheck() {
       batchCell(c),
       { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
       numCell(c.embryoAge),
-      { t: c.pregDraft ?? "", cls: c.pregDraft ? `st-${c.pregDraft}` : "", edit: { api: "preg", id: c.id, field: "result", kind: "select", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
+      { t: c.pregDraft ?? "", s: c.pregDraft ?? "", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
       { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
       c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), cls: "noshade", edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
       { t: c.mating, cls: "noshade", edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
@@ -34,7 +34,7 @@ export default async function PregCheck() {
     <div>
       <PageHeader
         title="Preg Check"
-        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Picking a Result fills in today as its Check Date (click the date to change it); taking the Result back off clears it."
+        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off). Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it."
       >
         <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} batch={org?.pregBatch ?? ""} />
         <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} />

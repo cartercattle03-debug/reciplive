@@ -10,7 +10,8 @@ export type Edit = {
   /** transfers / preg: the record id. cows: the Cow ID. */
   id: string;
   field: string;
-  kind: "text" | "select" | "date" | "money";
+  /** "buttons": one tap button per option (Preg Check Result) - tap the lit one again to take it back off. */
+  kind: "text" | "select" | "date" | "money" | "buttons";
   options?: string[];
   value: string;
 };
@@ -110,6 +111,31 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
       setBusy(false);
     }
   };
+  if (e.kind === "buttons") {
+    return (
+      <span className="pick-btns inline-flex gap-1">
+        {(e.options ?? []).map((o) => {
+          const on = val === o;
+          return (
+            <button
+              key={o}
+              type="button"
+              disabled={busy}
+              aria-pressed={on}
+              className={"pick-btn pb-" + o + (on ? " on" : "")}
+              onClick={() => {
+                const next = on ? "" : o;
+                setVal(next);
+                commit(next);
+              }}
+            >
+              {o}
+            </button>
+          );
+        })}
+      </span>
+    );
+  }
   if (e.kind === "select") {
     return (
       <select

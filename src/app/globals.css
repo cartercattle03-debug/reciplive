@@ -227,3 +227,27 @@ td.tc.notes .cell-input {
     padding-bottom: 0.8rem;
   }
 }
+
+/* Preg Check Result: three tap buttons. Lit = picked; tap it again to take it back off. */
+.pick-btn {
+  min-width: 4.6rem;
+  border-radius: 9999px;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  padding: 0.25rem 0.6rem;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  transition: background 0.1s;
+}
+.pick-btn:disabled { opacity: 0.6; }
+.pb-Probable.on { background: #facc15; border-color: #ca8a04; color: #422006; }
+.pb-Safe.on { background: #16a34a; border-color: #15803d; color: #fff; }
+.pb-Open.on { background: #e00000; border-color: #b91c1c; color: #fff; }
+.pb-Probable:not(.on):hover { border-color: #ca8a04; }
+.pb-Safe:not(.on):hover { border-color: #15803d; }
+.pb-Open:not(.on):hover { border-color: #b91c1c; }
+@media (pointer: coarse) {
+  .pick-btn { min-width: 5.6rem; min-height: 2.75rem; font-size: 16px; }
+}
+[data-view] .pick-btn { pointer-events: none; }

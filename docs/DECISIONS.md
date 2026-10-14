@@ -23,3 +23,4 @@
 - 2026-10-14: Page tabs on a solid blue bar, white bold text; the open page is a white tab with a copper line.
 - 2026-10-14: Cow IDs black on every page; the Group column is the blue one.
 - 2026-10-14: Preg Check: Status next to Result; only the Result column is cream-shaded (others still click to edit); Notes twice as wide (also on Transfers and Open Inventory).
+- 2026-10-14: Preg Check Result is three tap buttons (Probable / Safe / Open; tap again to clear) - built for the iPad at the chute.
