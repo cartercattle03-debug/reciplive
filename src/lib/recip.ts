@@ -91,7 +91,7 @@ export function showDate(ymd: string | null | undefined): string {
   if (!ymd) return "";
   return `${+ymd.slice(5, 7)}/${+ymd.slice(8, 10)}/${ymd.slice(0, 4)}`;
 }
-/** (Safe + Probable) / (Safe + Open + Probable). Pending, Pass and Culled are not known outcomes, so they never count. */
+/** (Safe + Probable) / (Safe + Open + Probable), counted by outcome - a culled cow is in Open. Pending and Pass never count. */
 export function pregRate(safe: number, probable: number, open: number): number | null {
   const d = safe + probable + open;
   return d === 0 ? null : (safe + probable) / d;
@@ -207,7 +207,7 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
 /** One row per cow: her most recent record, carrying her lifetime totals. */
 export const latestRows = (calc: Calc[]) => calc.filter((c) => c.latest);
 
-export type Counts = { total: number; pass: number; safe: number; probable: number; pending: number; open: number; culled: number; unchecked: number; rate: number | null };
+export type Counts = { total: number; pass: number; safe: number; probable: number; pending: number; open: number; culled: number; /** Culled records counted in Open. */ culledOpen: number; unchecked: number; rate: number | null };
 export function countsOf(rows: Calc[]): Counts {
   // Counted by what each transfer came to - a culled cow still counts under her result (an Open, mostly).
   const n = (s: string) => rows.filter((r) => r.outcome === s).length;
@@ -215,7 +215,7 @@ export function countsOf(rows: Calc[]): Counts {
   const probable = n("Probable");
   const pending = n("Pending");
   const open = n("Open");
-  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, unchecked: probable + pending, rate: pregRate(safe, probable, open) };
+  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, culledOpen: rows.filter((r) => r.status === "Culled" && r.outcome === "Open").length, unchecked: probable + pending, rate: pregRate(safe, probable, open) };
 }
 
 // ---------------------------------------------------------------------------

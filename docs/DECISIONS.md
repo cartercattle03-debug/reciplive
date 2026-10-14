@@ -28,3 +28,4 @@
 - 2026-10-14: Customer portal gets their own breakdowns (by Group, Embryo Type, Company, Grade, with the grids) and a Year box; owner-only 'View as <owner>' (/my?as=) shows exactly what a customer sees.
 - 2026-10-14: Culled cows count in the pregnancy rate: as Open (Safe if confirmed Safe before the cull; a culled Pass stays a Pass). Overall rate on the workbook data: 48.2% the sheet's way -> 41.8%.
 - 2026-10-14: A culled cow counts Open even if checked Safe first (6019) - a failed pregnancy. Only a culled Pass (stays Pass) or a cow already Delivered (stays Safe) differ.
+- 2026-10-14: Breakdown and Dashboard tables show a Culled column (counted against Open) and Pregnant / Checked (e.g. 1/3) beside the rate, so the math is on screen.
