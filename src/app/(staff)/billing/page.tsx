@@ -136,10 +136,10 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
         search
         picks={[
           {
-            label: "Build invoices",
+            label: "Build invoice",
             url: "/api/billing",
             action: "create",
-            ask: `Build invoices for the {n} ticked cow(s)? One invoice per owner, at ${set.price === null ? "$0.00 (no price set yet)" : money(set.price)} each - you can change the price and add adjustments on each invoice before exporting.\n\nAny cow on this list left unticked stays on Ready to bill, marked Held back, so she isn't lost.`,
+            ask: `Build an invoice for the {n} ticked cow(s)? They all go on ONE invoice (one per owner, if more than one owner is ticked), at ${set.price === null ? "$0.00 (no price set yet)" : money(set.price)} each - you can change the price and add adjustments on each invoice before exporting.\n\nAny cow on this list left unticked stays on Ready to bill, marked Held back, so she isn't lost.`,
           },
         ]}
         cols={[{ label: "Tick", noSort: true }, { label: "Owner" }, { label: "Group" }, { label: "Transfer Date" }, { label: "Cow ID" }, { label: "Mating" }, { label: "Due Date" }, { label: "Date Confirmed" }, { label: "Days Pregnant" }, { label: "Held Back" }, { label: "Notes" }]}

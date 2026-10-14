@@ -254,7 +254,7 @@ export function Table({
                   className={p.danger ? "btn-danger border-red-600 bg-red-600 text-white hover:bg-red-700" : "btn"}
                   disabled={busy}
                   onClick={async () => {
-                    if (!(await ask(p.ask.replace("{n}", String(picked.length)).replace("{names}", picked.join(", ")), `${p.label} (${picked.length})`))) return;
+                    if (!(await ask(p.ask.replace("{n}", String(picked.length)).replace("{names}", picked.join(", ")), `${p.label} (${picked.length} cow${picked.length === 1 ? "" : "s"})`))) return;
                     setBusy(true);
                     try {
                       await post(p.url, { action: p.action, cowIds: picked, unpicked: allPicks.filter((x) => !picked.includes(x)), ...(p.extra ?? {}) });
@@ -268,7 +268,7 @@ export function Table({
                     }
                   }}
                 >
-                  {p.label} ({picked.length})
+                  {p.label} ({picked.length} cow{picked.length === 1 ? "" : "s"})
                 </button>
               ))}
             </span>
