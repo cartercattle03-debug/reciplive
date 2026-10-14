@@ -151,3 +151,8 @@ main table {
 tr.cow-break > td {
   border-top: 3px solid #0369a1 !important;
 }
+
+/* Look D (Carter, 2026-10-14): light gray every other row and a thin charcoal line under each row. */
+main table tbody td.tc {
+  border-bottom: 1px solid #6b7280;
+}

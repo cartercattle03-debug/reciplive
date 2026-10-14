@@ -7,7 +7,7 @@ but none of its logic. Never mix the two.
 
 ## Colors
 RecipLive's own (Carter, 2026-10-14) so it reads apart from HerdLive: sky blue `#0369a1` (brand-600) headings and buttons,
-copper `#b8732e` (rust) accent, light blue row stripes. Status colors (Safe green, Open red, Probable yellow) never change.
+copper `#b8732e` (rust) accent, light gray row stripes (`#f1f3f5`) with a thin charcoal line (`#6b7280`) under each row. Status colors (Safe green, Open red, Probable yellow) never change.
 
 ## Stack
 Next.js 14 (App Router), Prisma 5, Postgres on Supabase, NextAuth (email + password, JWT), Tailwind - same as HerdLive.
