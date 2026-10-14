@@ -178,3 +178,52 @@ td.tc.notes {
 td.tc.notes .cell-input {
   width: 100%;
 }
+
+/* iPad / phone (a finger, not a mouse - Carter, 2026-10-14): bigger things to tap, no text-select bubble on a cell. */
+@media (pointer: coarse) {
+  main table td.tc {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+  }
+  .ic {
+    min-height: 2rem;
+    line-height: 2rem;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .cell-select {
+    min-height: 2.25rem;
+    font-size: 15px;
+  }
+  .cell-input {
+    min-height: 2.25rem;
+    font-size: 16px;
+  }
+  main input[type="checkbox"] {
+    width: 1.6rem !important;
+    height: 1.6rem !important;
+  }
+  td.tc button[title^="Delete"],
+  td.tc button[title^="Take"],
+  td button[title="Clear this line"] {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    font-size: 1.35rem;
+  }
+  .btn,
+  .btn-go,
+  .btn-quiet,
+  .btn-danger {
+    padding: 0.55rem 1.1rem;
+    font-size: 15px;
+  }
+  .field {
+    min-height: 2.5rem;
+    font-size: 16px;
+  }
+  nav a {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+}
