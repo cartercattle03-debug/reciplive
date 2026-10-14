@@ -11,14 +11,15 @@ import { billHolds, billedIds, billingSettings } from "@/lib/server/billing";
 import { Checks } from "@/components/Checks";
 import { Catchups } from "@/components/Catchups";
 import { statusCatchups } from "@/lib/reconcile";
+import { whyNotBillable } from "@/lib/billWhy";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
-type SP = { owner?: string; b?: string | string[]; held?: string };
+type SP = { owner?: string; b?: string | string[]; held?: string; why?: string };
 
 export default async function Billing({ searchParams }: { searchParams: SP }) {
   const m = await staffPage();
-  const [{ calc, archive, lists }, set, billed, invoices, holds] = await Promise.all([
+  const [{ calc, archive, lists, events }, set, billed, invoices, holds] = await Promise.all([
     loadRanch(m.organizationId),
     billingSettings(m.organizationId),
     billedIds(m.organizationId),
@@ -88,6 +89,27 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
       </PageHeader>
       <BillingSettingsForm s={set} />
       <Catchups list={statusCatchups(calc)} />
+      <form method="get" className="no-print card mb-5 flex flex-wrap items-end gap-2 p-3">
+        <label className="text-xs font-medium text-slate-600">
+          Why isn&apos;t a cow here?
+          <input name="why" defaultValue={searchParams.why ?? ""} className="field mt-0.5 w-36" placeholder="Cow ID" />
+        </label>
+        <button className="btn">Check</button>
+        {searchParams.why && (
+          <ul className="mt-2 w-full list-disc space-y-1 pl-5 text-sm text-slate-700">
+            {whyNotBillable(
+              calc,
+              searchParams.why,
+              new Map(invoices.filter((i) => i.status !== "Void").flatMap((i) => i.lines.filter((l) => l.transferId).map((l) => [l.transferId!, i.number] as [string, number]))),
+              events
+            ).map((t, i) => (
+              <li key={i}>
+                <b>Cow {searchParams.why}</b> {t}
+              </li>
+            ))}
+          </ul>
+        )}
+      </form>
 
       <h2 className="mb-1.5 text-base font-semibold text-slate-900">Ready to bill</h2>
       <p className="mb-2 text-xs text-slate-500">Every cow whose record is Safe (confirmed at 75 days) and not on an invoice yet. Date Confirmed is her Safe preg check; Days Pregnant is on that date. A culled cow is a failed pregnancy and never shows here.</p>

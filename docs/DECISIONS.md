@@ -35,3 +35,4 @@
 - 2026-10-14: Preg checks match their record by group + Cow ID (mating only breaks a tie, loosely) - the old sheet lost three Buck 6-19 Safes (6300, 6118, 6139) because the 9/16 chute sheet typed the mating differently. The import now puts such records forward to their last check; the Dashboard shows a "didn't catch up" card to fix them on the live site (tick, Fix, Undo-able).
 - 2026-10-14: Invoice terms default to Due on receipt (due date = invoice date; QuickBooks Terms 'Due on receipt'). Any number of days still works (Net N).
 - 2026-10-14: Terms box is a choice: Due on Receipt (default), Net 10 / 15 / 30 / 45 / 60. The 'didn't catch up' card also shows on Billing.
+- 2026-10-14: Billing: 'Why isn't a cow here?' box - each of her records in plain words (billed on #, culled, not Safe, preg checks).
