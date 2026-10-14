@@ -16,3 +16,4 @@
 - 2026-10-14: Open Inventory by year: add new cows, tick to Cull or Move to next year's opens, red X takes a gone cow off the list. A Nov/Dec transfer checked Open in Jan/Feb falls to the new year's opens.
 - 2026-10-14: Preg Check columns: Group, Cow ID, Days Bred, Result, Check Date, Status, Due Date, Notes (Mating / Owner show when pointing at the Cow ID).
 - 2026-10-14: Each preg check result gets its own Check Date - today when picked, cleared if the result is taken back off. The page-wide Date box is gone.
+- 2026-10-14: A transfer typed as 54 / 968h goes on the cow already on file as 054 / 968H (only when exactly one fits), so it takes her off the open list.

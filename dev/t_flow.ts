@@ -213,6 +213,27 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   const steps = cowArchive(R.calc, R.archive, R.cows, R.events, "N901");
   ok("archive shows added + moved", steps.some((x) => x.process === "Open List" && x.result.startsWith("Added")) && steps.some((x) => x.result === "Moved to 2027 opens"), JSON.stringify(steps));
 
+  // ---- The open list follows the work: a new transfer takes her off; Open at preg check puts her on, dated.
+  await rec.addOpenCows(O, ["N950"], 2027, {});
+  R = await loadRanch(O);
+  ok("N950 on 2027 opens", openList(R.calc, R.cows, 2027, 2027).some((e) => e.cowId === "N950"));
+  const oldOpen = openList(R.calc, R.cows, 2027, 2027).find((e) => e.rec && e.rec.status === "Open" && e.cowId !== offCow.cowId)!;
+  await rec.addTransfers(O, [{ batch: "1-30", cowId: "n950", status: "Pending" }, { batch: "1-30", cowId: oldOpen.cowId, status: "Pending" }]);
+  R = await loadRanch(O);
+  ok("typed n950 is her (N950), not a new cow", R.calc.some((c) => c.cowId === "N950") && !R.calc.some((c) => c.cowId === "n950"));
+  ok("a new transfer takes both off the open list", !openList(R.calc, R.cows, 2027, 2027).some((e) => e.cowId === "N950" || e.cowId === oldOpen.cowId));
+  const n950 = R.calc.find((c) => c.cowId === "N950" && c.latest)!;
+  await rec.setPregDraft(O, n950.id, "Open");
+  await rec.setPregDraftDate(O, n950.id, "2027-03-20");
+  await rec.confirmPregCheck(O);
+  R = await loadRanch(O);
+  const back = openList(R.calc, R.cows, 2027, 2027).find((e) => e.cowId === "N950");
+  ok("Open at preg check: on the open list with Date Checked Open", back?.dateCheckedOpen === "2027-03-20" && back?.added === false, JSON.stringify(back));
+  const z = R.calc.find((c) => c.cowId === "054")!;
+  await rec.addTransfers(O, [{ batch: "1-30", cowId: "54", status: "Pending" }]);
+  R = await loadRanch(O);
+  ok("typed 54 is cow 054", R.calc.find((c) => c.cowId === "054" && c.latest)?.batch === "1-30" && !R.calc.some((c) => c.cowId === "54"));
+
   // ---- A whole batch at once (100 lines, as from the Add transfers grid)
   const many = Array.from({ length: 100 }, (_, i) => ({ batch: "8-15", cowId: `B${i + 1}`, mating: "Bulk x 1", owner: "Carter", embryoType: "Frozen", grade: "7-1", company: "605", status: i % 10 === 0 ? "Pass" : "Pending" }));
   const big = await rec.addTransfers(O, many);

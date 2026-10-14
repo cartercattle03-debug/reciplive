@@ -97,6 +97,22 @@ export async function addTransfers(orgId: string, rows: Record<string, unknown>[
     const last = await prisma.transfer.findFirst({ where: { organizationId: orgId }, orderBy: { seq: "desc" }, select: { seq: true } });
     let seq = last?.seq ?? 0;
     const data = [];
+    // A Cow ID typed as 54 or 968h is the cow already on file as 054 / 968H - but only when exactly one cow fits,
+    // so her new transfer takes her off the open list instead of starting a second cow.
+    const onFile = new Set([
+      ...(await prisma.transfer.findMany({ where: { organizationId: orgId }, select: { cowId: true } })).map((x) => x.cowId),
+      ...(await prisma.cowRecord.findMany({ where: { organizationId: orgId }, select: { cowId: true } })).map((x) => x.cowId),
+    ]);
+    const known = (id: string) => {
+      if (onFile.has(id)) return id;
+      const lower = [...onFile].filter((x) => x.toLowerCase() === id.toLowerCase());
+      if (lower.length === 1) return lower[0];
+      if (/^\d+$/.test(id)) {
+        const z = [...onFile].filter((x) => /^\d+$/.test(x) && x.replace(/^0+/, "") === id.replace(/^0+/, ""));
+        if (z.length === 1) return z[0];
+      }
+      return id;
+    };
     // The same group / owner / grade on 100 lines is checked once.
     const seen = new Map<string, string | null>();
     const check = async (f: TransferField, raw: unknown) => {
@@ -117,6 +133,7 @@ export async function addTransfers(orgId: string, rows: Record<string, unknown>[
         }
       }
       if (!out.cowId) throw new HttpError(400, rows.length > 1 ? `Row ${i + 1}: Cow ID can't be blank.` : "Cow ID can't be blank.");
+      out.cowId = known(String(out.cowId));
       data.push(out);
     }
     await prisma.transfer.createMany({ data: data as any });
