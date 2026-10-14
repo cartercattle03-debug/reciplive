@@ -78,8 +78,10 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     await show("billing: why isn't 6305 here", "(staff)/billing/page", { searchParams: { why: "6305" } }, ["Cow 6305", "not Safe"]);
     await show("billing filtered: all ticked", "(staff)/billing/page", { searchParams: { owner: "Carter", b: "4-30" } }, ["all ticked", "Build invoice (", "checked=\"\""]);
     await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Carter Cattle LLC", "Stratford, OK 74872", "580-555-0100", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00", "Test Ranch LLC", "Ada, OK", "test@example.com"]);
-    const mv = await show("manager sees the invoice, can't change or download", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "$850.00"], "mgr");
-    if (/Download for QuickBooks|Use on every pregnancy line/.test(mv)) { fails++; console.log("FAIL manager gets invoice controls"); }
+    await show("manager kept off an invoice", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["REDIRECT /dashboard"], "mgr");
+    await show("manager kept off Billing", "(staff)/billing/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
+    const ml = await show("manager's Lists has no billing info", "(staff)/lists/page", { searchParams: {} }, ["Owners"], "mgr");
+    if (/Ranch Name|Test Ranch LLC|test@example.com/.test(ml)) { fails++; console.log("FAIL manager sees owner billing info"); }
   }
   await show("lookup 054", "(staff)/lookup/page", { searchParams: { cow: "054" } }, ["Cow 054", "Lifetime Attempts", "Her full archive"]);
   await show("lookup none", "(staff)/lookup/page", { searchParams: { cow: "nope" } }, ["No records for Cow ID nope"]);
@@ -105,7 +107,9 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     console.log("FAIL customer page shows another owner");
   }
   // Manager: sees every page, view only - every save refused.
-  await show("manager layout is view only", "(staff)/layout", { children: "x" }, ["data-view", "View only", "Dashboard"], "mgr");
+  const mlay = await show("manager layout is view only", "(staff)/layout", { children: "x" }, ["data-view", "View only", "Dashboard"], "mgr");
+  if (/>Billing</.test(mlay)) { fails++; console.log("FAIL manager menu shows Billing"); } else console.log("ok   manager menu has no Billing tab");
+  await show("owner menu has Billing", "(staff)/layout", { children: "x" }, [">Billing<"]);
   await show("manager sees transfers", "(staff)/transfers/page", { searchParams: {} }, ["6148"], "mgr");
   await show("manager kept off Import", "(staff)/import/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
   const { staffApi } = require("../src/lib/server/session");

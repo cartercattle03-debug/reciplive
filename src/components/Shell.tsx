@@ -33,7 +33,7 @@ export function Shell({ member, children, customer = false, year }: { member: Me
             <SignOut />
           </div>
         </div>
-        {!customer && <Nav />}
+        {!customer && <Nav owner={member.role === "OWNER"} />}
       </header>
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">{children}</main>
       <footer className="no-print px-4 pb-4 text-center text-[11px] text-slate-400">© {new Date().getFullYear()} RecipLive</footer>

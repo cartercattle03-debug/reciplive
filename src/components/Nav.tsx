@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /** The page tabs in four groups, so all of them show at once on a computer or iPad - no sliding sideways (Carter, 2026-10-14). */
-export const TAB_GROUPS: { name: string; tabs: { href: string; label: string }[] }[] = [
+export const TAB_GROUPS: { name: string; tabs: { href: string; label: string; ownerOnly?: boolean }[] }[] = [
   {
     name: "Daily",
     tabs: [
@@ -33,21 +33,22 @@ export const TAB_GROUPS: { name: string; tabs: { href: string; label: string }[]
   {
     name: "Office",
     tabs: [
-      { href: "/billing", label: "Billing" },
+      { href: "/billing", label: "Billing", ownerOnly: true },
       { href: "/lists", label: "Lists" },
     ],
   },
 ];
 export const TABS = TAB_GROUPS.flatMap((g) => g.tabs);
 
-export function Nav() {
+/** owner = false hides the owner-only tabs (Billing): a Manager login has no access to billing (Carter, 2026-10-14). */
+export function Nav({ owner = true }: { owner?: boolean }) {
   const path = usePathname() ?? "";
   return (
     <nav className="no-print flex flex-wrap items-center gap-x-5 gap-y-2 bg-brand-600 px-3 py-2 shadow-sm">
       {TAB_GROUPS.map((g) => (
         <div key={g.name} className="flex flex-wrap items-center gap-1.5">
           <span className="mr-0.5 text-[10px] font-bold uppercase tracking-wider text-white/60">{g.name}</span>
-          {g.tabs.map((t) => {
+          {g.tabs.filter((t) => owner || !t.ownerOnly).map((t) => {
             const on = path === t.href || path.startsWith(t.href + "/");
             return (
               <Link

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { InvoiceEditor } from "@/components/BillingForms";
 import { prisma } from "@/lib/prisma";
-import { staffPage } from "@/lib/server/session";
+import { ownerPage } from "@/lib/server/session";
 import { letterhead } from "@/lib/server/billing";
 
 export default async function InvoicePage({ params }: { params: { id: string } }) {
-  const m = await staffPage();
+  const m = await ownerPage();
   const inv = await prisma.invoice.findFirst({ where: { id: params.id, organizationId: m.organizationId }, include: { lines: true } });
   if (!inv) notFound();
   return (

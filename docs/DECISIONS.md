@@ -38,3 +38,4 @@
 - 2026-10-14: Billing: 'Why isn't a cow here?' box - each of her records in plain words (billed on #, culled, not Safe, preg checks).
 - 2026-10-14: Invoice header on Billing: logo upload (shrunk in the browser, kept on the ranch record), business name, address lines, phone, email - prints on every invoice. Price per pregnancy box never prints; each line's Amount and the Total do.
 - 2026-10-14: Invoices show who is billed under Bill To - Ranch Name, Location, Email Address. Typed once per owner on Lists → Owners; new invoices copy it, and that owner's Open invoices fill in any blank; each invoice can still be changed on its own.
+- 2026-10-14: Manager logins have no access to billing - no Billing tab, the Billing and invoice pages send them to the Dashboard, the QuickBooks download refuses them, and Lists hides owners' billing info.

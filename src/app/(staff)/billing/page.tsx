@@ -14,12 +14,12 @@ import { Catchups } from "@/components/Catchups";
 import { statusCatchups } from "@/lib/reconcile";
 import { whyNotBillable } from "@/lib/billWhy";
 import { loadRanch } from "@/lib/server/data";
-import { staffPage } from "@/lib/server/session";
+import { ownerPage } from "@/lib/server/session";
 
 type SP = { owner?: string; b?: string | string[]; held?: string; why?: string };
 
 export default async function Billing({ searchParams }: { searchParams: SP }) {
-  const m = await staffPage();
+  const m = await ownerPage();
   const [{ calc, archive, lists, events }, set, billed, invoices, holds] = await Promise.all([
     loadRanch(m.organizationId),
     billingSettings(m.organizationId),
