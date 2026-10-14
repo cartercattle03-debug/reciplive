@@ -50,14 +50,18 @@ export class HttpError extends Error {
     super(msg);
   }
 }
-/** For a save: owner or manager only (customers only ever read). `ownerOnly` for logins. */
-export async function staffApi(ownerOnly = false): Promise<Member> {
+/**
+ * For a save: the ranch owner only. A Manager login is view only (Carter, 2026-10-14: no changes, no downloads)
+ * and a customer only ever reads their own cows. The second argument is kept for older callers.
+ */
+export async function staffApi(_ownerOnly = false): Promise<Member> {
   const m = await load();
   if (!m) throw new HttpError(401, "Please log in again.");
-  if (m.role === "CUSTOMER") throw new HttpError(403, "This login can view only.");
-  if (ownerOnly && m.role !== "OWNER") throw new HttpError(403, "Only the ranch owner can do that.");
+  if (m.role !== "OWNER") throw new HttpError(403, "This login is view only - nothing was changed.");
   return m;
 }
+/** True for a login that can only look (Manager). */
+export const viewOnly = (m: Member) => m.role !== "OWNER";
 
 /** Wraps an API handler: errors come back as { error } with the right status, never a crash page. */
 export function handle(fn: (req: Request) => Promise<unknown>) {

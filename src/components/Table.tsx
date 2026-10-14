@@ -38,7 +38,7 @@ function DeleteButton({ id, what }: { id: string; what: string }) {
   return (
     <button
       type="button"
-      className="rounded px-2 text-xs font-medium text-red-700 hover:bg-red-50"
+      className="edit-only rounded px-2 text-xs font-medium text-red-700 hover:bg-red-50"
       onClick={async () => {
         if (!(await ask(`Delete ${what}?\n\nA copy is kept - Account > Undo can bring it back.`, "Delete"))) return;
         try {

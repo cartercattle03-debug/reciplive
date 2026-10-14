@@ -44,8 +44,8 @@ export function BatchList({ batches }: { batches: Batch[] }) {
             <tr key={b.id} className={i % 2 ? "bg-stripe" : ""}>
               <td className="tc">
                 {i + 1}
-                <button className="ml-1 px-1 text-slate-500 hover:text-brand-700 disabled:opacity-20" disabled={i === 0} onClick={() => act({ action: "moveBatch", id: b.id, dir: -1 })} title="Move earlier">▲</button>
-                <button className="px-1 text-slate-500 hover:text-brand-700 disabled:opacity-20" disabled={i === batches.length - 1} onClick={() => act({ action: "moveBatch", id: b.id, dir: 1 })} title="Move later">▼</button>
+                <button className="edit-only ml-1 px-1 text-slate-500 hover:text-brand-700 disabled:opacity-20" disabled={i === 0} onClick={() => act({ action: "moveBatch", id: b.id, dir: -1 })} title="Move earlier">▲</button>
+                <button className="edit-only px-1 text-slate-500 hover:text-brand-700 disabled:opacity-20" disabled={i === batches.length - 1} onClick={() => act({ action: "moveBatch", id: b.id, dir: 1 })} title="Move later">▼</button>
               </td>
               <td className="tc editable">
                 <input className="cell-select w-20" defaultValue={b.label} onBlur={(e) => e.target.value.trim() !== b.label && act({ action: "updateBatch", id: b.id, label: e.target.value }, "Renamed on every record.")} />
@@ -56,7 +56,7 @@ export function BatchList({ batches }: { batches: Batch[] }) {
               <td className="tc">{b.uses}</td>
               <td className="tc">
                 {b.uses === 0 && (
-                  <button className="text-xs text-red-700 hover:underline" onClick={async () => (await ask(`Take group ${b.label} off the list?`, "Remove")) && act({ action: "deleteBatch", id: b.id })}>
+                  <button className="edit-only text-xs text-red-700 hover:underline" onClick={async () => (await ask(`Take group ${b.label} off the list?`, "Remove")) && act({ action: "deleteBatch", id: b.id })}>
                     Remove
                   </button>
                 )}
@@ -66,7 +66,7 @@ export function BatchList({ batches }: { batches: Batch[] }) {
         </tbody>
       </table>
       <form
-        className="flex flex-wrap items-end gap-2 border-t border-slate-100 p-3"
+        className="edit-only flex flex-wrap items-end gap-2 border-t border-slate-100 p-3"
         onSubmit={async (e) => {
           e.preventDefault();
           if (await act({ action: "addBatch", label, transferDate: date }, `Group ${label} added - you can enter cows against it now.`)) {
@@ -105,7 +105,7 @@ export function ItemList({ kind, title, items }: { kind: string; title: string; 
               <td className="tc text-xs text-slate-500">{it.uses} records</td>
               <td className="tc">
                 {it.uses === 0 && (
-                  <button className="text-xs text-red-700 hover:underline" onClick={async () => (await ask(`Take ${it.value} off the list?`, "Remove")) && act({ action: "deleteItem", id: it.id })}>
+                  <button className="edit-only text-xs text-red-700 hover:underline" onClick={async () => (await ask(`Take ${it.value} off the list?`, "Remove")) && act({ action: "deleteItem", id: it.id })}>
                     Remove
                   </button>
                 )}
@@ -115,7 +115,7 @@ export function ItemList({ kind, title, items }: { kind: string; title: string; 
         </tbody>
       </table>
       <form
-        className="flex items-end gap-2 border-t border-slate-100 p-3"
+        className="edit-only flex items-end gap-2 border-t border-slate-100 p-3"
         onSubmit={async (e) => {
           e.preventDefault();
           if (await act({ action: "addItem", kind, value: v })) setV("");

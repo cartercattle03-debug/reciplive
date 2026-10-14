@@ -46,7 +46,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
   return (
     <div className="card max-w-4xl overflow-hidden">
       <div className="bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Logins</div>
-      <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager can do everything but logins and Undo.</p>
+      <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager login sees every page but is view only - no changes, no imports, no printing or downloads.</p>
       <table className="keep-width m-3 text-sm">
         <thead>
           <tr className="text-xs text-slate-500">
@@ -64,7 +64,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
               <td className="tc">{l.email}</td>
               <td className="tc">{l.name}</td>
               <td className="tc">{l.role === "OWNER" ? "Owner" : l.role === "MANAGER" ? "Manager" : "Customer"}</td>
-              <td className="tc">{l.role === "CUSTOMER" ? `${l.ownerName}'s cows` : "Everything"}</td>
+              <td className="tc">{l.role === "CUSTOMER" ? `${l.ownerName}'s cows` : l.role === "MANAGER" ? "Everything, view only" : "Everything"}</td>
               <td className="tc">{l.lastLogin}</td>
               <td className="tc whitespace-nowrap">
                 {l.role !== "OWNER" && (
@@ -100,7 +100,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
           Kind
           <select className="field mt-0.5 w-32" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
             <option value="CUSTOMER">Customer</option>
-            <option value="MANAGER">Manager</option>
+            <option value="MANAGER">Manager (view only)</option>
           </select>
         </label>
         {f.role === "CUSTOMER" && (

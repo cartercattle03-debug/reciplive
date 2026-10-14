@@ -85,7 +85,7 @@ export function AddTransfer({ lists }: { lists: Lists }) {
   };
 
   return (
-    <div className="card no-print mb-4 p-3">
+    <div className="card no-print edit-only mb-4 p-3">
       <div className="mb-2 flex flex-wrap items-end gap-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add transfers</span>
         <label className="text-xs font-medium text-slate-600">

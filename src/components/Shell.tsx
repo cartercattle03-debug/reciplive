@@ -7,7 +7,7 @@ import type { Member } from "@/lib/server/session";
 /** The page frame: logo, ranch name, Import / Account / Log out, then the tabs (same feel as HerdLive). */
 export function Shell({ member, children, customer = false }: { member: Member; children: React.ReactNode; customer?: boolean }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" || undefined}>
       <header className="no-print z-30 bg-white md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 px-4 py-2">
           <Link href={customer ? "/my" : "/dashboard"} className="flex items-center">
@@ -15,8 +15,9 @@ export function Shell({ member, children, customer = false }: { member: Member; 
           </Link>
           <span className="truncate border-l border-slate-200 pl-3 text-sm text-slate-500">{member.ranch}</span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {member.role === "MANAGER" && <span className="rounded-full bg-tan px-3 py-1 text-xs font-semibold text-brand-700">View only</span>}
             {!customer && (
-              <Link href="/import" className="btn-quiet">
+              <Link href="/import" className="btn-quiet edit-only">
                 Import
               </Link>
             )}

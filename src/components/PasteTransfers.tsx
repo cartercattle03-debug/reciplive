@@ -24,7 +24,7 @@ export function PasteTransfers() {
   }).filter((r) => r.cowId);
   if (!open)
     return (
-      <button className="btn-quiet" onClick={() => setOpen(true)}>
+      <button className="btn-quiet edit-only" onClick={() => setOpen(true)}>
         Paste rows
       </button>
     );

@@ -37,6 +37,11 @@ export default async function PregCheck() {
         <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} hasDate={!!org?.pregDate} />
       </PageHeader>
       <PregSettings s={{ pregDate: org?.pregDate ?? "", pregBatch: org?.pregBatch ?? "", pregMinAge: org?.pregMinAge?.toString() ?? "", pregMaxAge: org?.pregMaxAge?.toString() ?? "" }} batches={lists.batches.map((b) => b.label)} />
+      <p className="view-only mb-3 text-sm text-slate-600">
+        Showing: {org?.pregBatch ? `Group ${org.pregBatch}` : "any group"}
+        {org?.pregMinAge != null || org?.pregMaxAge != null ? `, embryo age ${org?.pregMinAge ?? "any"} to ${org?.pregMaxAge ?? "any"} days` : ""}
+        {org?.pregDate ? ` · check date ${showDate(org.pregDate)}` : ""}
+      </p>
       <div className="print-only mb-2 text-sm">
         <b>{m.ranch} - Preg Check {showDate(org?.pregDate)}</b> {org?.pregBatch ? ` · Group ${org.pregBatch}` : ""}
         {org?.pregMinAge != null || org?.pregMaxAge != null ? ` · Age ${org?.pregMinAge ?? ""}-${org?.pregMaxAge ?? ""} days` : ""}

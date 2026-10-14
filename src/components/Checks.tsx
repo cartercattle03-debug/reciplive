@@ -19,7 +19,7 @@ export function Checks({ name, label, options, on }: { name: string; label: stri
 
 export function PrintButton({ label = "Print / Save PDF" }: { label?: string }) {
   return (
-    <button type="button" className="btn" onClick={() => window.print()}>
+    <button type="button" className="btn edit-only" onClick={() => window.print()}>
       {label}
     </button>
   );

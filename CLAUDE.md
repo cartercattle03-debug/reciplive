@@ -30,6 +30,7 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - **IDs are text.** Leading zeros matter (054 is not 54). Batch labels and grades are text - never dates.
 - A repeated Cow ID is not a duplicate - the same cow has many records.
 - Customer logins (role CUSTOMER + ownerName) see only that owner's records, read only.
+- Manager logins are view only (Carter, 2026-10-14): every page, but no changes, no imports, no print / download. Only the OWNER saves (`staffApi`).
 - Big steps (import, Confirm & Archive, delete, Undo) go through `withSnapshot()`.
 
 ## Workbook import clean-ups (found in Carter's file, 2026-10-14)

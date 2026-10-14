@@ -120,3 +120,29 @@ main table {
 .print-only {
   display: none;
 }
+
+/* A Manager login is view only (Carter, 2026-10-14): no edit, add, import or print controls; cream cells don't open. */
+[data-view] .edit-only {
+  display: none !important;
+}
+.view-only {
+  display: none;
+}
+[data-view] .view-only {
+  display: block;
+}
+[data-view] td.tc.editable {
+  background-color: transparent !important;
+}
+[data-view] td.tc.editable :is(button, select, input) {
+  pointer-events: none;
+}
+[data-view] td.tc.editable select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+@media print {
+  [data-view] main {
+    display: none !important;
+  }
+}

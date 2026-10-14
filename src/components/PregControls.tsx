@@ -20,7 +20,7 @@ export function PregSettings({ s, batches }: { s: S; batches: string[] }) {
     }
   };
   return (
-    <div className="card no-print mb-3 flex flex-wrap items-end gap-3 p-3">
+    <div className="card no-print edit-only mb-3 flex flex-wrap items-end gap-3 p-3">
       <label className="text-xs font-medium text-slate-600">
         Date
         <input type="date" className="field mt-0.5 w-40" value={f.pregDate} onChange={(e) => save("pregDate", e.target.value)} />
@@ -51,7 +51,7 @@ export function PregButtons({ typed, offList, hasDate }: { typed: number; offLis
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
-    <>
+    <span className="edit-only flex flex-wrap items-center gap-2">
       <button className="btn-quiet" onClick={() => window.print()}>
         Print chute sheet
       </button>
@@ -87,6 +87,6 @@ export function PregButtons({ typed, offList, hasDate }: { typed: number; offLis
       >
         {busy ? "Saving..." : `Confirm & Archive${typed ? ` (${typed})` : ""}`}
       </button>
-    </>
+    </span>
   );
 }

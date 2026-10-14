@@ -37,6 +37,9 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await prisma.membership.create({ data: { userId: u.id, organizationId: org.id, role: "OWNER" } });
   const cu = await prisma.user.create({ data: { email: "c@x.com", name: "Lehman", passwordHash: "h:x" } });
   await prisma.membership.create({ data: { userId: cu.id, organizationId: org.id, role: "CUSTOMER", ownerName: "Lehman" } });
+  const mu = await prisma.user.create({ data: { email: "m@x.com", name: "Hand", passwordHash: "h:x" } });
+  await prisma.membership.create({ data: { userId: mu.id, organizationId: org.id, role: "MANAGER" } });
+  (global as any).mgr = mu.id;
   (global as any).owner = u.id;
   (global as any).cust = cu.id;
 
@@ -70,6 +73,22 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     fails++;
     console.log("FAIL customer page shows another owner");
   }
+  // Manager: sees every page, view only - every save refused.
+  await show("manager layout is view only", "(staff)/layout", { children: "x" }, ["data-view", "View only", "Dashboard"], "mgr");
+  await show("manager sees transfers", "(staff)/transfers/page", { searchParams: {} }, ["6148"], "mgr");
+  await show("manager kept off Import", "(staff)/import/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
+  const { staffApi } = require("../src/lib/server/session");
+  (global as any).SESSION = { user: { id: mu.id } };
+  try {
+    await staffApi();
+    fails++;
+    console.log("FAIL manager save was allowed");
+  } catch (e: any) {
+    console.log(e.status === 403 ? "ok   manager save refused" : "FAIL manager refusal " + e.message);
+    if (e.status !== 403) fails++;
+  }
+  (global as any).SESSION = { user: { id: u.id } };
+  await staffApi().then(() => console.log("ok   owner can still save")).catch(() => { fails++; console.log("FAIL owner refused"); });
   (global as any).owner = "nobody";
   await show("logged out -> login", "(staff)/dashboard/page", { searchParams: {} }, ["REDIRECT /login"]);
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");

@@ -8,3 +8,4 @@
 - 2026-10-14: Attempt # = her records in batch order, then entry order (the sheet's formula had a fixed "row 2" in it).
 - 2026-10-14: "Confirm Delivery Updates" (in How To Use but never written) isn't needed - delivery saves as it's picked.
 - 2026-10-14: Add transfers is a 10-line grid (+10 more lines, paste a column to fill down, one Add for all) - batches run 40-100+ transfers.
+- 2026-10-14: Manager login = view only: sees every page, no changes, no import, no print/download buttons. Only the owner saves.
