@@ -7,3 +7,4 @@
 - 2026-10-14: Helper columns are not stored - all worked out live (src/lib/recip.ts), checked row-for-row against the workbook.
 - 2026-10-14: Attempt # = her records in batch order, then entry order (the sheet's formula had a fixed "row 2" in it).
 - 2026-10-14: "Confirm Delivery Updates" (in How To Use but never written) isn't needed - delivery saves as it's picked.
+- 2026-10-14: Add transfers is a 10-line grid (+10 more lines, paste a column to fill down, one Add for all) - batches run 40-100+ transfers.

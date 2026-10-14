@@ -123,6 +123,16 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   R = await loadRanch(O);
   ok("undo brings the deleted record back", R.calc.some((x) => x.id === gone.id));
 
+  // ---- A whole batch at once (100 lines, as from the Add transfers grid)
+  const many = Array.from({ length: 100 }, (_, i) => ({ batch: "8-15", cowId: `B${i + 1}`, mating: "Bulk x 1", owner: "Carter", embryoType: "Frozen", grade: "7-1", company: "605", status: i % 10 === 0 ? "Pass" : "Pending" }));
+  const big = await rec.addTransfers(O, many);
+  R = await loadRanch(O);
+  ok("100 lines added in order", big.added === 100 && R.calc.filter((x) => x.batch === "8-15" && x.cowId.startsWith("B")).length === 100);
+  ok("bulk lines keep their order", R.calc.findIndex((x) => x.cowId === "B1") < R.calc.findIndex((x) => x.cowId === "B100"));
+  await refuses("one bad line stops the whole batch", () => rec.addTransfers(O, [{ batch: "8-15", cowId: "Z1" }, { batch: "8-15", cowId: "Z2", status: "Bred" }]), "Row 2");
+  R = await loadRanch(O);
+  ok("nothing from the refused batch saved", !R.calc.some((x) => x.cowId === "Z1"));
+
   // ---- Re-import replaces cleanly (and keeps only 15 copies)
   for (let i = 0; i < 14; i++) await rec.importWorkbook(O, p);
   R = await loadRanch(O);

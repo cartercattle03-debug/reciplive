@@ -64,12 +64,21 @@ export async function addTransfers(orgId: string, rows: Record<string, unknown>[
     const last = await prisma.transfer.findFirst({ where: { organizationId: orgId }, orderBy: { seq: "desc" }, select: { seq: true } });
     let seq = last?.seq ?? 0;
     const data = [];
+    // The same group / owner / grade on 100 lines is checked once.
+    const seen = new Map<string, string | null>();
+    const check = async (f: TransferField, raw: unknown) => {
+      const key = `${f}|${clean(raw).toLowerCase()}`;
+      if (f !== "cowId" && seen.has(key)) return seen.get(key)!;
+      const v = await checkValue(orgId, f, raw);
+      seen.set(key, v);
+      return v;
+    };
     for (const [i, r] of rows.entries()) {
       const out: Record<string, unknown> = { organizationId: orgId, seq: ++seq };
       for (const f of TRANSFER_FIELDS) {
         if (r[f] === undefined) continue;
         try {
-          out[f] = await checkValue(orgId, f, r[f]);
+          out[f] = await check(f, r[f]);
         } catch (e) {
           throw new HttpError(400, rows.length > 1 ? `Row ${i + 1}: ${(e as Error).message}` : (e as Error).message);
         }
