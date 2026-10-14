@@ -37,8 +37,8 @@ tbody tr:nth-child(even) td.tc.editable {
   text-align-last: center;
 }
 /* Status colors: Safe green, Open bright red (Carter, 2026-10-14), Probable amber. */
-.st-Safe { color: #006100 !important; font-weight: 700; }
-.st-Open { color: #e00000 !important; font-weight: 800; }
+.st-Safe { color: #16a34a !important; font-weight: 800; }
+.st-Open { color: #ff1414 !important; font-weight: 800; }
 .st-Probable { color: #9c6500 !important; font-weight: 700; }
 .st-Pass, .st-Culled { color: #64748b !important; }
 /* Yellow flags: a cull candidate on Open Inventory, a grid cell still holding a Probable. */
@@ -228,25 +228,27 @@ td.tc.notes .cell-input {
   }
 }
 
-/* Preg Check Result: three tap buttons. Lit = picked; tap it again to take it back off. */
+/* Preg Check Result: three tap buttons, each in its own color (Carter, 2026-10-14). Not picked = outlined in its color;
+   picked = solid. Tap the lit one again to take it back off. */
 .pick-btn {
   min-width: 4.6rem;
   border-radius: 9999px;
-  border: 2px solid #cbd5e1;
-  background: #fff;
+  border: 2px solid;
   padding: 0.25rem 0.6rem;
   font-size: 13px;
-  font-weight: 700;
-  color: #475569;
+  font-weight: 800;
   transition: background 0.1s;
 }
 .pick-btn:disabled { opacity: 0.6; }
-.pb-Probable.on { background: #facc15; border-color: #ca8a04; color: #422006; }
-.pb-Safe.on { background: #16a34a; border-color: #15803d; color: #fff; }
-.pb-Open.on { background: #e00000; border-color: #b91c1c; color: #fff; }
-.pb-Probable:not(.on):hover { border-color: #ca8a04; }
-.pb-Safe:not(.on):hover { border-color: #15803d; }
-.pb-Open:not(.on):hover { border-color: #b91c1c; }
+.pb-Probable { border-color: #eab308; color: #a16207; background: #fefce8; }
+.pb-Safe { border-color: #22c55e; color: #15803d; background: #f0fdf4; }
+.pb-Open { border-color: #ff1f1f; color: #e00000; background: #fff1f1; }
+.pb-Probable.on { background: #facc15; border-color: #eab308; color: #422006; }
+.pb-Safe.on { background: #22c55e; border-color: #16a34a; color: #fff; }
+.pb-Open.on { background: #ff1f1f; border-color: #e00000; color: #fff; }
+.pick-btn.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; }
+.pb-Safe.on, .pb-Open.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #334155; }
+.pb-Probable.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #334155; }
 @media (pointer: coarse) {
   .pick-btn { min-width: 5.6rem; min-height: 2.75rem; font-size: 16px; }
 }

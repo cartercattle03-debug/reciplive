@@ -22,7 +22,7 @@ export default async function PregCheck() {
       batchCell(c),
       { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
       numCell(c.embryoAge),
-      { t: c.pregDraft ?? "", s: c.pregDraft ?? "", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
+      { t: c.pregDraft ?? "", s: c.pregDraft ?? "", cls: "noshade", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: [...PREG_RESULTS], value: c.pregDraft ?? "" } },
       { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
       c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), cls: "noshade", edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
       { t: c.mating, cls: "noshade", edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
