@@ -185,6 +185,28 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     await show("customer by sire", "my/page", { searchParams: { as: "Buck", by: "sire" } }, ["Me Too", "adds up across all of its matings"]);
     await show("customer by donor", "my/page", { searchParams: { as: "Buck", by: "donor" } }, ["280K", "Donor"]);
   }
+  {
+    // Recip Rating (Carter, 2026-10-15): half stars, 5 = fresh recip, passes don't count, lost Probable by peers.
+    const { recipRatings, starText } = require("../src/lib/rating");
+    const { loadRanch } = require("../src/lib/server/data");
+    const RR = await loadRanch(org.id);
+    const rt = recipRatings(RR.calc);
+    const all5 = [...rt.values()].every((r: any) => r.stars >= 1 && r.stars <= 5 && Math.round(r.stars * 2) === r.stars * 2);
+    const fresh = [...rt.entries()].filter(([, r]: any) => r.tries === 0).every(([, r]: any) => r.stars === 5);
+    const safeUp = [...rt.values()].some((r: any) => r.steps.some((s: any) => s.effect === "up"));
+    const passNone = [...rt.values()].every((r: any) => r.steps.filter((s: any) => s.text.startsWith("Pass")).every((s: any) => s.effect === "none"));
+    if (!all5 || !fresh || !safeUp || !passNone || starText(3.5) !== "★★★½☆") { fails++; console.log("FAIL rating basics", { all5, fresh, safeUp, passNone, st: starText(3.5) }); }
+    else console.log("ok   ratings in half stars 1-5, fresh recips 5, passes don't count");
+    // A lost Probable when most others that day held = full Open; when loss was common = half.
+    const lostSteps = [...rt.values()].flatMap((r: any) => r.steps).filter((s: any) => s.text.startsWith("Lost a Probable"));
+    if (!lostSteps.some((s: any) => s.effect === "light") || !lostSteps.some((s: any) => s.effect === "down")) { fails++; console.log("FAIL lost Probable both ways", lostSteps.map((s: any) => s.effect)); }
+    else console.log(`ok   lost Probables: ${lostSteps.filter((s: any) => s.effect === "light").length} counted at half (process), ${lostSteps.filter((s: any) => s.effect === "down").length} as a full Open`);
+    await show("open inventory shows ratings", "(staff)/open/page", { searchParams: {} }, [">Rating<", "★", "cull candidate"]);
+    const oc = RR.calc.find((c: any) => c.latest && c.status === "Open");
+    await show("cow lookup shows her rating", "(staff)/lookup/page", { searchParams: { cow: oc.cowId } }, ["Recip Rating", "★", "Open on"]);
+    const cp = await show("customer page has no rating", "my/page", { searchParams: { as: "Buck" } }, ["Buck"]);
+    if (/Recip Rating|Cull candidate/.test(cp)) { fails++; console.log("FAIL rating on the customer page"); }
+  }
   await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading", "first preg check", "final preg check"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");

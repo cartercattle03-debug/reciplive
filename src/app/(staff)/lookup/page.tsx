@@ -7,6 +7,7 @@ import { staffPage } from "@/lib/server/session";
 import { money } from "@/lib/cells";
 import { ArchiveTable } from "@/components/ArchiveTable";
 import { cowArchive } from "@/lib/cowArchive";
+import { recipRatings, starText } from "@/lib/rating";
 
 export default async function CowLookup({ searchParams }: { searchParams: { cow?: string } }) {
   const m = await staffPage();
@@ -19,6 +20,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
   const id = (searchParams.cow ?? "").trim();
   const h = id ? cowHistory(calc, id) : [];
   const last = h[h.length - 1];
+  const rating = last ? recipRatings(calc).get(last.cowId) : undefined;
   const extra = id ? cows.get(h[0]?.cowId ?? id) : undefined;
   const rows: Row[] = h.map((c) => ({
     key: c.id,
@@ -50,6 +52,33 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
               )}
             </div>
           </div>
+          {rating && (
+            <div className={"card mb-4 border-l-4 p-3 " + (rating.cull ? "border-red-600" : "border-rust")}>
+              <div className="flex flex-wrap items-baseline gap-3">
+                <span className="text-sm font-semibold text-slate-600">Recip Rating</span>
+                {rating.tries ? (
+                  <>
+                    <span className={"text-xl font-bold " + (rating.cull ? "text-red-700" : "text-amber-600")}>
+                      {starText(rating.stars)} {rating.stars}
+                    </span>
+                    {rating.cull && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-800">Cull candidate</span>}
+                  </>
+                ) : (
+                  <span className="text-sm text-slate-500">New - no finished transfers yet, rates as a fresh recip</span>
+                )}
+              </div>
+              {rating.steps.length > 0 && (
+                <ol className="mt-2 list-inside list-decimal text-sm text-slate-700">
+                  {rating.steps.map((s, i) => (
+                    <li key={i} className={s.effect === "up" ? "text-emerald-700" : s.effect === "down" ? "text-red-700" : s.effect === "light" ? "text-amber-700" : "text-slate-500"}>
+                      {s.batch}: {s.text}
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <p className="mt-2 text-xs text-slate-500">Her odds on the next transfer, from her own results weighed by how good each embryo was. 5 = as good as a fresh recip; 2½ and under (about 1 in 8) = cull candidate. Passes don&apos;t count; a lost Probable counts as an Open unless loss was common that day.</p>
+            </div>
+          )}
           <h2 className="mb-1.5 text-sm font-semibold text-brand-700">Transfers</h2>
           <Table cols={[{ label: "Attempt #" }, { label: "Batch" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Transfer Date" }, { label: "Delivery Status" }, { label: "Notes" }]} rows={rows} maxHeight={false} />
           <h2 className="mb-1.5 mt-6 text-sm font-semibold text-brand-700">Her full archive, in order</h2>

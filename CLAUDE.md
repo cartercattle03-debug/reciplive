@@ -41,6 +41,7 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - Preg Check: picking a Result stamps its own Check Date (today, changeable); taking the Result off clears it. A cow already Probable gets only Safe / Open (`resultsFor`); a Pending cow keeps Safe (a late first check). Totals split First check / 75-day check when both are listed.
 - Preg checks belong to a record by **group + Cow ID** (`matchChecks`); the mating only breaks a tie (loosely - "91/Z" = "91Z"). Records
   whose status lags their own last check are listed on the Dashboard to fix (`lib/reconcile.ts`); the import fixes them on the way in.
+- **Recip Rating** (`lib/rating.ts`, Carter 2026-10-15): 1-5 half stars from her own results weighed by embryo odds (company + type + grade); lost Probable = Open unless 1 in 4+ same-day peers lost (half); passes don't count; red at 2.5 and under (cull). Open Inventory + Cow Lookup only, never customers.
 - 75+ Day Cows = latest record Safe. Master Sheet Final Destination = Culled if any record Culled, else owner of her Safe latest record.
 - **IDs are text.** Leading zeros matter (054 is not 54). Batch labels and grades are text - never dates.
 - A repeated Cow ID is not a duplicate - the same cow has many records.
