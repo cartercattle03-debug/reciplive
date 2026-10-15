@@ -49,6 +49,7 @@ export function Grid({ title, calc, rowBy, rows, colBy, cols, type }: { title: s
             <tr>
               <th className={th}>{BREAKDOWN_LABELS[rowBy]}</th>
               {cols.map((c) => <th key={c} className={th}>{c}</th>)}
+              <th className={th + " border-l-2 border-white"}>All</th>
             </tr>
           </thead>
           <tbody>
@@ -56,17 +57,9 @@ export function Grid({ title, calc, rowBy, rows, colBy, cols, type }: { title: s
               <tr key={r.value} className={i % 2 ? "bg-stripe" : ""}>
                 <td className="tc font-semibold">{r.value}</td>
                 {r.cells.map((c, k) => (
-                  <td key={k} className={"tc " + (c.probable ? "flag" : "")} title={c.total ? `${c.total} transfer${c.total === 1 ? "" : "s"}${c.probable ? `, ${c.probable} still Probable` : ""}` : ""}>
-                    {c.total ? (
-                      <>
-                        <div className="font-semibold">{showRate(c.rate)}</div>
-                        <div className="text-[11px] font-normal text-slate-500">{c.known ? `${c.hits}/${c.known}` : `${c.total} unchecked`}</div>
-                      </>
-                    ) : (
-                      ""
-                    )}
-                  </td>
+                  <GridCell key={k} c={c} />
                 ))}
+                <GridCell c={r.total} cls="border-l-2 border-brand-600 bg-tan/60" />
               </tr>
             ))}
           </tbody>
@@ -120,6 +113,28 @@ function LossCell({ k }: { k: { held: number; lost: number; probables: number } 
   return (
     <td className={"tc whitespace-nowrap" + (k.lost ? " font-semibold text-red-700" : "")} title={k.probables ? `${k.lost} lost, ${k.held} held to Safe${waiting ? `, ${waiting} still waiting on the 75-day check` : ""}` : "None checked Probable"}>
       {k.probables ? `${k.lost} of ${k.probables}` : "-"}
+    </td>
+  );
+}
+
+type GCell = { rate: number | null; hits: number; known: number; total: number; probable: number; lost: number; probables: number; held: number };
+/** One grid cell: the rate, Safe+Probable / checked, and - when any were checked Probable - lost after Probable as "lost 1 of 10". */
+function GridCell({ c, cls = "" }: { c: GCell; cls?: string }) {
+  const waiting = c.probables - c.held - c.lost;
+  return (
+    <td
+      className={"tc " + (c.probable ? "flag " : "") + cls}
+      title={c.total ? `${c.total} transfer${c.total === 1 ? "" : "s"}${c.probable ? `, ${c.probable} still Probable` : ""}${c.probables ? ` · lost after Probable: ${c.lost} lost, ${c.held} held to Safe${waiting ? `, ${waiting} waiting` : ""}` : ""}` : ""}
+    >
+      {c.total ? (
+        <>
+          <div className="font-semibold">{showRate(c.rate)}</div>
+          <div className="text-[11px] font-normal text-slate-500">{c.known ? `${c.hits}/${c.known}` : `${c.total} unchecked`}</div>
+          {c.probables > 0 && <div className={"whitespace-nowrap text-[11px] " + (c.lost ? "font-semibold text-red-700" : "text-slate-500")}>lost {c.lost} of {c.probables}</div>}
+        </>
+      ) : (
+        ""
+      )}
     </td>
   );
 }

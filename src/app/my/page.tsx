@@ -79,7 +79,7 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
       <section className="mt-8 break-before-page">
         <h2 className="mb-1 text-lg font-semibold text-slate-900">Your breakdowns</h2>
         <StatusKey className="mb-1" />
-        <p className="mb-3 text-sm text-slate-500">Pregnancy rate on your cows only = (Safe + Probable) ÷ (Safe + Probable + Open). Lost after Probable = how many of your cows that were pregnant at the first preg check (Probable) lost it before the final preg check, out of every cow checked Probable - e.g. 1 of 10. In the grids each cell shows the rate and Safe+Probable / checked; yellow = some are still Probable.</p>
+        <p className="mb-3 text-sm text-slate-500">Pregnancy rate on your cows only = (Safe + Probable) ÷ (Safe + Probable + Open). Lost after Probable = how many of your cows that were pregnant at the first preg check (Probable) lost it before the final preg check, out of every cow checked Probable - e.g. 1 of 10. In the grids each cell shows the rate, Safe+Probable / checked, and &quot;lost 1 of 10&quot; = lost after Probable; All = the whole row; yellow = some are still Probable.</p>
         <div className="no-print mb-4 flex flex-wrap gap-1">
           {BYS.map((b) => (
             <Link key={b} href={keep({ by: b })} className={!mate && b === by ? "btn" : "btn-quiet"}>

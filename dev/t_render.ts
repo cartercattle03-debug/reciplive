@@ -163,6 +163,19 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     }
     await show("breakdowns show loss", "(staff)/breakdowns/page", { searchParams: {} }, ["Lost after Probable"]);
     {
+      // Fresh / Frozen by company and group: lost after Probable in each cell, an All column per company (Carter, 2026-10-15).
+      const html = await show("company grids show lost after Probable", "(staff)/breakdowns/page", { searchParams: { by: "company" } }, ["Fresh - pregnancy rate by company and group", ">All<", "lost "]);
+      const { matrix, inYear } = require("../src/lib/recip");
+      const RC = await loadRanch(org.id);
+      const cy = inYear(RC.calc, 2026);
+      const bs = RC.lists.batches.map((b: any) => b.label);
+      const m = matrix(cy, "company", RC.lists.companies, "batch", bs, "Fresh");
+      const bad = m.filter((r: any) => r.total.lost !== r.cells.reduce((n: number, c: any) => n + c.lost, 0) || r.total.probables !== r.cells.reduce((n: number, c: any) => n + c.probables, 0));
+      if (bad.length) { fails++; console.log("FAIL All column doesn't add up", bad.map((r: any) => r.value)); }
+      else console.log("ok   All column = sum of its groups: " + m.filter((r: any) => r.total.probables).map((r: any) => `${r.value} lost ${r.total.lost} of ${r.total.probables}`).join(", "));
+      if (!html) fails++;
+    }
+    {
       // Lost after Probable reads as a fraction - "1 of 10" - not a % (Carter, 2026-10-15).
       const html = await show("Buck: lost after Probable as a fraction", "my/page", { searchParams: { as: "Buck" } }, ["Lost after Probable"]);
       const { countsOf, inYear } = require("../src/lib/recip");

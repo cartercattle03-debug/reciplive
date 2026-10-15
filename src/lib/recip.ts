@@ -317,13 +317,19 @@ export function breakdown(calc: Calc[], by: BreakdownBy, values: string[]) {
  */
 export function matrix(calc: Calc[], rowBy: BreakdownBy, rowValues: string[], colBy: BreakdownBy, colValues: string[], embryoType?: string) {
   const base = embryoType ? calc.filter((c) => c.embryoType === embryoType) : calc;
-  return rowValues.map((rv) => ({
-    value: rv,
-    cells: colValues.map((cv) => {
-      const k = countsOf(base.filter((c) => same(c[rowBy], rv) && same(c[colBy], cv)));
-      return { rate: k.rate, hits: k.safe + k.probable, known: k.safe + k.open + k.probable, total: k.total, probable: k.probable };
-    }),
-  }));
+  const cell = (rows: Calc[]) => {
+    const k = countsOf(rows);
+    return { rate: k.rate, hits: k.safe + k.probable, known: k.safe + k.open + k.probable, total: k.total, probable: k.probable, lost: k.lost, probables: k.probables, held: k.held };
+  };
+  return rowValues.map((rv) => {
+    const mine = base.filter((c) => same(c[rowBy], rv));
+    return {
+      value: rv,
+      cells: colValues.map((cv) => cell(mine.filter((c) => same(c[colBy], cv)))),
+      /** The whole row across every column (Carter, 2026-10-15: a company's loss over all its groups). */
+      total: cell(mine.filter((c) => colValues.some((cv) => same(c[colBy], cv)))),
+    };
+  });
 }
 
 export type PregFilter = { batch?: string | null; minAge?: number | null; maxAge?: number | null };
