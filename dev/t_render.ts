@@ -143,8 +143,8 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const { countsOf } = require("../src/lib/recip");
     const RA = await loadRanch(org.id);
     const k = countsOf(RA.calc);
-    const lostBy = RA.calc.filter((c: any) => c.everProbable && c.outcome === "Open");
-    const heldBy = RA.calc.filter((c: any) => c.everProbable && c.outcome === "Safe");
+    const lostBy = RA.calc.filter((c: any) => c.wasProbable && c.outcome === "Open");
+    const heldBy = RA.calc.filter((c: any) => c.wasProbable && c.outcome === "Safe");
     if (k.lost !== lostBy.length || k.held !== heldBy.length || !(k.lost > 0) || Math.abs(k.lossRate - k.lost / (k.lost + k.held)) > 1e-9) { fails++; console.log("FAIL loss counts"); }
     else console.log(`ok   lost after Probable ${k.lost}, held ${k.held}, loss ${(100 * k.lossRate).toFixed(1)}%`);
     const pc = RA.calc.find((c: any) => c.status === "Probable");
@@ -153,6 +153,14 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const RB = await loadRanch(org.id);
     if (countsOf(RB.calc).lost !== k.lost + 1) { fails++; console.log("FAIL a culled Probable is a loss"); } else console.log("ok   a culled Probable counts as lost");
     await recs.updateTransfer(org.id, pc.id, "status", "Probable");
+    {
+      // A cow checked Safe had to be Probable first (Carter, 2026-10-15): Buck 5-21 had its first check before the archive.
+      const { countsOf: cO } = require("../src/lib/recip");
+      const b521 = (await loadRanch(org.id)).calc.filter((c: any) => c.owner === "Buck" && c.batch === "5-21");
+      const kk = cO(b521);
+      if (kk.held !== kk.safe || kk.probables !== kk.held + kk.lost + kk.probable) { fails++; console.log("FAIL Safe counts as Probable first", JSON.stringify(kk)); }
+      else console.log(`ok   Buck 5-21 lost after Probable reads ${kk.lost} of ${kk.probables} (every Safe was Probable first)`);
+    }
     await show("breakdowns show loss", "(staff)/breakdowns/page", { searchParams: {} }, ["Lost after Probable"]);
     {
       // Lost after Probable reads as a fraction - "1 of 10" - not a % (Carter, 2026-10-15).

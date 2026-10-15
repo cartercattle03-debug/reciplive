@@ -81,6 +81,12 @@ export type Calc = Transfer & {
   timesProbable: number;
   timesPassed: number;
   everProbable: boolean;
+  /**
+   * Pregnant at her first preg check, for Lost after Probable: checked Probable - or ever Safe, since a cow had to be
+   * Probable to be checked Safe (Carter, 2026-10-15: fills in groups whose first check came before the sheet's
+   * archive started on 7/15/2026). Delivered counts too; a cull while Probable or Safe counts.
+   */
+  wasProbable: boolean;
   /** Latest preg check date she was called Open (on a row whose status is Open). */
   dateCheckedOpen: string | null;
 };
@@ -239,6 +245,12 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
       timesProbable: mine.filter(everProbable).length,
       timesPassed: count("Pass"),
       everProbable: everProbable(r),
+      wasProbable:
+        everProbable(r) ||
+        r.status === "Safe" ||
+        r.deliveryStatus === "Delivered" ||
+        (checksOf.get(r.id) ?? []).some((a) => a.result === "Safe") ||
+        (r.status === "Culled" && culls.some((c) => c.transferId === r.id && /^was (Safe|Probable)$/.test(c.detail))),
       outcome: outcomeOf(r, lastResult, culls),
       checks: checksOf.get(r.id) ?? [],
       safeCheckDate: [...(checksOf.get(r.id) ?? [])].reverse().find((a) => a.result === "Safe")?.checkDate || null,
@@ -265,9 +277,9 @@ export function countsOf(rows: Calc[]): Counts {
   const probable = n("Probable");
   const pending = n("Pending");
   const open = n("Open");
-  const held = rows.filter((r) => r.everProbable && r.outcome === "Safe").length;
-  const lost = rows.filter((r) => r.everProbable && r.outcome === "Open").length;
-  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, culledOpen: rows.filter((r) => r.status === "Culled" && r.outcome === "Open").length, unchecked: probable + pending, rate: pregRate(safe, probable, open), held, lost, lossRate: held + lost ? lost / (held + lost) : null, probables: rows.filter((r) => r.everProbable && r.outcome !== "Pass").length };
+  const held = rows.filter((r) => r.wasProbable && r.outcome === "Safe").length;
+  const lost = rows.filter((r) => r.wasProbable && r.outcome === "Open").length;
+  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, culledOpen: rows.filter((r) => r.status === "Culled" && r.outcome === "Open").length, unchecked: probable + pending, rate: pregRate(safe, probable, open), held, lost, lossRate: held + lost ? lost / (held + lost) : null, probables: rows.filter((r) => r.wasProbable && r.outcome !== "Pass").length };
 }
 
 // ---------------------------------------------------------------------------
