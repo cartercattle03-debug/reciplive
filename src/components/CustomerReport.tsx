@@ -1,3 +1,4 @@
+import { StatusKey } from "./StatusKey";
 import { Table, type Row } from "./Table";
 import { batchCell, cowCell, dateCell } from "@/lib/cells";
 import { customerSearch, shownStatus, showDate, showRate, type Calc, type CustomerFilter } from "@/lib/recip";
@@ -49,6 +50,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
           Tip: click any column heading (Cow ID, Batch, Mating, Status, Due Date...) to sort the list by that column. Click it again to flip the order.
         </div>
       )}
+      <StatusKey className="mb-3" />
       <Table cols={[{ label: "Cow ID" }, { label: "Batch" }, { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." />
     </div>
   );

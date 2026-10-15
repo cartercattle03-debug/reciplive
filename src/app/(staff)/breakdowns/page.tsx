@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/Shell";
+import { StatusKey } from "@/components/StatusKey";
 import { Grid, Summary } from "@/components/Breakdowns";
 import { BREAKDOWN_LABELS, EMBRYO_TYPES, inYear, type BreakdownBy } from "@/lib/recip";
 import { pickedYear } from "@/lib/server/year";
@@ -25,7 +26,8 @@ export default async function Breakdowns({ searchParams }: { searchParams: { by?
   const v = (b: BreakdownBy) => values(b, lists, year);
   return (
     <div>
-      <PageHeader title={`${BREAKDOWN_LABELS[by]} breakdown - ${year}`} sub="New groups, owners, companies and grades show up here as soon as they're on the Lists page. In the grids each cell shows the pregnancy rate and Safe+Probable / checked; yellow = some are still Probable (not confirmed). Lost after Probable = how many cows checked Probable lost the pregnancy (Open or culled) before 75 days, out of every cow checked Probable - e.g. 1 of 10." />
+      <PageHeader title={`${BREAKDOWN_LABELS[by]} breakdown - ${year}`} sub="New groups, owners, companies and grades show up here as soon as they're on the Lists page. In the grids each cell shows the pregnancy rate and Safe+Probable / checked; yellow = some are still Probable (not confirmed). Lost after Probable = how many cows pregnant at the first preg check (Probable) lost it (Open or culled) before the final preg check, out of every cow checked Probable - e.g. 1 of 10." />
+      <StatusKey className="mb-3" />
       <div className="no-print mb-4 flex flex-wrap gap-1">
         {ORDER.map((b) => (
           <Link key={b} href={`/breakdowns?by=${b}`} className={b === by ? "btn" : "btn-quiet"}>

@@ -164,7 +164,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     await show("customer by sire", "my/page", { searchParams: { as: "Buck", by: "sire" } }, ["Me Too", "adds up across all of its matings"]);
     await show("customer by donor", "my/page", { searchParams: { as: "Buck", by: "donor" } }, ["280K", "Donor"]);
   }
-  await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading"]);
+  await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading", "first preg check", "final preg check"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");
   await show("account (customer)", "account/page", {}, ["Change your password"], "cust");
