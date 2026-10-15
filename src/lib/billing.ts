@@ -96,3 +96,20 @@ export function qboCsv(invoices: InvoiceForExport[]): string {
       );
   return out.join("\r\n") + "\r\n";
 }
+
+/**
+ * An invoice keeps each cow as she was the day it was built. If her record has changed since - culled, set back to Open,
+ * moved, deleted - this says how she reads now, so the invoice and the customer's own count can be squared up
+ * (Carter, 2026-10-14: Buck 6-19 invoiced 7, customer view showed 5). Null = still Safe.
+ */
+export function changedSince(transferId: string | null, byId: Map<string, Calc>, events: { kind: string; date: string; transferId: string | null }[]): string | null {
+  if (!transferId) return null;
+  const c = byId.get(transferId);
+  if (!c) return "Her record has been deleted since this invoice";
+  if (c.status === "Safe" && c.outcome === "Safe") return null;
+  if (c.status === "Culled") {
+    const e = events.find((x) => x.kind === "Culled" && x.transferId === transferId);
+    return `Culled since${e ? ` (${showDate(e.date)})` : ""} - counts as Open now, not a pregnancy`;
+  }
+  return `Now ${c.status || "blank"}, not Safe`;
+}

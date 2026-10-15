@@ -48,7 +48,7 @@ export function BillingSettingsForm({ s }: { s: BillingSet }) {
   );
 }
 
-type Line = { id: string; kind: string; description: string; cowId: string; batch: string; transferDate: string | null; mating: string; dueDate: string | null; confirmedDate: string | null; daysPreg: number | null; amount: number };
+type Line = { id: string; kind: string; description: string; cowId: string; batch: string; transferDate: string | null; mating: string; dueDate: string | null; confirmedDate: string | null; daysPreg: number | null; amount: number; /** How she reads now, if her record changed since this invoice was built. */ changed?: string | null };
 export type InvoiceView = { id: string; number: number; owner: string; billTo: string; billRanch: string; billLocation: string; billEmail: string; invoiceDate: string; dueDate: string; price: number; memo: string; status: string; exported: string | null; lines: Line[] };
 
 const $ = (n: number) => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -90,6 +90,12 @@ export function InvoiceEditor({ inv, lh, canEdit }: { inv: InvoiceView; lh: LH; 
   return (
     <div>
       {inv.status === "Void" && <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800">VOID - kept on file; its cows are back on Ready to bill.</div>}
+      {inv.status !== "Void" && inv.lines.some((l) => l.changed) && (
+        <div className="no-print mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-900">
+          <b>{inv.lines.filter((l) => l.changed).length} cow(s) on this invoice have changed since it was built</b> - marked in red below. The invoice keeps them as they were billed;
+          the customer&apos;s own page counts them as they are now. Take a line off with its ✕ (or add a credit) if she shouldn&apos;t be billed.
+        </div>
+      )}
       {inv.exported && inv.status !== "Void" && <div className="no-print mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">Sent to QuickBooks {inv.exported}. If you change it now, download it again and fix the invoice in QuickBooks to match.</div>}
       <div className="no-print mb-4 flex flex-wrap items-center gap-2">
         {live && (
@@ -182,7 +188,10 @@ export function InvoiceEditor({ inv, lh, canEdit }: { inv: InvoiceView; lh: LH; 
               ) : (
                 <tr key={l.id}>
                   <td className="tc">{showDate(l.transferDate)}</td>
-                  <td className="tc font-bold">{l.cowId}</td>
+                  <td className="tc font-bold">
+                    {l.cowId}
+                    {l.changed && <div className="no-print text-xs font-semibold text-red-700">{l.changed}</div>}
+                  </td>
                   <td className="tc">{l.mating}</td>
                   <td className="tc">{showDate(l.dueDate)}</td>
                   <td className="tc">

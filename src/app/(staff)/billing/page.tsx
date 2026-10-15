@@ -4,7 +4,7 @@ import { FilterForm, Pick } from "@/components/FilterForm";
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { cowCell, dateCell, money, numCell } from "@/lib/cells";
-import { billable } from "@/lib/billing";
+import { billable, changedSince } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { compareFamily, showDate } from "@/lib/recip";
 import { billHolds, billedIds, billingSettings, letterhead } from "@/lib/server/billing";
@@ -63,6 +63,7 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
       { t: notes.get(l.transferId) ?? "", cls: "noshade notes", edit: { api: "transfers", id: l.transferId, field: "notes", kind: "text", value: notes.get(l.transferId) ?? "" } },
     ],
   }));
+  const byId = new Map(calc.map((c) => [c.id, c]));
   const invRows: Row[] = invoices.map((i) => {
     const total = i.lines.reduce((s, l) => s + l.amount, 0);
     return {
@@ -72,7 +73,11 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
         { t: `#${i.number}`, s: i.number, href: `/billing/${i.id}` },
         { t: i.billTo, cls: "font-semibold" },
         dateCell(i.invoiceDate),
-        numCell(i.lines.filter((l) => l.kind === "Pregnancy").length),
+        (() => {
+          const n = i.lines.filter((l) => l.kind === "Pregnancy").length;
+          const ch = i.status === "Void" ? 0 : i.lines.filter((l) => l.kind === "Pregnancy" && changedSince(l.transferId, byId, events)).length;
+          return { t: ch ? `${n} (${ch} changed since)` : String(n), s: n, cls: ch ? "font-semibold text-red-700" : "" };
+        })(),
         { t: money(total), s: total },
         { t: i.status === "Void" ? "Void" : i.exportedAt ? `In QuickBooks ${i.exportedAt.toLocaleDateString("en-US", { timeZone: "America/Chicago" })}` : "Not exported", cls: i.status === "Void" ? "text-red-700" : i.exportedAt ? "text-emerald-700" : "text-amber-700" },
       ],

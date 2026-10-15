@@ -78,6 +78,15 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     await show("billing: why isn't 6305 here", "(staff)/billing/page", { searchParams: { why: "6305" } }, ["Cow 6305", "not Safe"]);
     await show("billing filtered: all ticked", "(staff)/billing/page", { searchParams: { owner: "Carter", b: "4-30" } }, ["all ticked", "Build invoice (", "checked=\"\""]);
     await show("invoice page", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["INVOICE #1001", "Carter Cattle LLC", "Stratford, OK 74872", "580-555-0100", "Download for QuickBooks", "Use on every pregnancy line", "Add an adjustment", "Days Pregnant", "$850.00", "Test Ranch LLC", "Ada, OK", "test@example.com"]);
+    {
+      // A billed cow culled afterward: the invoice keeps her, marked as changed (Buck 6-19: invoiced 7, customer view 5).
+      const ln = (await prisma.invoiceLine.findMany({ where: { invoiceId: inv!.id, kind: "Pregnancy" } }))[0];
+      const recs = require("../src/lib/server/records");
+      await recs.updateTransfer(org.id, ln.transferId, "status", "Culled");
+      await show("invoice marks a cow culled since", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["changed since it was built", "Culled since", ln.cowId]);
+      await show("billing list counts the change", "(staff)/billing/page", { searchParams: {} }, ["(1 changed since)"]);
+      await recs.updateTransfer(org.id, ln.transferId, "status", "Safe");
+    }
     await show("manager kept off an invoice", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["REDIRECT /dashboard"], "mgr");
     await show("manager kept off Billing", "(staff)/billing/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
     const ml = await show("manager's Lists has no billing info", "(staff)/lists/page", { searchParams: {} }, ["Owners"], "mgr");
