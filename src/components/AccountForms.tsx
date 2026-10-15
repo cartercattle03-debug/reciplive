@@ -46,7 +46,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
   return (
     <div className="card max-w-4xl overflow-hidden">
       <div className="bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Logins</div>
-      <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager login sees every page but is view only - no changes, no imports, no printing or downloads.</p>
+      <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager login is view only - no changes, no imports, no printing or downloads - and sees nothing about money or customer contact info: no Billing, Master Sheet or Master Archive, and no purchase, cost or sale figures on Cow Lookup.</p>
       <table className="keep-width m-3 text-sm">
         <thead>
           <tr className="text-xs text-slate-500">
@@ -69,7 +69,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
                   <a className="text-brand-600 underline" href={`/my?as=${encodeURIComponent(l.ownerName ?? "")}`} title="See exactly what this login sees">
                     {l.ownerName}&apos;s cows
                   </a>
-                ) : l.role === "MANAGER" ? "Everything, view only" : "Everything"}
+                ) : l.role === "MANAGER" ? "View only - no billing, costs, sales or customer contact info" : "Everything"}
               </td>
               <td className="tc">{l.lastLogin}</td>
               <td className="tc whitespace-nowrap">
@@ -106,7 +106,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
           Kind
           <select className="field mt-0.5 w-32" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
             <option value="CUSTOMER">Customer</option>
-            <option value="MANAGER">Manager (view only)</option>
+            <option value="MANAGER">Manager (view only, no money)</option>
           </select>
         </label>
         {f.role === "CUSTOMER" && (
