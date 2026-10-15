@@ -25,7 +25,7 @@ export default async function Breakdowns({ searchParams }: { searchParams: { by?
   const v = (b: BreakdownBy) => values(b, lists, year);
   return (
     <div>
-      <PageHeader title={`${BREAKDOWN_LABELS[by]} breakdown - ${year}`} sub="New groups, owners, companies and grades show up here as soon as they're on the Lists page. In the grids each cell shows the pregnancy rate and Safe+Probable / checked; yellow = some are still Probable (not confirmed)." />
+      <PageHeader title={`${BREAKDOWN_LABELS[by]} breakdown - ${year}`} sub="New groups, owners, companies and grades show up here as soon as they're on the Lists page. In the grids each cell shows the pregnancy rate and Safe+Probable / checked; yellow = some are still Probable (not confirmed). Lost after Probable = cows checked Probable that came back Open (or were culled) before 75 days; Loss % = Lost ÷ (Lost + those that held to Safe)." />
       <div className="no-print mb-4 flex flex-wrap gap-1">
         {ORDER.map((b) => (
           <Link key={b} href={`/breakdowns?by=${b}`} className={b === by ? "btn" : "btn-quiet"}>

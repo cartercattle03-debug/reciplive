@@ -138,7 +138,22 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const meToo = sb.rows.find((r: any) => r.value === "Me Too");
     if (!meToo || meToo.total !== bc.filter((c: any) => /^me too\s+x/i.test(c.mating) && c.outcome !== "Pass").length) { fails++; console.log("FAIL sire Me Too adds up across his donors"); } else console.log(`ok   sire Me Too = ${meToo.total} across his donors`);
     if (mb.rows.some((r: any) => r.showRate !== (r.checked >= 3))) { fails++; console.log("FAIL rate shown under 3 checked"); } else console.log("ok   no rate under 3 checked");
-    await show("customer by mating", "my/page", { searchParams: { as: "Buck", by: "mating" } }, ["By Mating", "Me Too x 199", "Pregnant / Checked", "under 3 checked"]);
+    await show("customer by mating", "my/page", { searchParams: { as: "Buck", by: "mating" } }, ["By Mating", "Me Too x 199", "Pregnant / Checked", "under 3 checked", "Lost after Probable", "Loss %"]);
+    // Lost after Probable: Probable then Open (a culled Probable too); held = Probable then Safe.
+    const { countsOf } = require("../src/lib/recip");
+    const RA = await loadRanch(org.id);
+    const k = countsOf(RA.calc);
+    const lostBy = RA.calc.filter((c: any) => c.everProbable && c.outcome === "Open");
+    const heldBy = RA.calc.filter((c: any) => c.everProbable && c.outcome === "Safe");
+    if (k.lost !== lostBy.length || k.held !== heldBy.length || !(k.lost > 0) || Math.abs(k.lossRate - k.lost / (k.lost + k.held)) > 1e-9) { fails++; console.log("FAIL loss counts"); }
+    else console.log(`ok   lost after Probable ${k.lost}, held ${k.held}, loss ${(100 * k.lossRate).toFixed(1)}%`);
+    const pc = RA.calc.find((c: any) => c.status === "Probable");
+    const recs = require("../src/lib/server/records");
+    await recs.updateTransfer(org.id, pc.id, "status", "Culled");
+    const RB = await loadRanch(org.id);
+    if (countsOf(RB.calc).lost !== k.lost + 1) { fails++; console.log("FAIL a culled Probable is a loss"); } else console.log("ok   a culled Probable counts as lost");
+    await recs.updateTransfer(org.id, pc.id, "status", "Probable");
+    await show("breakdowns show loss", "(staff)/breakdowns/page", { searchParams: {} }, ["Lost after Probable", "Loss %"]);
     await show("customer by sire", "my/page", { searchParams: { as: "Buck", by: "sire" } }, ["Me Too", "adds up across all of its matings"]);
     await show("customer by donor", "my/page", { searchParams: { as: "Buck", by: "donor" } }, ["280K", "Donor"]);
   }

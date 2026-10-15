@@ -203,7 +203,9 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
     }
   }
   const order = (r: Transfer) => [r.batchOrder || 0, r.seq] as const;
-  const everProbable = (r: Transfer) => r.status === "Probable" || (checksOf.get(r.id) ?? []).some((a) => a.result === "Probable");
+  // Probable at some check on this record - or culled while she was Probable (the cull notes what she was).
+  const everProbable = (r: Transfer) =>
+    r.status === "Probable" || (checksOf.get(r.id) ?? []).some((a) => a.result === "Probable") || (r.status === "Culled" && culls.some((c) => c.transferId === r.id && /^was Probable$/.test(c.detail)));
 
   const out: Calc[] = [];
   for (const r of rows) {
@@ -249,7 +251,12 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
 /** One row per cow: her most recent record, carrying her lifetime totals. */
 export const latestRows = (calc: Calc[]) => calc.filter((c) => c.latest);
 
-export type Counts = { total: number; pass: number; safe: number; probable: number; pending: number; open: number; culled: number; /** Culled records counted in Open. */ culledOpen: number; unchecked: number; rate: number | null };
+export type Counts = {
+  total: number; pass: number; safe: number; probable: number; pending: number; open: number; culled: number; /** Culled records counted in Open. */ culledOpen: number; unchecked: number; rate: number | null;
+  /** Checked Probable, then Safe at 75 days - the pregnancy held. */ held: number;
+  /** Checked Probable, then Open - lost before 75 days. A culled Probable is a loss too (Carter, 2026-10-15). */ lost: number;
+  /** Lost / (Held + Lost): of the Probables that have come to their 75-day answer, the share lost. */ lossRate: number | null;
+};
 export function countsOf(rows: Calc[]): Counts {
   // Counted by what each transfer came to - a culled cow still counts under her result (an Open, mostly).
   const n = (s: string) => rows.filter((r) => r.outcome === s).length;
@@ -257,7 +264,9 @@ export function countsOf(rows: Calc[]): Counts {
   const probable = n("Probable");
   const pending = n("Pending");
   const open = n("Open");
-  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, culledOpen: rows.filter((r) => r.status === "Culled" && r.outcome === "Open").length, unchecked: probable + pending, rate: pregRate(safe, probable, open) };
+  const held = rows.filter((r) => r.everProbable && r.outcome === "Safe").length;
+  const lost = rows.filter((r) => r.everProbable && r.outcome === "Open").length;
+  return { total: rows.length, pass: n("Pass"), safe, probable, pending, open, culled: rows.filter((r) => r.status === "Culled").length, culledOpen: rows.filter((r) => r.status === "Culled" && r.outcome === "Open").length, unchecked: probable + pending, rate: pregRate(safe, probable, open), held, lost, lossRate: held + lost ? lost / (held + lost) : null };
 }
 
 // ---------------------------------------------------------------------------

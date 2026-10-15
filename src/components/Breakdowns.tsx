@@ -7,7 +7,7 @@ const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-
 export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; vals: string[] }) {
   const b = breakdown(calc, by, vals);
   const pass = by === "batch";
-  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate"];
+  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable", "Loss %"];
   const line = (k: (typeof b.rows)[number] | (typeof b)["total"], label: string, cls = "") => (
     <tr key={label} className={cls}>
       <td className="tc font-semibold">{label}</td>
@@ -20,6 +20,8 @@ export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; val
       <td className="tc">{k.unchecked}</td>
       <td className="tc">{k.safe + k.probable}/{k.safe + k.probable + k.open}</td>
       <td className="tc font-semibold">{showRate(k.rate)}</td>
+      <td className="tc" title={`${k.held} held to Safe, ${k.lost} lost`}>{k.lost}</td>
+      <td className={"tc font-semibold" + (k.lossRate ? " text-red-700" : "")} title="Of the cows checked Probable that have had their 75-day answer, the share that lost the pregnancy">{k.held + k.lost ? showRate(k.lossRate) : "-"}</td>
     </tr>
   );
   return (
@@ -79,7 +81,7 @@ export function Grid({ title, calc, rowBy, rows, colBy, cols, type }: { title: s
 /** A customer's results by Mating / Sire / Donor - most transfers first. Under 3 checked, the rate stays blank. */
 export function MateSummary({ calc, by }: { calc: Calc[]; by: MateBy }) {
   const b = mateBreakdown(calc, by);
-  const heads = [MATE_LABELS[by], "Transfers", "Safe", "Probable", "Pending", "Open", "Pregnant / Checked", "Pregnancy Rate"];
+  const heads = [MATE_LABELS[by], "Transfers", "Safe", "Probable", "Pending", "Open", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable", "Loss %"];
   const line = (k: MateRow, cls = "") => (
     <tr key={k.value} className={cls}>
       <td className="tc font-semibold">{k.value}</td>
@@ -91,6 +93,10 @@ export function MateSummary({ calc, by }: { calc: Calc[]; by: MateBy }) {
       <td className="tc">{k.checked ? `${k.hits}/${k.checked}` : "-"}</td>
       <td className="tc font-semibold" title={k.showRate ? "" : `Fewer than ${MIN_CHECKED} checked - too few to give a rate`}>
         {k.showRate ? showRate(k.rate) : <span className="text-xs font-normal text-slate-400">{k.checked ? `under ${MIN_CHECKED} checked` : "not checked yet"}</span>}
+      </td>
+      <td className="tc" title={`${k.held} held to Safe, ${k.lost} lost`}>{k.lost}</td>
+      <td className={"tc font-semibold" + (k.lossRate ? " text-red-700" : "")}>
+        {k.held + k.lost >= MIN_CHECKED || (k.value === "TOTAL" && k.held + k.lost) ? showRate(k.lossRate) : <span className="text-xs font-normal text-slate-400">{k.held + k.lost ? `under ${MIN_CHECKED}` : "-"}</span>}
       </td>
     </tr>
   );

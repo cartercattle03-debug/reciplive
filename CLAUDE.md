@@ -28,6 +28,7 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
   (Carter, 2026-10-14): as Open, a failed pregnancy - even if she was checked Safe first. A culled Pass stays a Pass; a cow already
   marked Delivered keeps her Safe (`outcome` in recip.ts). On screen a culled record **shows** as that outcome - Open, mostly (`shownStatus`, Carter 2026-10-14: customers must not see
   Culled); stored as Culled, and the Master Archive / Master Sheet Final Destination keep the cull. No Culled column in breakdowns.
+  **Lost after Probable** (Carter, 2026-10-15): checked Probable (or culled while Probable), then Open = lost; then Safe = held; Loss % = lost / (lost + held) (`countsOf`, `everProbable`).
 - Never Settled = 0 Safe and 2+ Open. Repeat = 2+ records otherwise. Single = 1 record.
 - Due Date = transfer date + 276. Embryo Age = days since transfer + 7.
 - Preg Check list = latest record Pending / Probable / blank, filtered by Group or Min/Max age. Results are drafts on
