@@ -1,6 +1,6 @@
 import { Table, type Row } from "./Table";
 import { batchCell, cowCell, dateCell } from "@/lib/cells";
-import { customerSearch, showDate, showRate, type Calc, type CustomerFilter } from "@/lib/recip";
+import { customerSearch, shownStatus, showDate, showRate, type Calc, type CustomerFilter } from "@/lib/recip";
 import { Logo } from "./Logo";
 
 export const METRICS = ["Total Transferred", "75-Day Confirmed", "Currently Probable", "Pregnancy Rate"] as const;
@@ -16,7 +16,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
   };
   const rows: Row[] = r.rows.map((c) => ({
     key: c.id,
-    cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, batchCell(c), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: c.status, cls: c.status ? `st-${c.status}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null)],
+    cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, batchCell(c), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null)],
   }));
   return (
     <div>

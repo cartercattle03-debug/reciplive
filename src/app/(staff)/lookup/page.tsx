@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, dateCell, numCell } from "@/lib/cells";
-import { cowHistory } from "@/lib/recip";
+import { cowHistory, shownStatus } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 import { money } from "@/lib/cells";
@@ -22,7 +22,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
   const extra = id ? cows.get(h[0]?.cowId ?? id) : undefined;
   const rows: Row[] = h.map((c) => ({
     key: c.id,
-    cells: [numCell(c.attemptNo), batchCell(c), { t: c.mating }, { t: c.owner }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: c.status, cls: c.status ? `st-${c.status}` : "" }, dateCell(c.transferDate), { t: c.deliveryStatus }, { t: c.notes }],
+    cells: [numCell(c.attemptNo), batchCell(c), { t: c.mating }, { t: c.owner }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.transferDate), { t: c.deliveryStatus }, { t: c.notes }],
   }));
   return (
     <div>
@@ -41,7 +41,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
             <div className="bg-brand-600 px-5 py-4 text-white">
               <div className="text-2xl font-bold">Cow {last.cowId}</div>
               <div className="mt-1 text-sm opacity-90">
-                Lifetime Attempts: {h.length} &nbsp;|&nbsp; Repeat Flag: {last.repeatFlag} &nbsp;|&nbsp; Times Probable: {last.timesProbable} &nbsp;|&nbsp; Times Passed: {last.timesPassed} &nbsp;|&nbsp; Now: {last.status || "(blank)"}
+                Lifetime Attempts: {h.length} &nbsp;|&nbsp; Repeat Flag: {last.repeatFlag} &nbsp;|&nbsp; Times Probable: {last.timesProbable} &nbsp;|&nbsp; Times Passed: {last.timesPassed} &nbsp;|&nbsp; Now: {shownStatus(last) || "(blank)"}
               </div>
               {extra && (extra.purchaseDate || extra.loanLocation || extra.cost !== null || extra.salePrice !== null) && (
                 <div className="mt-1 text-xs opacity-80">

@@ -4,7 +4,7 @@ import { PasteTransfers } from "@/components/PasteTransfers";
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, dateCell, numCell } from "@/lib/cells";
-import { DELIVERY, EMBRYO_TYPES, STATUSES, inYear } from "@/lib/recip";
+import { DELIVERY, EMBRYO_TYPES, STATUSES, inYear, shownStatus } from "@/lib/recip";
 import { pickedYear } from "@/lib/server/year";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
@@ -38,7 +38,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       { t: c.embryoType, edit: ed(c.id, "embryoType", c.embryoType, "select", [...EMBRYO_TYPES]) },
       { t: c.grade, edit: ed(c.id, "grade", c.grade, "select", lists.grades) },
       { t: c.company, edit: ed(c.id, "company", c.company, "select", lists.companies) },
-      { t: c.status, cls: c.status ? `st-${c.status.replace(/\s/g, "")}` : "", edit: ed(c.id, "status", c.status, "select", [...STATUSES]) },
+      { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c).replace(/\s/g, "")}` : "", title: c.status === "Culled" ? "Culled - shows as Open; the cull is in her Master Archive" : undefined, edit: ed(c.id, "status", c.status, "select", [...STATUSES]) },
       { t: c.deliveryStatus, edit: ed(c.id, "deliveryStatus", c.deliveryStatus, "select", [...DELIVERY]) },
       { t: c.notes, cls: "notes", edit: ed(c.id, "notes", c.notes) },
       numCell(c.attemptNo),

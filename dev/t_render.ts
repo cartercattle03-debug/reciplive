@@ -97,6 +97,22 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("customer portal has breakdowns", "my/page", { searchParams: { by: "company" } }, ["Your breakdowns", "By Embryo Type", "Pregnancy Rate"], "cust");
   const sneak = await show("customer can't peek at another owner with ?as=", "my/page", { searchParams: { as: "Buck Creek" } }, ["Lehman - your recips"], "cust");
   if (/Buck Creek/.test(sneak)) { fails++; console.log("FAIL customer saw another owner via ?as="); }
+  {
+    // A culled cow reads Open on every list a customer sees (Carter, 2026-10-14); the cull stays in the Master Archive.
+    const { loadRanch } = require("../src/lib/server/data");
+    const RR = await loadRanch(org.id);
+    const cul = RR.calc.find((c: any) => c.status === "Culled" && c.owner);
+    if (!cul) console.log("FAIL no culled cow with an owner in the data");
+    else {
+      const pv = await show(`portal for ${cul.owner} (has culled ${cul.cowId})`, "my/page", { searchParams: { as: cul.owner } }, [cul.cowId]);
+      if (/Culled/.test(pv)) { fails++; console.log("FAIL customer portal shows Culled"); } else console.log("ok   customer portal never says Culled");
+      const cs = await show(`customer search ${cul.owner} Open`, "(staff)/customer/page", { searchParams: { owner: cul.owner, go: "1", s: ["Open"] } }, [cul.cowId]);
+      if (/Culled/.test(cs)) { fails++; console.log("FAIL customer search shows Culled"); }
+      const br = await show("breakdowns: no Culled column", "(staff)/breakdowns/page", { searchParams: {} }, ["Open"]);
+      if (/>Culled</.test(br)) { fails++; console.log("FAIL breakdowns has a Culled column"); }
+      await show("master archive keeps the cull", "(staff)/archive/page", { searchParams: { cow: cul.cowId } }, ["Culled"]);
+    }
+  }
   await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");

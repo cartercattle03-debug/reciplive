@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, numCell } from "@/lib/cells";
-import { repeats, showRate } from "@/lib/recip";
+import { repeats, shownStatus, showRate } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { staffPage } from "@/lib/server/session";
 
@@ -12,7 +12,7 @@ export default async function Repeats() {
   const pctOf = (n: number) => (r.unique ? ((n / r.unique) * 100).toFixed(1) + "%" : "-");
   const rows: Row[] = r.list.map((c) => ({
     key: c.id,
-    cells: [cowCell(c.cowId), batchCell(c), { t: c.status, cls: c.status ? `st-${c.status}` : "" }, numCell(c.totalAttempts), numCell(c.safeCount), numCell(c.openCount), { t: c.repeatFlag, cls: c.repeatFlag === "NEVER SETTLED" ? "text-red-700 font-semibold" : "" }, numCell(c.timesPassed), numCell(c.timesProbable)],
+    cells: [cowCell(c.cowId), batchCell(c), { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, numCell(c.totalAttempts), numCell(c.safeCount), numCell(c.openCount), { t: c.repeatFlag, cls: c.repeatFlag === "NEVER SETTLED" ? "text-red-700 font-semibold" : "" }, numCell(c.timesPassed), numCell(c.timesProbable)],
   }));
   const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-white";
   return (

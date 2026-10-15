@@ -18,6 +18,12 @@ export function resultsFor(status: string, draft?: string | null): string[] {
   if (status !== "Probable") return [...PREG_RESULTS];
   return draft === "Probable" ? [...PREG_RESULTS] : ["Safe", "Open"];
 }
+/**
+ * The status a record shows as on every list and report (Carter, 2026-10-14): a culled cow reads as what her transfer came
+ * to - Open, mostly - so a customer never sees "Culled" against their cows. She is still stored as Culled, and the Master
+ * Archive (and Master Sheet Final Destination) keep the cull with its date.
+ */
+export const shownStatus = (c: { status: string; outcome?: string }) => (c.status === "Culled" ? c.outcome || "Open" : c.status);
 export const EMBRYO_TYPES = ["Fresh", "Frozen"] as const;
 export const DELIVERY = ["Delivered", "Undelivered"] as const;
 /** Due Date = transfer date + 276 days (the workbook's rule). */
@@ -373,7 +379,7 @@ export function customerSearch(calc: Calc[], f: CustomerFilter) {
   const rows = calc
     .filter((c) => norm(c.cowId) && same(c.owner, f.owner))
     .filter((c) => !f.batches.length || f.batches.some((b) => same(b, c.batch)))
-    .filter((c) => !f.statuses.length || f.statuses.includes(c.status))
+    .filter((c) => !f.statuses.length || f.statuses.includes(shownStatus(c)))
     .sort((a, b) => (f.sort === "Mating" ? norm(a.mating).localeCompare(norm(b.mating)) || a.seq - b.seq : compareFamily(a.cowId, b.cowId) || a.seq - b.seq));
   const safe = rows.filter((c) => c.outcome === "Safe").length;
   const probable = rows.filter((c) => c.outcome === "Probable").length;

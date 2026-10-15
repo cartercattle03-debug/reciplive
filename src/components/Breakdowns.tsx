@@ -6,7 +6,7 @@ const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-
 export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; vals: string[] }) {
   const b = breakdown(calc, by, vals);
   const pass = by === "batch";
-  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Culled", "Unchecked", "Pregnant / Checked", "Pregnancy Rate"];
+  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate"];
   const line = (k: (typeof b.rows)[number] | (typeof b)["total"], label: string, cls = "") => (
     <tr key={label} className={cls}>
       <td className="tc font-semibold">{label}</td>
@@ -15,8 +15,7 @@ export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; val
       <td className="tc">{k.safe}</td>
       <td className="tc">{k.probable}</td>
       <td className="tc">{k.pending}</td>
-      <td className="tc">{k.open - k.culledOpen}</td>
-      <td className="tc" title="Culled cows count against Open in the rate">{k.culledOpen}</td>
+      <td className="tc">{k.open}</td>
       <td className="tc">{k.unchecked}</td>
       <td className="tc">{k.safe + k.probable}/{k.safe + k.probable + k.open}</td>
       <td className="tc font-semibold">{showRate(k.rate)}</td>
