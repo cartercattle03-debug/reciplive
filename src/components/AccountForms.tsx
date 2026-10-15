@@ -44,10 +44,12 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
     }
   };
   return (
-    <div className="card max-w-4xl overflow-hidden">
+    <div className="card max-w-6xl overflow-hidden">
       <div className="bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Logins</div>
       <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager login is view only - no changes, no imports, no printing or downloads - and sees nothing about money or customer contact info: no Billing, Master Sheet or Master Archive, and no purchase, cost or sale figures on Cow Lookup.</p>
-      <table className="keep-width m-3 text-sm">
+      {/* The whole table scrolls sideways on a narrow screen instead of cutting off Last log in (Carter, 2026-10-15). */}
+      <div className="overflow-x-auto">
+      <table className="m-3 text-sm">
         <thead>
           <tr className="text-xs text-slate-500">
             <th className="px-2">Email</th>
@@ -61,7 +63,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
         <tbody>
           {logins.map((l, i) => (
             <tr key={l.id} className={i % 2 ? "bg-stripe" : ""}>
-              <td className="tc">{l.email}</td>
+              <td className="tc break-all">{l.email}</td>
               <td className="tc">{l.name}</td>
               <td className="tc">{l.role === "OWNER" ? "Owner" : l.role === "MANAGER" ? "Manager" : "Customer"}</td>
               <td className="tc">
@@ -69,9 +71,13 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
                   <a className="text-brand-600 underline" href={`/my?as=${encodeURIComponent(l.ownerName ?? "")}`} title="See exactly what this login sees">
                     {l.ownerName}&apos;s cows
                   </a>
-                ) : l.role === "MANAGER" ? "View only - no billing, costs, sales or customer contact info" : "Everything"}
+                ) : l.role === "MANAGER" ? (
+                  <span title="No billing, costs, sales or customer contact info">View only, no money</span>
+                ) : (
+                  "Everything"
+                )}
               </td>
-              <td className="tc">{l.lastLogin}</td>
+              <td className="tc whitespace-nowrap">{l.lastLogin}</td>
               <td className="tc whitespace-nowrap">
                 {l.role !== "OWNER" && (
                   <>
@@ -94,6 +100,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
           ))}
         </tbody>
       </table>
+      </div>
       <form
         className="flex flex-wrap items-end gap-2 border-t border-slate-100 p-4"
         onSubmit={async (e) => {
