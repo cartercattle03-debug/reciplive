@@ -50,7 +50,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   const wb = JSON.parse(fs.readFileSync(process.env.WB || "/tmp/claude-0/sav/wb.json", "utf8"));
   await rec.importWorkbook(org.id, parseWorkbook(wb));
   await show("dashboard", "(staff)/dashboard/page", { searchParams: {} }, ["452", "Pregnancy rate by group", "3-12", "TOTAL"]);
-  await show("transfers", "(staff)/transfers/page", { searchParams: {} }, ["Add transfers", "6148", "Casino x 2246", "503 of 503"]);
+  await show("transfers", "(staff)/transfers/page", { searchParams: {} }, ["Add transfers", "6148", "Casino x 2246", "503 of 503", "+ New group", "Transfer Date", "from Lists"]);
   await show("transfers filtered", "(staff)/transfers/page", { searchParams: { batch: "3-12", status: "Safe" } }, ["of 503 records"]);
   await rec.setPregDraft(org.id, (await prisma.transfer.findFirst({ where: { organizationId: org.id, status: "Probable" } }))!.id, "Safe");
   await show("preg check", "(staff)/preg-check/page", { searchParams: {} }, ["Days Bred", "Result", "pick-btn", "Mating", "+ Add cow", "Confirm &amp; Archive (1)", "Total Cows", "Cows Checked", "First check", "75-day check"]);

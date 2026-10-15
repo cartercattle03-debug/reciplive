@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { prisma } from "../src/lib/prisma";
 import { parseWorkbook } from "../src/lib/workbook";
 import * as rec from "../src/lib/server/records";
+import { dateFromLabel } from "../src/lib/groupDate";
 import { loadRanch } from "../src/lib/server/data";
 import { restoreSnapshot } from "../src/lib/server/snapshot";
 import { dashboard, inYear, openInventory, pregCheckList, resultsFor } from "../src/lib/recip";
@@ -291,6 +292,19 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   await refuses("one bad line stops the whole batch", () => rec.addTransfers(O, [{ batch: "8-15", cowId: "Z1" }, { batch: "8-15", cowId: "Z2", status: "Bred" }]), "Row 2");
   R = await loadRanch(O);
   ok("nothing from the refused batch saved", !R.calc.some((x) => x.cowId === "Z1"));
+
+  // ---- Bulk add: the group's transfer date fills in (Carter, 2026-10-14)
+  ok("7-31 reads as 7/31 of the year", dateFromLabel("7-31", 2026) === "2026-07-31" && dateFromLabel("7/31/25", 2026) === "2025-07-31" && dateFromLabel("2-30", 2026) === "" && dateFromLabel("Buck", 2026) === "");
+  await refuses("a new group needs its date", () => rec.addTransfers(O, [{ batch: "12-1", cowId: "NG1", status: "Pending" }], { label: "12-1", transferDate: "" }), "transfer date");
+  await rec.addTransfers(O, [{ batch: "12-1", cowId: "NG1", status: "Pending" }, { batch: "12-1", cowId: "NG2", status: "Culled" }], { label: "12-1", transferDate: "2026-12-01" });
+  const ng = await prisma.batch.findFirst({ where: { organizationId: O, label: "12-1" } });
+  ok("new group from the bulk add goes on Lists with its date, last in order", ng?.transferDate === "2026-12-01" && ng.order === Math.max(...(await prisma.batch.findMany({ where: { organizationId: O } })).map((b) => b.order)));
+  R = await loadRanch(O);
+  const ng1 = R.calc.find((c) => c.cowId === "NG1");
+  ok("its cows carry the date", ng1?.transferDate === "2026-12-01");
+  ok("a cow added Culled has her cull dated in her archive", !!(await prisma.cowEvent.findFirst({ where: { organizationId: O, cowId: "NG2", kind: "Culled" } })));
+  await rec.addTransfers(O, [{ batch: "12-1", cowId: "NG3", status: "Pending" }], { label: "12-1", transferDate: "2026-12-05" });
+  ok("a group that has a date keeps it", (await prisma.batch.findFirst({ where: { organizationId: O, label: "12-1" } }))?.transferDate === "2026-12-01");
 
   // ---- Re-import replaces cleanly (and keeps only 15 copies)
   for (let i = 0; i < 14; i++) await rec.importWorkbook(O, p);

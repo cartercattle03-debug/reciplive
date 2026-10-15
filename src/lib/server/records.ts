@@ -95,9 +95,34 @@ export async function cullTransfers(orgId: string, ids: string[]) {
 }
 
 /** New rows go on the end of the list, in the order given. All-or-nothing. */
-export async function addTransfers(orgId: string, rows: Record<string, unknown>[]) {
+/** The statuses a new transfer can start with on the bulk add (Carter, 2026-10-14). */
+export const NEW_STATUSES = ["Pending", "Pass", "Culled"] as const;
+
+/**
+ * Bulk add: the group the lines go into, with its transfer date. A new group is put on the list (at the end, with that
+ * date); a group on the list with no date yet takes it. A group that already has a date keeps it - change it on Lists.
+ */
+async function ensureGroup(orgId: string, g: { label?: unknown; transferDate?: unknown }) {
+  const l = clean(g.label);
+  if (!l) return;
+  const d = clean(g.transferDate);
+  const b = await prisma.batch.findFirst({ where: { organizationId: orgId, label: { equals: l, mode: "insensitive" } } });
+  if (b) {
+    if (!b.transferDate && d) {
+      if (!isYmd(d)) throw new HttpError(400, "Pick the transfer date for this group.");
+      await prisma.batch.update({ where: { id: b.id }, data: { transferDate: d } });
+    }
+    return;
+  }
+  if (!isYmd(d)) throw new HttpError(400, `Group ${l} is new - give it its transfer date.`);
+  const last = await prisma.batch.findFirst({ where: { organizationId: orgId }, orderBy: { order: "desc" } });
+  await prisma.batch.create({ data: { organizationId: orgId, label: l, transferDate: d, order: (last?.order ?? 0) + 1 } });
+}
+
+export async function addTransfers(orgId: string, rows: Record<string, unknown>[], group?: { label?: unknown; transferDate?: unknown }) {
   if (!rows.length) throw new HttpError(400, "Nothing to add.");
   return atomic(async () => {
+    if (group) await ensureGroup(orgId, group);
     const last = await prisma.transfer.findFirst({ where: { organizationId: orgId }, orderBy: { seq: "desc" }, select: { seq: true } });
     let seq = last?.seq ?? 0;
     const data = [];
@@ -140,7 +165,13 @@ export async function addTransfers(orgId: string, rows: Record<string, unknown>[
       out.cowId = known(String(out.cowId));
       data.push(out);
     }
-    await prisma.transfer.createMany({ data: data as any });
+    // A cow added as Culled gets her cull dated in her archive, like a cull anywhere else.
+    const culled = data.filter((d) => d.status === "Culled");
+    await prisma.transfer.createMany({ data: data.filter((d) => d.status !== "Culled") as any });
+    for (const d of culled) {
+      const t = await prisma.transfer.create({ data: d as any });
+      await logCull(orgId, t.cowId, t.id, "");
+    }
     return { added: data.length };
   });
 }

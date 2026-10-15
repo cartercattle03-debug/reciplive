@@ -9,7 +9,7 @@ export const POST = handle(async (req) => {
   if (b.action === "update") return updateTransfer(m.organizationId, String(b.id), String(b.field), b.value);
   if (b.action === "edit") return editTransfer(m.organizationId, String(b.id), b.patch);
   if (b.action === "addPreg") return addPregCow(m.organizationId, b.row ?? {});
-  if (b.action === "add") return addTransfers(m.organizationId, Array.isArray(b.rows) ? b.rows : []);
+  if (b.action === "add") return addTransfers(m.organizationId, Array.isArray(b.rows) ? b.rows : [], b.group);
   if (b.action === "delete") return deleteTransfer(m.organizationId, String(b.id));
   if (b.action === "cull") return cullTransfers(m.organizationId, Array.isArray(b.ids) ? b.ids.map(String) : []);
   throw new HttpError(400, "Unknown step.");

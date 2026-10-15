@@ -53,7 +53,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
       <PageHeader title="Transfers" sub="One line per cow per transfer - or a Pass (a chute visit with no transfer). Click a cream cell to change it. Attempt #, Total Attempts, Repeat Flag, Due Date and Embryo Age work themselves out.">
         <PasteTransfers />
       </PageHeader>
-      <AddTransfer lists={{ batches, owners: lists.owners, companies: lists.companies, grades: lists.grades }} start={yearBatches[yearBatches.length - 1]} />
+      <AddTransfer lists={{ batches, owners: lists.owners, companies: lists.companies, grades: lists.grades }} start={yearBatches[yearBatches.length - 1]} dates={Object.fromEntries(lists.batches.map((b) => [b.label, b.transferDate]))} year={year} />
       <FilterForm>
         <Pick name="years" label="Years" value={allYears ? "all" : ""} options={["all"]} all={`${year} only`} />
         <Pick name="batch" label="Group" value={f.batch} options={yearBatches} />

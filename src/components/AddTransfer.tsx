@@ -2,9 +2,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
-import { EMBRYO_TYPES, STATUSES } from "@/lib/recip";
+import { EMBRYO_TYPES, showDate } from "@/lib/recip";
+import { dateFromLabel } from "@/lib/groupDate";
+
+/** A new transfer starts Pending, as a Pass, or Culled (Carter, 2026-10-14). */
+const NEW_STATUSES = ["Pending", "Pass", "Culled"] as const;
 
 type Lists = { batches: string[]; owners: string[]; companies: string[]; grades: string[] };
+const NEW = "__new";
+
 type Line = { cowId: string; mating: string; owner: string; embryoType: string; grade: string; company: string; status: string; notes: string };
 const COLS: { k: keyof Line; label: string; w: string; list?: "owners" | "companies" | "grades"; pick?: readonly string[] }[] = [
   { k: "cowId", label: "Cow ID", w: "w-20" },
@@ -13,7 +19,7 @@ const COLS: { k: keyof Line; label: string; w: string; list?: "owners" | "compan
   { k: "embryoType", label: "Embryo Type", w: "w-24", pick: EMBRYO_TYPES },
   { k: "grade", label: "Grade", w: "w-16", list: "grades" },
   { k: "company", label: "Company", w: "w-24", list: "companies" },
-  { k: "status", label: "Status", w: "w-28", pick: STATUSES },
+  { k: "status", label: "Status", w: "w-28", pick: NEW_STATUSES },
   { k: "notes", label: "Notes", w: "w-36" },
 ];
 const blankLine = (): Line => ({ cowId: "", mating: "", owner: "", embryoType: "", grade: "", company: "", status: "Pending", notes: "" });
@@ -25,9 +31,16 @@ const used = (l: Line) => COLS.some((c) => c.k !== "status" && l[c.k].trim());
  * Add a whole batch at once: 10 lines to start, "+ 10 more lines" as needed, one Add button for all of them.
  * Pasting a column copied from a sheet (Cow IDs, matings ...) into any box fills that column on down, adding lines as it goes.
  */
-export function AddTransfer({ lists, start }: { lists: Lists; /** The group picked to start with (the year's newest). */ start?: string }) {
+export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** The group picked to start with (the year's newest). */ start?: string; /** Each group's transfer date (Lists). */ dates: Record<string, string | null>; /** The Year box - a new group's label is read in this year. */ year: number }) {
   const router = useRouter();
-  const [batch, setBatch] = useState(start ?? lists.batches[lists.batches.length - 1] ?? "");
+  const [pickB, setPickB] = useState(start ?? lists.batches[lists.batches.length - 1] ?? NEW);
+  const [newLabel, setNewLabel] = useState("");
+  const isNew = pickB === NEW;
+  const batch = isNew ? newLabel.trim() : pickB;
+  const listed = isNew ? undefined : dates[pickB];
+  // The transfer date fills itself in: the group's date from Lists, or read from the label (7-31 = 7/31 of the year).
+  const [typedDate, setTypedDate] = useState<{ for: string; d: string } | null>(null);
+  const tDate = listed || (typedDate?.for === batch ? typedDate.d : dateFromLabel(batch, year));
   const [rows, setRows] = useState<Line[]>(lines(10));
   const [busy, setBusy] = useState(false);
   const [bad, setBad] = useState<number[]>([]);
@@ -66,16 +79,23 @@ export function AddTransfer({ lists, start }: { lists: Lists; /** The group pick
     setBad(missing);
     if (missing.length) return toast(`${missing.length} line${missing.length === 1 ? " has" : "s have"} no Cow ID - fill it in or clear the line.`, true);
     if (!filled.length) return toast("Type at least one Cow ID.", true);
-    if (!(await ask(`Add ${filled.length} transfer${filled.length === 1 ? "" : "s"} to group ${batch}?`, `Add ${filled.length}`))) return;
+    if (!batch) return toast("Type the new group's label (e.g. 7-31).", true);
+    if (!tDate) return toast(`Pick the transfer date for group ${batch}.`, true);
+    if (!(await ask(`Add ${filled.length} transfer${filled.length === 1 ? "" : "s"} to group ${batch} (transferred ${showDate(tDate)})?${isNew ? `\n\nGroup ${batch} is new - it goes on the Lists page with that date.` : ""}`, `Add ${filled.length}`))) return;
     setBusy(true);
     try {
       const r = await post("/api/transfers", {
         action: "add",
+        group: { label: batch, transferDate: tDate },
         rows: filled.map((l) => (l.status === "Pass" ? { batch, cowId: l.cowId, status: "Pass", notes: l.notes } : { batch, ...l })),
       });
       toast(`${r.added} transfers added to ${batch}.`);
       setRows(lines(10));
       setBad([]);
+      if (isNew) {
+        setPickB(batch);
+        setNewLabel("");
+      }
       router.refresh();
     } catch (e) {
       toast((e as Error).message, true);
@@ -90,17 +110,31 @@ export function AddTransfer({ lists, start }: { lists: Lists; /** The group pick
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add transfers</span>
         <label className="text-xs font-medium text-slate-600">
           Group
-          <select className="field mt-0.5 w-24" value={batch} onChange={(e) => setBatch(e.target.value)}>
+          <select className="field mt-0.5 w-32" value={pickB} onChange={(e) => setPickB(e.target.value)}>
             {lists.batches.map((b) => (
               <option key={b}>{b}</option>
             ))}
+            <option value={NEW}>+ New group</option>
           </select>
         </label>
+        {isNew && (
+          <label className="text-xs font-medium text-slate-600">
+            New group label
+            <input className="field mt-0.5 w-24" placeholder="7-31" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
+          </label>
+        )}
+        <label className="text-xs font-medium text-slate-600" title={listed ? "This group's date from the Lists page - change it there" : "Filled in from the group label - change it if it's off"}>
+          Transfer Date
+          {listed ? (
+            <span className="field mt-0.5 block w-36 bg-slate-50">{showDate(listed)}</span>
+          ) : (
+            <input type="date" className="field mt-0.5 block w-40" value={tDate} onChange={(e) => setTypedDate({ for: batch, d: e.target.value })} />
+          )}
+        </label>
         <span className="max-w-xl text-xs text-slate-500">
-          Every line goes into this group. Paste a column straight from a sheet into the first box and it fills down. ↓ copies the top value down the lines in use. A Pass needs only the Cow ID.
+          Every line goes into this group and its transfer date ({listed ? "from Lists" : "read from the label - 7-31 is 7/31/" + year}). Paste a column straight from a sheet into the first box and it fills down. ↓ copies the top value down the lines in use. A Pass needs only the Cow ID. Any one record&apos;s group can be changed afterward in the list below.
         </span>
       </div>
-      {!lists.batches.length && <p className="mb-2 text-xs text-red-700">Add a Group (batch) on the Lists page first.</p>}
       {(["owners", "companies", "grades"] as const).map((l) => (
         <datalist key={l} id={`dl-${l}`}>
           {lists[l].map((o) => (
