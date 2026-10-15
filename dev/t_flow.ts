@@ -6,7 +6,7 @@ import { parseWorkbook } from "../src/lib/workbook";
 import * as rec from "../src/lib/server/records";
 import { loadRanch } from "../src/lib/server/data";
 import { restoreSnapshot } from "../src/lib/server/snapshot";
-import { dashboard, inYear, openInventory, pregCheckList } from "../src/lib/recip";
+import { dashboard, inYear, openInventory, pregCheckList, resultsFor } from "../src/lib/recip";
 import { cowArchive } from "../src/lib/cowArchive";
 import { openList } from "../src/lib/openList";
 
@@ -78,6 +78,19 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   ok("results on their own cows", R.calc.find((x) => x.id === picks[0].id)?.status === "Safe" && R.calc.find((x) => x.id === picks[1].id)?.status === "Open" && R.calc.find((x) => x.id === picks[2].id)?.status === "Probable");
   ok("archive +3, each with its own check date", R.archive.length === before + 3 && R.archive.filter((a) => a.checkDate === today).length === 2 && R.archive.some((a) => a.checkDate === "2026-10-13" && a.cowId === picks[1].cowId));
   ok("drafts cleared", R.calc.every((x) => !x.pregDraft));
+  // A cow already Probable can only come back Safe or Open (Carter, 2026-10-14)
+  ok("Probable cow gets only Safe / Open buttons", JSON.stringify(resultsFor("Probable")) === '["Safe","Open"]' && resultsFor("Pending").length === 3 && resultsFor("Probable", "Probable").length === 3);
+  await refuses("Probable refused for a cow already Probable", () => rec.setPregDraft(O, picks[2].id, "Probable"), "already Probable");
+  await rec.setPregDraft(O, picks[2].id, "Safe");
+  // A result stays on her record while the Group changes and a cow is added mid-check
+  const other = pregCheckList(R.calc, {}).find((x) => x.id !== picks[2].id && x.batch !== picks[2].batch)!;
+  await rec.savePregSettings(O, { pregBatch: other.batch });
+  await rec.setPregDraft(O, other.id, "Open");
+  await rec.savePregSettings(O, { pregBatch: picks[2].batch });
+  R = await loadRanch(O);
+  ok("results kept through a Group change", R.calc.find((x) => x.id === picks[2].id)?.pregDraft === "Safe" && R.calc.find((x) => x.id === other.id)?.pregDraft === "Open");
+  for (const id of [picks[2].id, other.id]) await rec.setPregDraft(O, id, "");
+  await rec.savePregSettings(O, { pregBatch: "" });
   ok("opened cow now on Open Inventory date", R.calc.find((x) => x.id === picks[1].id)?.dateCheckedOpen === "2026-10-13");
 
   // ---- Undo the confirm
@@ -253,7 +266,11 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
 
   // ---- Preg Check + Add cow (missed off the sheet), Due Date by hand, Mating edit
   const before2 = pregCheckList(R.calc, { batch: "1-30" }).length;
+  const keep = pregCheckList((await loadRanch(O)).calc, {}).find((x) => x.status !== "Probable")!;
+  await rec.setPregDraft(O, keep.id, "Open");
   await rec.addPregCow(O, { batch: "1-30", cowId: "MISS1", mating: "Late x 1", dueOverride: "2027-11-01" });
+  ok("a result typed before a cow is added mid-check stays on her", (await loadRanch(O)).calc.find((x) => x.id === keep.id)?.pregDraft === "Open");
+  await rec.setPregDraft(O, keep.id, "");
   R = await loadRanch(O);
   const miss = pregCheckList(R.calc, { batch: "1-30" }).find((c) => c.cowId === "MISS1");
   ok("added cow is on the sheet and counts", !!miss && pregCheckList(R.calc, { batch: "1-30" }).length === before2 + 1);

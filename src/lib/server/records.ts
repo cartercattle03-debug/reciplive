@@ -175,6 +175,10 @@ export async function savePregSettings(orgId: string, s: { pregDate?: unknown; p
 export async function setPregDraft(orgId: string, id: string, result: unknown) {
   const v = clean(result);
   if (v && !(PREG_RESULTS as readonly string[]).includes(v)) throw new HttpError(400, "Result is Probable, Safe or Open.");
+  if (v === "Probable") {
+    const row = await prisma.transfer.findFirst({ where: { id, organizationId: orgId } });
+    if (row?.status === "Probable") throw new HttpError(400, `Cow ${row.cowId} is already Probable - she can only come back Safe or Open.`);
+  }
   // Picking a result dates the check today; taking it back off (a slip) clears the date with it.
   const n = await prisma.transfer.updateMany({ where: { id, organizationId: orgId }, data: { pregDraft: v || null, pregDraftDate: v ? ranchToday() : null } });
   if (!n.count) throw new HttpError(404, "That record is gone - refresh the page.");

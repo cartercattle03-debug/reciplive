@@ -12,6 +12,12 @@
 export const STATUSES = ["Pending", "Probable", "Safe", "Open", "Pass", "Culled", "Not Recorded"] as const;
 /** What a preg check can come back as. */
 export const PREG_RESULTS = ["Probable", "Safe", "Open"] as const;
+/** The results a cow can get at the chute: one already checked Probable can only come back Safe or Open (Carter, 2026-10-14).
+ *  A Probable typed for her before this rule still shows, so it can be tapped back off. */
+export function resultsFor(status: string, draft?: string | null): string[] {
+  if (status !== "Probable") return [...PREG_RESULTS];
+  return draft === "Probable" ? [...PREG_RESULTS] : ["Safe", "Open"];
+}
 export const EMBRYO_TYPES = ["Fresh", "Frozen"] as const;
 export const DELIVERY = ["Delivered", "Undelivered"] as const;
 /** Due Date = transfer date + 276 days (the workbook's rule). */
