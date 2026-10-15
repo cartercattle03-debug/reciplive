@@ -122,6 +122,26 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
       await show("master archive keeps the cull", "(staff)/archive/page", { searchParams: { cow: cul.cowId } }, ["Culled"]);
     }
   }
+  {
+    // By Mating / Sire / Donor on a customer's page (Carter, 2026-10-15)
+    const { splitMating, mateBreakdown } = require("../src/lib/matings");
+    const sm = splitMating("Me Too x 9003"), s2 = splitMating("Sure Fire X 91/Z"), s3 = splitMating("Lone");
+    if (sm.sire !== "Me Too" || sm.donor !== "9003" || s2.donor !== "91/Z" || s3.sire !== "Lone" || s3.donor !== "") { fails++; console.log("FAIL splitMating"); } else console.log("ok   matings split Sire x Donor");
+    const { loadRanch } = require("../src/lib/server/data");
+    const { inYear } = require("../src/lib/recip");
+    const RR = await loadRanch(org.id, { owner: "Buck" });
+    const bc = inYear(RR.calc, 2026);
+    const mb = mateBreakdown(bc, "mating"), sb = mateBreakdown(bc, "sire"), db = mateBreakdown(bc, "donor");
+    const sum = (b: any) => b.rows.reduce((n: number, r: any) => n + r.total, 0);
+    const ok3 = sum(mb) === mb.total.total && sum(sb) === sb.total.total && sum(db) === db.total.total && mb.total.total === bc.filter((c: any) => c.outcome !== "Pass").length;
+    if (!ok3) { fails++; console.log("FAIL mating breakdown lines don't add up to the total"); } else console.log(`ok   by mating / sire / donor each add up to ${mb.total.total} transfers`);
+    const meToo = sb.rows.find((r: any) => r.value === "Me Too");
+    if (!meToo || meToo.total !== bc.filter((c: any) => /^me too\s+x/i.test(c.mating) && c.outcome !== "Pass").length) { fails++; console.log("FAIL sire Me Too adds up across his donors"); } else console.log(`ok   sire Me Too = ${meToo.total} across his donors`);
+    if (mb.rows.some((r: any) => r.showRate !== (r.checked >= 3))) { fails++; console.log("FAIL rate shown under 3 checked"); } else console.log("ok   no rate under 3 checked");
+    await show("customer by mating", "my/page", { searchParams: { as: "Buck", by: "mating" } }, ["By Mating", "Me Too x 199", "Pregnant / Checked", "under 3 checked"]);
+    await show("customer by sire", "my/page", { searchParams: { as: "Buck", by: "sire" } }, ["Me Too", "adds up across all of its matings"]);
+    await show("customer by donor", "my/page", { searchParams: { as: "Buck", by: "donor" } }, ["280K", "Donor"]);
+  }
   await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");

@@ -1,4 +1,5 @@
 import { BREAKDOWN_LABELS, breakdown, matrix, showRate, type BreakdownBy, type Calc } from "@/lib/recip";
+import { MATE_LABELS, MIN_CHECKED, mateBreakdown, type MateBy, type MateRow } from "@/lib/matings";
 
 const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-white";
 
@@ -74,3 +75,36 @@ export function Grid({ title, calc, rowBy, rows, colBy, cols, type }: { title: s
   );
 }
 
+
+/** A customer's results by Mating / Sire / Donor - most transfers first. Under 3 checked, the rate stays blank. */
+export function MateSummary({ calc, by }: { calc: Calc[]; by: MateBy }) {
+  const b = mateBreakdown(calc, by);
+  const heads = [MATE_LABELS[by], "Transfers", "Safe", "Probable", "Pending", "Open", "Pregnant / Checked", "Pregnancy Rate"];
+  const line = (k: MateRow, cls = "") => (
+    <tr key={k.value} className={cls}>
+      <td className="tc font-semibold">{k.value}</td>
+      <td className="tc">{k.total}</td>
+      <td className="tc">{k.safe}</td>
+      <td className="tc">{k.probable}</td>
+      <td className="tc">{k.pending}</td>
+      <td className="tc">{k.open}</td>
+      <td className="tc">{k.checked ? `${k.hits}/${k.checked}` : "-"}</td>
+      <td className="tc font-semibold" title={k.showRate ? "" : `Fewer than ${MIN_CHECKED} checked - too few to give a rate`}>
+        {k.showRate ? showRate(k.rate) : <span className="text-xs font-normal text-slate-400">{k.checked ? `under ${MIN_CHECKED} checked` : "not checked yet"}</span>}
+      </td>
+    </tr>
+  );
+  return (
+    <div className="card mb-3 overflow-auto">
+      <table className="text-sm">
+        <thead>
+          <tr>{heads.map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {b.rows.map((r, i) => line(r, i % 2 ? "bg-stripe" : ""))}
+          {line(b.total, "border-t-2 border-brand-600 bg-tan")}
+        </tbody>
+      </table>
+    </div>
+  );
+}
