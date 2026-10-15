@@ -113,7 +113,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
       await show("master archive keeps the cull", "(staff)/archive/page", { searchParams: { cow: cul.cowId } }, ["Culled"]);
     }
   }
-  await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns"]);
+  await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");
   await show("account (customer)", "account/page", {}, ["Change your password"], "cust");

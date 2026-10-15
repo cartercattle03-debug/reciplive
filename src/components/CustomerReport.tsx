@@ -43,6 +43,12 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
           ))}
         </div>
       )}
+      {!linkCows && (
+        <div className="no-print mb-3 flex items-center gap-2 rounded-md border-l-4 border-rust bg-amber-50 px-4 py-2.5 text-sm font-semibold text-slate-800">
+          <span className="text-lg text-rust" aria-hidden>⇅</span>
+          Tip: click any column heading (Cow ID, Batch, Mating, Status, Due Date...) to sort the list by that column. Click it again to flip the order.
+        </div>
+      )}
       <Table cols={[{ label: "Cow ID" }, { label: "Batch" }, { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." />
     </div>
   );
