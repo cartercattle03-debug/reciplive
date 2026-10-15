@@ -11,21 +11,20 @@ import type { Calc } from "./recip";
  *     a full Open. If loss was common that day (1 in 4 or more of them lost), it's the process - counted at half.
  *     A second loss is always a full Open plus a knock (repeat offender).
  *   - Passes don't count: the data shows a cow with passes takes as well as one without.
- *   - Few tries stay near the top: one Open won't sink a cow; a pattern will.
+ *   - Every result counts in full - nothing is averaged away, so a third Open sinks her further than a second
+ *     (Carter, 2026-10-15: 6311, three Opens and never caught, sat only half a star under 6310 when results were averaged).
  *
  * Tested on the 2026 season (rating before her next transfer vs whether it took): each step down took less often.
  */
 export type RatingStep = { batch: string; text: string; effect: "up" | "down" | "light" | "none" };
 export type Rating = { stars: number; score: number; tries: number; steps: RatingStep[]; cull: boolean };
 
-const PRIOR = 2; // tries' worth of "average" every cow starts with
 const REPEAT_LOSS = 0.15;
 const PROCESS_SHARE = 0.25; // this share or more of her peers lost too = the process, not her
-// Score per star. Picked on the 2026 season so every half step down took less often: 5 = 56%, 4 = 35%, 3½ = 31%,
-// 3 = 26%, 2½ = 13% (her next transfer Safe). Finer steps flipped neighbours - too little data yet.
-const STEP = 0.1;
-/** At or under this, she's flagged a cull candidate: about 1 in 8 on her next transfer (2026). At 3 it would flag
- *  most of the open list - every cow on it has failed at least once. */
+// Points per star (one Open on an average embryo is about 0.4 points). Picked on the 2026 season so each step down took
+// less often on her next transfer: 5 = 56%, 4 = 33%, 3½ = 27%, 3 = 25%, 2½ = 17%, 2 and under 0 of 2.
+const STEP = 0.4;
+/** At or under this, she's flagged a cull candidate: about 1 in 6 or worse on her next transfer (2026). */
 export const CULL_AT = 2.5;
 
 const finished = (c: Calc) => c.outcome === "Safe" || c.outcome === "Open";
@@ -114,7 +113,7 @@ export function recipRatings(calc: Calc[]): Map<string, Rating> {
         }
       }
     }
-    const score = pts / (tries + PRIOR);
+    const score = pts;
     const stars = Math.max(1, Math.min(5, Math.round((5 + score / STEP) * 2) / 2));
     out.set(cow, { stars, score, tries, steps, cull: tries > 0 && stars <= CULL_AT });
   }

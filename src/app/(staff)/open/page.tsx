@@ -57,7 +57,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
     <div>
       <PageHeader
         title={`Open Inventory - ${year}`}
-        sub={`Every cow open in ${year}, ready for her next attempt: checked Open in ${year} (a Nov / Dec transfer checked Open in January lands in the new year), a Pass, or added here. She drops off when a new transfer goes in for her. Tick cows to cull them or move them to ${year + 1}'s opens; the red ✕ takes a gone cow off the list. Yellow = passed over twice or more. Rating = her odds on the next transfer, 5 = as good as a fresh recip; red (${CULL_AT} and under, about 1 in 8) = cull candidate - point at it for the reasons.`}
+        sub={`Every cow open in ${year}, ready for her next attempt: checked Open in ${year} (a Nov / Dec transfer checked Open in January lands in the new year), a Pass, or added here. She drops off when a new transfer goes in for her. Tick cows to cull them or move them to ${year + 1}'s opens; the red ✕ takes a gone cow off the list. Yellow = passed over twice or more. Rating = her odds on the next transfer, 5 = as good as a fresh recip; red (${CULL_AT} and under, about 1 in 6 or worse) = cull candidate - point at it for the reasons.`}
       >
         {m.role === "OWNER" && <AddOpenCows year={year} />}
       </PageHeader>

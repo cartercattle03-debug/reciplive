@@ -76,7 +76,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
                   ))}
                 </ol>
               )}
-              <p className="mt-2 text-xs text-slate-500">Her odds on the next transfer, from her own results weighed by how good each embryo was. 5 = as good as a fresh recip; 2½ and under (about 1 in 8) = cull candidate. Passes don&apos;t count; a lost Probable counts as an Open unless loss was common that day.</p>
+              <p className="mt-2 text-xs text-slate-500">Her odds on the next transfer, from her own results weighed by how good each embryo was. 5 = as good as a fresh recip; 2½ and under (about 1 in 6 or worse) = cull candidate. Passes don&apos;t count; a lost Probable counts as an Open unless loss was common that day.</p>
             </div>
           )}
           <h2 className="mb-1.5 text-sm font-semibold text-brand-700">Transfers</h2>
