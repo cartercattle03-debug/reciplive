@@ -138,7 +138,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const meToo = sb.rows.find((r: any) => r.value === "Me Too");
     if (!meToo || meToo.total !== bc.filter((c: any) => /^me too\s+x/i.test(c.mating) && c.outcome !== "Pass").length) { fails++; console.log("FAIL sire Me Too adds up across his donors"); } else console.log(`ok   sire Me Too = ${meToo.total} across his donors`);
     if (mb.rows.some((r: any) => r.showRate !== (r.checked >= 3))) { fails++; console.log("FAIL rate shown under 3 checked"); } else console.log("ok   no rate under 3 checked");
-    await show("customer by mating", "my/page", { searchParams: { as: "Buck", by: "mating" } }, ["By Mating", "Me Too x 199", "Pregnant / Checked", "under 3 checked", "Lost after Probable", "Loss %"]);
+    await show("customer by mating", "my/page", { searchParams: { as: "Buck", by: "mating" } }, ["By Mating", "Me Too x 199", "Pregnant / Checked", "under 3 checked", "Lost after Probable"]);
     // Lost after Probable: Probable then Open (a culled Probable too); held = Probable then Safe.
     const { countsOf } = require("../src/lib/recip");
     const RA = await loadRanch(org.id);
@@ -153,14 +153,13 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const RB = await loadRanch(org.id);
     if (countsOf(RB.calc).lost !== k.lost + 1) { fails++; console.log("FAIL a culled Probable is a loss"); } else console.log("ok   a culled Probable counts as lost");
     await recs.updateTransfer(org.id, pc.id, "status", "Probable");
-    await show("breakdowns show loss", "(staff)/breakdowns/page", { searchParams: {} }, ["Lost after Probable", "Loss %"]);
+    await show("breakdowns show loss", "(staff)/breakdowns/page", { searchParams: {} }, ["Lost after Probable"]);
     {
-      // Loss % only with 3+ decided (Buck's batch with 1 lost read 100%).
-      const html = await show("Buck by group: loss % under 3 stays blank", "my/page", { searchParams: { as: "Buck" } }, ["Loss %"]);
-      const { breakdown, inYear } = require("../src/lib/recip");
-      const rb = breakdown(inYear((await loadRanch(org.id, { owner: "Buck" })).calc, 2026), "batch", (await loadRanch(org.id)).lists.batches.map((b: any) => b.label));
-      const small = rb.rows.filter((r: any) => r.held + r.lost > 0 && r.held + r.lost < 3);
-      if (small.length && !/under 3/.test(html)) { fails++; console.log("FAIL small loss shown as a %"); } else console.log(`ok   ${small.length} Buck group(s) with under 3 decided show no %`);
+      // Lost after Probable reads as a fraction - "1 of 10" - not a % (Carter, 2026-10-15).
+      const html = await show("Buck: lost after Probable as a fraction", "my/page", { searchParams: { as: "Buck" } }, ["Lost after Probable"]);
+      const { countsOf, inYear } = require("../src/lib/recip");
+      const kb = countsOf(inYear((await loadRanch(org.id, { owner: "Buck" })).calc, 2026));
+      if (!html.includes(`${kb.lost} of ${kb.probables}`) || /Loss %/.test(html) || kb.probables < kb.lost + kb.held) { fails++; console.log("FAIL fraction"); } else console.log(`ok   Buck 2026 total reads ${kb.lost} of ${kb.probables} Probables, no %`);
     }
     await show("customer by sire", "my/page", { searchParams: { as: "Buck", by: "sire" } }, ["Me Too", "adds up across all of its matings"]);
     await show("customer by donor", "my/page", { searchParams: { as: "Buck", by: "donor" } }, ["280K", "Donor"]);

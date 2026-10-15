@@ -7,7 +7,7 @@ const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-
 export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; vals: string[] }) {
   const b = breakdown(calc, by, vals);
   const pass = by === "batch";
-  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable", "Loss %"];
+  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable"];
   const line = (k: (typeof b.rows)[number] | (typeof b)["total"], label: string, cls = "") => (
     <tr key={label} className={cls}>
       <td className="tc font-semibold">{label}</td>
@@ -20,7 +20,6 @@ export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; val
       <td className="tc">{k.unchecked}</td>
       <td className="tc">{k.safe + k.probable}/{k.safe + k.probable + k.open}</td>
       <td className="tc font-semibold">{showRate(k.rate)}</td>
-      <td className="tc" title={`${k.held} held to Safe, ${k.lost} lost`}>{k.lost}</td>
       <LossCell k={k} />
     </tr>
   );
@@ -81,7 +80,7 @@ export function Grid({ title, calc, rowBy, rows, colBy, cols, type }: { title: s
 /** A customer's results by Mating / Sire / Donor - most transfers first. Under 3 checked, the rate stays blank. */
 export function MateSummary({ calc, by }: { calc: Calc[]; by: MateBy }) {
   const b = mateBreakdown(calc, by);
-  const heads = [MATE_LABELS[by], "Transfers", "Safe", "Probable", "Pending", "Open", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable", "Loss %"];
+  const heads = [MATE_LABELS[by], "Transfers", "Safe", "Probable", "Pending", "Open", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable"];
   const line = (k: MateRow, cls = "") => (
     <tr key={k.value} className={cls}>
       <td className="tc font-semibold">{k.value}</td>
@@ -94,7 +93,6 @@ export function MateSummary({ calc, by }: { calc: Calc[]; by: MateBy }) {
       <td className="tc font-semibold" title={k.showRate ? "" : `Fewer than ${MIN_CHECKED} checked - too few to give a rate`}>
         {k.showRate ? showRate(k.rate) : <span className="text-xs font-normal text-slate-400">{k.checked ? `under ${MIN_CHECKED} checked` : "not checked yet"}</span>}
       </td>
-      <td className="tc" title={`${k.held} held to Safe, ${k.lost} lost`}>{k.lost}</td>
       <LossCell k={k} />
     </tr>
   );
@@ -114,14 +112,14 @@ export function MateSummary({ calc, by }: { calc: Calc[]; by: MateBy }) {
 }
 
 /**
- * Loss %: shown only once 3 or more Probables have had their 75-day answer - 1 lost of 1 isn't 100% of anything
- * (Carter, 2026-10-15). Under that, the count of Lost still shows in its own column.
+ * Lost after Probable as a fraction - "1 of 10": cows that lost the pregnancy out of every cow checked Probable
+ * (held, lost, or still waiting on her 75-day check). Carter, 2026-10-15: a fraction, not a %.
  */
-function LossCell({ k }: { k: { held: number; lost: number; lossRate: number | null } }) {
-  const decided = k.held + k.lost;
+function LossCell({ k }: { k: { held: number; lost: number; probables: number } }) {
+  const waiting = k.probables - k.held - k.lost;
   return (
-    <td className={"tc font-semibold" + (decided >= MIN_CHECKED && k.lossRate ? " text-red-700" : "")} title={decided ? `${k.lost} lost, ${k.held} held to Safe` : "No Probables have had their 75-day check yet"}>
-      {decided >= MIN_CHECKED ? showRate(k.lossRate) : <span className="text-xs font-normal text-slate-400">{decided ? `under ${MIN_CHECKED}` : "-"}</span>}
+    <td className={"tc whitespace-nowrap" + (k.lost ? " font-semibold text-red-700" : "")} title={k.probables ? `${k.lost} lost, ${k.held} held to Safe${waiting ? `, ${waiting} still waiting on the 75-day check` : ""}` : "None checked Probable"}>
+      {k.probables ? `${k.lost} of ${k.probables}` : "-"}
     </td>
   );
 }
