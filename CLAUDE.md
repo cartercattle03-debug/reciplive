@@ -36,7 +36,7 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - Open Inventory (`lib/openList.ts`) = latest record Open or Pass, or a cow added straight to the list. Her year = the year she
   was checked Open (Nov / Dec transfer checked in Jan falls to the new year), a Pass's batch year, or the year added.
   Tick -> Cull / Move to next year's opens; red X = off the list (gone) for that record only. Yellow = Times Passed >= 2.
-- Preg Check: picking a Result stamps its own Check Date (today, changeable); taking the Result off clears it. A cow already Probable gets only Safe / Open (`resultsFor`).
+- Preg Check: picking a Result stamps its own Check Date (today, changeable); taking the Result off clears it. A cow already Probable gets only Safe / Open (`resultsFor`); a Pending cow keeps Safe (a late first check). Totals split First check / 75-day check when both are listed.
 - Preg checks belong to a record by **group + Cow ID** (`matchChecks`); the mating only breaks a tie (loosely - "91/Z" = "91Z"). Records
   whose status lags their own last check are listed on the Dashboard to fix (`lib/reconcile.ts`); the import fixes them on the way in.
 - 75+ Day Cows = latest record Safe. Master Sheet Final Destination = Culled if any record Culled, else owner of her Safe latest record.

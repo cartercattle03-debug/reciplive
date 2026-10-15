@@ -14,8 +14,20 @@ export default async function PregCheck() {
   const list = pregCheckList(calc, { batch: org?.pregBatch, minAge: org?.pregMinAge, maxAge: org?.pregMaxAge });
   const typedAll = calc.filter((c) => c.pregDraft);
   const onList = new Set(list.map((c) => c.id));
-  const results = list.map((c) => c.pregDraft).filter(Boolean) as string[];
-  const pct = (r: string) => (results.length ? ((results.filter((x) => x === r).length / results.length) * 100).toFixed(1) + "%" : "-");
+  // Totals split by check when both are on the list (Carter, 2026-10-14): a cow already Probable is at her 75-day check
+  // (Safe / Open); everyone else is at her first check (Probable / Open - or Safe, now and then, at a late first check).
+  const second = list.filter((c) => c.status === "Probable");
+  const first = list.filter((c) => c.status !== "Probable");
+  const tally = (cows: typeof list, title: string, picks: string[]) => {
+    const results = cows.map((c) => c.pregDraft).filter(Boolean) as string[];
+    const pct = (r: string) => (results.length ? ((results.filter((x) => x === r).length / results.length) * 100).toFixed(1) + "%" : "-");
+    return { title, cows: cows.length, checked: results.length, pcts: picks.map((r) => [r, pct(r)] as const) };
+  };
+  const tallies = [
+    ...(first.length || !second.length ? [tally(first, second.length ? "First check" : "", ["Probable", "Safe", "Open"])] : []),
+    ...(second.length ? [tally(second, first.length ? "75-day check" : "", ["Safe", "Open"])] : []),
+  ];
+  const TONE: Record<string, string> = { Probable: "border-amber-300 bg-amber-100 text-amber-900", Safe: "border-emerald-300 bg-emerald-100 text-emerald-900", Open: "border-red-300 bg-red-100 text-red-900" };
   const rows: Row[] = list.map((c) => ({
     key: c.id,
     cells: [
@@ -49,25 +61,26 @@ export default async function PregCheck() {
         <b>{m.ranch} - Preg Check {showDate(ranchToday())}</b> {org?.pregBatch ? ` · Group ${org.pregBatch}` : ""}
         {org?.pregMinAge != null || org?.pregMaxAge != null ? ` · Age ${org?.pregMinAge ?? ""}-${org?.pregMaxAge ?? ""} days` : ""}
       </div>
-      <div className="mb-3 flex flex-wrap gap-2 text-sm">
-        {[
-          ["Total Cows", String(list.length), "border-slate-200 bg-white text-slate-700"],
-          ["Cows Checked", String(results.length), "border-slate-200 bg-white text-slate-700"],
-          ["% Probable", pct("Probable"), "border-amber-300 bg-amber-100 text-amber-900"],
-          ["% Safe", pct("Safe"), "border-emerald-300 bg-emerald-100 text-emerald-900"],
-          ["% Open", pct("Open"), "border-red-300 bg-red-100 text-red-900"],
-        ].map(([k, v, tone]) => (
-          <span key={k} className={"rounded-md border px-3 py-1.5 font-medium " + tone}>
-            {k} <strong className="ml-1 text-base">{v}</strong>
-          </span>
-        ))}
-      </div>
+      {tallies.map((t) => (
+        <div key={t.title || "all"} className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          {t.title && <span className="w-28 text-xs font-bold uppercase tracking-wide text-brand-700">{t.title}</span>}
+          {[
+            ["Total Cows", String(t.cows), "border-slate-200 bg-white text-slate-700"],
+            ["Cows Checked", String(t.checked), "border-slate-200 bg-white text-slate-700"],
+            ...t.pcts.map(([r, v]) => [`% ${r}`, v, TONE[r]]),
+          ].map(([k, v, tone]) => (
+            <span key={k} className={"rounded-md border px-3 py-1.5 font-medium " + tone}>
+              {k} <strong className="ml-1 text-base">{v}</strong>
+            </span>
+          ))}
+        </div>
+      ))}
       <Table
         cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
         rows={rows}
         empty="No cows due with this Group / age range."
       />
-      <p className="mt-3 text-xs text-slate-500">Mark her Safe only once she's truly confirmed at her second check - that moves her off this list for good. Open or Safe cows are done and drop off.</p>
+      <p className="mt-3 text-xs text-slate-500">Mark her Safe only once she's truly confirmed at her 75-day check - that moves her off this list for good. Open or Safe cows are done and drop off. When first-check and 75-day cows are on the list together, the totals split: First check (cows not yet Probable) and 75-day check (cows already Probable).</p>
     </div>
   );
 }
