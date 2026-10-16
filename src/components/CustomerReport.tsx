@@ -63,7 +63,13 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, b
             {byDate.map((d) => (
               <div key={d.batch} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
                 <div className="text-sm font-bold text-slate-800">{dateOf(d.batch)}</div>
-                <div className="text-xs text-slate-600">{d.k.total} transferred</div>
+                <div className="text-xs font-semibold text-slate-700">{d.k.total} Total Transferred</div>
+                <div className="mt-0.5 flex justify-center gap-2 text-xs font-semibold">
+                  <span className="st-Safe">{d.k.safe} Safe</span>
+                  <span className="st-Probable">{d.k.probable} Probable</span>
+                  <span className="st-Open">{d.k.open} Open</span>
+                </div>
+                {d.k.pending > 0 && <div className="text-[11px] text-slate-500">{d.k.pending} not checked yet</div>}
                 <div className="text-base font-bold text-brand-700">{showRate(d.k.rate)}</div>
                 <div className="text-[11px] text-slate-500">pregnancy rate</div>
               </div>

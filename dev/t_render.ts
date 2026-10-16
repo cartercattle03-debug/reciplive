@@ -246,7 +246,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
       const inOrder = r.rows.every((c: any, i: number) => i === 0 || r.rows[i - 1].batchOrder < c.batchOrder || (r.rows[i - 1].batchOrder === c.batchOrder && r.rows[i - 1].mating.trim().localeCompare(c.mating.trim(), undefined, { numeric: true }) <= 0));
       if (!inOrder) { fails++; console.log("FAIL customer list not by transfer date then mating"); } else console.log("ok   customer list sorts by transfer date, then mating");
       const k = countsOf(bc.filter((c: any) => c.batch === "5-21" && c.outcome !== "Pass"));
-      if (!h.includes("By transfer date") || !h.includes(`${k.total} transferred`) || !h.includes(showRate(k.rate))) { fails++; console.log("FAIL per-date cards"); } else console.log(`ok   per-date cards: 5/21/2026 ${k.total} transferred, ${showRate(k.rate)}`);
+      if (!h.includes("By transfer date") || !h.includes(`${k.total} Total Transferred`) || !h.includes(`${k.safe} Safe`) || !h.includes(`${k.open} Open`) || !h.includes(`${k.probable} Probable`) || !h.includes(showRate(k.rate))) { fails++; console.log("FAIL per-date cards"); } else console.log(`ok   per-date cards: 5/21/2026 ${k.total} Total Transferred, ${k.safe} Safe / ${k.probable} Probable / ${k.open} Open, ${showRate(k.rate)}`);
     }
     {
       // Notes: a customer sees them on Probable / Safe cows only (Carter, 2026-10-16).
