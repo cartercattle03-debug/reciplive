@@ -130,6 +130,11 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
     toast(skipped ? `Filled - ${skipped} box${skipped === 1 ? "" : "es"} skipped (not one of the choices, or a Pass line).` : `Filled ${col.label} on ${vals.length === 1 ? gsel.r2 - gsel.r1 + 1 : vals.length} lines.`);
     setGfill("");
   };
+  // The Fill bar starts with what the top highlighted box says - highlight from a filled box down, press Enter, done.
+  useEffect(() => {
+    if (gsel && gsel.r2 > gsel.r1) setGfill(rows[gsel.r1]?.[gsel.k] ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gsel?.k, gsel?.r1, gsel && gsel.r2 > gsel.r1]);
   const fillRef = useRef(fillRun);
   fillRef.current = fillRun;
   const gselRef = useRef(gsel);
@@ -156,7 +161,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
     // Paste onto the highlighted boxes, wherever the keyboard is (Safari doesn't keep it on the box).
     const paste = (ev: ClipboardEvent) => {
       const s = gselRef.current;
-      if (!s || s.r2 <= s.r1 || !ev.clipboardData) return;
+      if (!s || s.r2 <= s.r1 || !ev.clipboardData || ev.defaultPrevented) return;
       const a = document.activeElement as HTMLElement | null;
       if (a && a !== document.body && !a.closest("[data-gk]")) return; // typing somewhere else on the page
       const vals = ev.clipboardData.getData("text/plain").replace(/\r/g, "").replace(/\n+$/, "").split("\n").map((l) => l.split("\t")[0]);
@@ -183,6 +188,12 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
       setGsel({ k, r1: Math.min(g.anchor, g.to), r2: Math.max(g.anchor, g.to) });
       return;
     }
+    if (many && e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      fillRun([gfill]);
+      return;
+    }
     if (e.key.startsWith("Arrow")) {
       gEnd.current = null;
       if (many) setGsel(null);
@@ -193,7 +204,6 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
     const atEnd = !isInput || (el.selectionStart === el.value.length && el.selectionEnd === el.value.length);
     if (e.key === "ArrowLeft" && atStart) (e.preventDefault(), go(i, k, 0, -1));
     else if (e.key === "ArrowRight" && atEnd) (e.preventDefault(), go(i, k, 0, 1));
-    // Up / Down change a pick list's choice, so only typed boxes move rows with them.
     else if (isInput && e.key === "ArrowUp") (e.preventDefault(), go(i, k, -1, 0));
     else if (isInput && e.key === "ArrowDown") (e.preventDefault(), go(i, k, 1, 0));
   };
@@ -286,6 +296,13 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
           Every line goes into this group and its transfer date ({listed ? "from Lists" : "read from the label - 7-31 is 7/31/" + year}). Paste a column straight from a sheet into the first box and it fills down. ↓ copies the top value down the lines in use. A Pass needs only the Cow ID. Any one record&apos;s group can be changed afterward in the list below.
         </span>
       </div>
+      {COLS.filter((c) => c.pick).map((c) => (
+        <datalist key={c.k} id={`dl-pick-${c.k}`}>
+          {c.pick!.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
+      ))}
       {(["owners", "companies", "grades"] as const).map((l) => (
         <datalist key={l} id={`dl-${l}`}>
           {lists[l].map((o) => (
@@ -350,12 +367,29 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                       }}
                     >
                       {c.pick ? (
-                        <select className={"field px-1 py-1 " + c.w} value={r[c.k]} disabled={pass && c.k !== "status"} onChange={(e) => set(i, c.k, e.target.value)} onKeyDown={arrows(i, c.k)} data-cell={`${i}-${c.k}`}>
-                          {c.k !== "status" && <option value=""></option>}
-                          {c.pick.map((o) => (
-                            <option key={o}>{o}</option>
-                          ))}
-                        </select>
+                        // A typed box with its choices offered (not a pop-up list), so it highlights, fills and pastes like
+                        // the rest (Carter, 2026-10-16). "fr" -> Fresh / Frozen as you type; anything else is taken back off.
+                        <input
+                          className={"field px-1 py-1 " + c.w}
+                          value={r[c.k]}
+                          list={`dl-pick-${c.k}`}
+                          disabled={pass && c.k !== "status"}
+                          onChange={(e) => set(i, c.k, e.target.value)}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            if (!v) return;
+                            const hit = c.pick!.find((o) => o.toLowerCase() === v.toLowerCase()) ?? (c.pick!.filter((o) => o.toLowerCase().startsWith(v.toLowerCase())).length === 1 ? c.pick!.find((o) => o.toLowerCase().startsWith(v.toLowerCase())) : undefined);
+                            if (hit) set(i, c.k, hit);
+                            else {
+                              set(i, c.k, c.k === "status" ? "Pending" : "");
+                              toast(`${c.label} is ${c.pick!.join(", ")}.`, true);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            arrows(i, c.k)(e);
+                          }}
+                          data-cell={`${i}-${c.k}`}
+                        />
                       ) : (
                         <input
                           className={"field px-1 py-1 " + c.w + (bad.includes(i) && c.k === "cowId" ? " border-red-500" : "")}
@@ -366,6 +400,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                           onPaste={(e) => paste(i, c.k, e)}
                           onKeyDown={(e) => {
                             arrows(i, c.k)(e);
+                            if (e.defaultPrevented) return; // already moved, or filled a highlighted run
                             // Enter moves down the same column, like a sheet.
                             if (e.key === "Enter") {
                               e.preventDefault();
