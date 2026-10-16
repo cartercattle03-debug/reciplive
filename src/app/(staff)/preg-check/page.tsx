@@ -58,7 +58,10 @@ export default async function PregCheck() {
       numCell(c.embryoAge),
       // A cow already checked Probable can only come back Safe or Open (Carter, 2026-10-14) - no Probable button for her.
       { t: c.pregDraft ?? "", s: c.pregDraft ?? "", cls: "noshade", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: resultsFor(c.status, c.pregDraft), value: c.pregDraft ?? "" } },
-      { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
+      // Status follows the Result the moment it's tapped (Carter, 2026-10-16); her record takes it at Confirm & Archive.
+      c.pregDraft
+        ? { t: c.pregDraft, s: c.pregDraft, cls: `st-${c.pregDraft}`, title: `Was ${c.status || "blank"} - goes on her record at Confirm & Archive` }
+        : { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
       c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), cls: "noshade", edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
       { t: c.mating, cls: "noshade", edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
       { ...dateCell(c.dueDate), cls: "noshade" + (c.dueOverride ? " font-semibold" : ""), title: c.dueOverride ? "Typed in by hand" : "Transfer date + 276", edit: { api: "transfers", id: c.id, field: "dueOverride", kind: "date", value: c.dueDate ?? "" } },
@@ -98,7 +101,7 @@ export default async function PregCheck() {
         </div>
       ))}
       <Table
-        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Status", title: "Her status now, before this check is confirmed" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
+        cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Status", title: "Shows the Result as soon as it's tapped (point at it to see what she was); her record takes it at Confirm & Archive" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
         rows={rows}
         empty="No cows due with this Group / age range."
       />

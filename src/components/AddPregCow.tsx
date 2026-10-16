@@ -121,7 +121,14 @@ export function AddPregCow({ lists, cows }: { lists: Lists; cows: Record<string,
         {her && (
           <div className={"mb-3 rounded-md border p-3 text-sm " + (her.waiting ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-slate-50")}>
             <div>
-              Cow <b>{match}</b> on record: <b className={TONE[her.status] ?? ""}>{her.status || "(blank)"}</b>
+              Cow <b>{match}</b> on record:{" "}
+              {her.pregDraft ? (
+                <>
+                  <b className={TONE[her.pregDraft] ?? ""}>{her.pregDraft}</b> <span className="text-xs text-slate-500">(was {her.status || "blank"} - confirm with the rest)</span>
+                </>
+              ) : (
+                <b className={TONE[her.status] ?? ""}>{her.status || "(blank)"}</b>
+              )}
               {her.batch ? ` · group ${her.batch}` : " · no group"}
               {her.lastCheck && (
                 <>
