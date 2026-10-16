@@ -208,7 +208,8 @@ export function calculate(rows: Transfer[], archive: ArchiveRow[], today: string
       if (!was || a.checkDate > was) lastOpen.set(cow, a.checkDate);
     }
   }
-  const order = (r: Transfer) => [r.batchOrder || 0, r.seq] as const;
+  // A record with no group (added on Preg Check by Cow ID only - Carter, 2026-10-16) is her newest.
+  const order = (r: Transfer) => [r.batch ? r.batchOrder || 0 : Number.MAX_SAFE_INTEGER, r.seq] as const;
   // Probable at some check on this record - or culled while she was Probable (the cull notes what she was).
   const everProbable = (r: Transfer) =>
     r.status === "Probable" || (checksOf.get(r.id) ?? []).some((a) => a.result === "Probable") || (r.status === "Culled" && culls.some((c) => c.transferId === r.id && /^was Probable$/.test(c.detail)));
@@ -338,9 +339,10 @@ export type PregFilter = { batch?: string | null; minAge?: number | null; maxAge
 export function pregCheckList(calc: Calc[], f: PregFilter): Calc[] {
   return latestRows(calc)
     .filter((c) => !c.status || c.status === "Pending" || c.status === "Probable")
-    .filter((c) => !f.batch || same(c.batch, f.batch))
-    .filter((c) => f.minAge == null || (c.embryoAge !== null && c.embryoAge >= f.minAge))
-    .filter((c) => f.maxAge == null || (c.embryoAge !== null && c.embryoAge <= f.maxAge))
+    // A cow added with no group has no group or age to filter on - she always shows until she's checked.
+    .filter((c) => !c.batch || !f.batch || same(c.batch, f.batch))
+    .filter((c) => !c.batch || f.minAge == null || (c.embryoAge !== null && c.embryoAge >= f.minAge))
+    .filter((c) => !c.batch || f.maxAge == null || (c.embryoAge !== null && c.embryoAge <= f.maxAge))
     .sort((a, b) => compareFamily(a.cowId, b.cowId));
 }
 

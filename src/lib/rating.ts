@@ -80,7 +80,8 @@ export function recipRatings(calc: Calc[]): Map<string, Rating> {
     let tries = 0;
     let losses = 0;
     const steps: RatingStep[] = [];
-    for (const c of [...recs].sort((a, b) => a.batchOrder - b.batchOrder || a.seq - b.seq)) {
+    const ord = (c: Calc) => (c.batch ? c.batchOrder : Number.MAX_SAFE_INTEGER);
+    for (const c of [...recs].sort((a, b) => ord(a) - ord(b) || a.seq - b.seq)) {
       const what = [c.company, c.embryoType, c.grade].filter(Boolean).join(" ") || "embryo not recorded";
       if (c.outcome === "Pass") {
         steps.push({ batch: c.batch, text: "Pass - doesn't count", effect: "none" });

@@ -537,10 +537,12 @@ export async function addPregCow(orgId: string, r: Record<string, unknown>) {
   const cowId = clean(r.cowId);
   const batch = clean(r.batch);
   if (!cowId) throw new HttpError(400, "Enter her Cow ID.");
-  if (!batch) throw new HttpError(400, "Pick her Group.");
+  // The group is optional (Carter, 2026-10-16): a cow can go on by Cow ID alone.
   const { calc } = await loadRanch(orgId);
-  const twin = calc.find((c) => c.latest && c.cowId.toLowerCase() === cowId.toLowerCase() && c.batch.toLowerCase() === batch.toLowerCase() && (!c.status || c.status === "Pending" || c.status === "Probable"));
-  if (twin) throw new HttpError(400, `Cow ${twin.cowId} is already on the sheet in group ${twin.batch} - fix her line there instead.`);
+  const waiting = (c: (typeof calc)[number]) => c.latest && (!c.status || c.status === "Pending" || c.status === "Probable");
+  const sameCow = (c: (typeof calc)[number]) => c.cowId.toLowerCase() === cowId.toLowerCase() || (/^\d+$/.test(cowId) && /^\d+$/.test(c.cowId) && c.cowId.replace(/^0+/, "") === cowId.replace(/^0+/, ""));
+  const twin = calc.find((c) => waiting(c) && sameCow(c) && (!batch || !c.batch || c.batch.toLowerCase() === batch.toLowerCase()));
+  if (twin) throw new HttpError(400, `Cow ${twin.cowId} is already on the sheet${twin.batch ? ` in group ${twin.batch}` : " (no group)"} - she's waiting on her check. Type her Cow ID in + Add cow to put her result in.`);
   return addTransfers(orgId, [{ batch, cowId, mating: r.mating, owner: r.owner, embryoType: r.embryoType, grade: r.grade, company: r.company, dueOverride: r.dueOverride, notes: r.notes, status: "Pending" }]);
 }
 

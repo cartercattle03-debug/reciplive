@@ -283,6 +283,23 @@ const refuses = async (name: string, fn: () => Promise<unknown>, word: string) =
   const miss2 = R.calc.find((c) => c.id === miss!.id)!;
   ok("mating edit saved; cleared due date goes back to transfer + 276", miss2.mating === "Fixed x 2" && miss2.dueDate === "2027-11-02", miss2.dueDate ?? "");
 
+  // ---- Add cow by Cow ID only (Carter, 2026-10-16): no group, shows whatever Group / ages are picked, is her newest record
+  {
+    const done = R.calc.find((c) => c.latest && c.status === "Safe" && c.batch)!;
+    await rec.addPregCow(O, { cowId: done.cowId });
+    R = await loadRanch(O);
+    const nog = R.calc.find((c) => c.cowId === done.cowId && !c.batch);
+    ok("a cow added with no group goes on as Pending, and is her latest record", !!nog && nog.status === "Pending" && nog.latest && !R.calc.find((c) => c.id === done.id)!.latest);
+    ok("with no group she shows on the sheet whatever Group or ages are picked", !!pregCheckList(R.calc, { batch: "1-30", minAge: 40, maxAge: 50 }).find((c) => c.id === nog!.id));
+    await refuses("adding her again (no group) while she's waiting is refused", () => rec.addPregCow(O, { cowId: done.cowId.toLowerCase() }), "already on the sheet");
+    await refuses("adding a waiting cow with no group names her group", () => rec.addPregCow(O, { cowId: "MISS1" }), "in group 1-30");
+    await rec.setPregDraft(O, nog!.id, "Probable");
+    ok("her result is typed on her own no-group line", (await loadRanch(O)).calc.find((c) => c.id === nog!.id)?.pregDraft === "Probable");
+    await rec.setPregDraft(O, nog!.id, "");
+    await rec.deleteTransfer(O, nog!.id);
+    R = await loadRanch(O);
+  }
+
   // ---- A whole batch at once (100 lines, as from the Add transfers grid)
   const many = Array.from({ length: 100 }, (_, i) => ({ batch: "8-15", cowId: `B${i + 1}`, mating: "Bulk x 1", owner: "Carter", embryoType: "Frozen", grade: "7-1", company: "605", status: i % 10 === 0 ? "Pass" : "Pending" }));
   const big = await rec.addTransfers(O, many);

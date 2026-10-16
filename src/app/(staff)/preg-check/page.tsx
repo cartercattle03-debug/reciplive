@@ -1,5 +1,5 @@
 import { PregButtons, PregSettings } from "@/components/PregControls";
-import { AddPregCow } from "@/components/AddPregCow";
+import { AddPregCow, type KnownCow } from "@/components/AddPregCow";
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, dateCell, numCell } from "@/lib/cells";
@@ -13,6 +13,28 @@ export default async function PregCheck() {
   const [{ calc, lists }, org] = await Promise.all([loadRanch(m.organizationId), prisma.organization.findUnique({ where: { id: m.organizationId } })]);
   const list = pregCheckList(calc, { batch: org?.pregBatch, minAge: org?.pregMinAge, maxAge: org?.pregMaxAge });
   const typedAll = calc.filter((c) => c.pregDraft);
+  // + Add cow looks her up as her Cow ID is typed (Carter, 2026-10-16): her most recent record, and whether she's
+  // already on the sheet waiting on a check.
+  const listed = new Set(list.map((c) => c.id));
+  const known: Record<string, KnownCow> = {};
+  for (const c of calc)
+    if (c.latest && c.cowId) {
+      const last = c.checks[c.checks.length - 1];
+      known[c.cowId] = {
+        id: c.id,
+        batch: c.batch,
+        status: c.status,
+        mating: c.mating,
+        owner: c.owner,
+        embryoType: c.embryoType,
+        grade: c.grade,
+        company: c.company,
+        pregDraft: c.pregDraft ?? null,
+        lastCheck: last ? { date: last.checkDate, result: last.result } : null,
+        waiting: !c.status || c.status === "Pending" || c.status === "Probable",
+        onList: listed.has(c.id),
+      };
+    }
   const onList = new Set(list.map((c) => c.id));
   // Totals split by check when both are on the list (Carter, 2026-10-14): a cow already Probable is at her 75-day check
   // (Safe / Open); everyone else is at her first check (Probable / Open - or Safe, now and then, at a late first check).
@@ -47,9 +69,9 @@ export default async function PregCheck() {
     <div>
       <PageHeader
         title="Preg Check"
-        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off) - a cow already Probable gets only Safe or Open. Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it."
+        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off) - a cow already Probable gets only Safe or Open. Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it. + Add cow looks her up as you type her Cow ID: already on the sheet, you can put her result in right there; otherwise her latest info fills in."
       >
-        <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} batch={org?.pregBatch ?? ""} />
+        <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} cows={known} />
         <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} />
       </PageHeader>
       <PregSettings s={{ pregDate: org?.pregDate ?? "", pregBatch: org?.pregBatch ?? "", pregMinAge: org?.pregMinAge?.toString() ?? "", pregMaxAge: org?.pregMaxAge?.toString() ?? "" }} batches={lists.batches.map((b) => b.label)} />
