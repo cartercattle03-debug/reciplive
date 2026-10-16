@@ -45,7 +45,7 @@ Hosted on Vercel. The build runs `prisma db push`, so **schema changes must be a
 - 75+ Day Cows = latest record Safe. Master Sheet Final Destination = Culled if any record Culled, else owner of her Safe latest record.
 - **IDs are text.** Leading zeros matter (054 is not 54). Batch labels and grades are text - never dates.
 - A repeated Cow ID is not a duplicate - the same cow has many records.
-- Customer logins (role CUSTOMER + ownerName) see only that owner's records, read only. Their page has By Mating / Sire / Donor (`lib/matings.ts`): rate blank under 3 checked (Carter, 2026-10-15).
+- Customer logins (role CUSTOMER + ownerName) see only that owner's records, read only. Their page has By Mating / Sire / Donor (`lib/matings.ts`): rate blank under 3 checked (Carter, 2026-10-15). Never a company comparison there - no By Company, no company grids (Carter, 2026-10-16).
 - Manager logins are view only (Carter, 2026-10-14): nothing about money or customer contact info - no Billing, Master Sheet or Master Archive (`ownerPage()`, Nav `ownerOnly`), Cow Lookup without purchase / cost / sale / Price, no changes, no imports, no print / download. Only the OWNER saves (`staffApi`).
 - Big steps (import, Confirm & Archive, delete, cull, Undo) go through `withSnapshot()`.
 - Billing (`lib/billing.ts`, `lib/server/billing.ts`, /billing): bills Safe records (outcome Safe) not on an open invoice; one invoice per owner; price / lines / adjustments editable until Void; QuickBooks Online CSV import (`qboCsv`).  Bill To = owner billing info (ListItem ranchName / location / email, Lists → Owners), copied onto each invoice (billRanch / billLocation / billEmail). Invoices are not in Undo snapshots on purpose.

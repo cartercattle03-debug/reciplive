@@ -104,6 +104,13 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   await show("staff layout", "(staff)/layout", { children: "x" }, ["Dashboard", "Customer Search", "Carter Cattle"]);
   await show("my (customer)", "my/page", { searchParams: {} }, ["Lehman - your recips", "Total Transferred"], "cust");
   await show("customer portal has breakdowns", "my/page", { searchParams: { by: "company" } }, ["Your breakdowns", "By Embryo Type", "Pregnancy Rate"], "cust");
+  {
+    // No company comparison on a customer's page (Carter, 2026-10-16).
+    for (const by of ["company", "batch", "grade", "embryoType"]) {
+      const h = await show(`customer page (${by}) has no company comparison`, "my/page", { searchParams: { by } }, ["Your breakdowns"], "cust");
+      if (/By Company|pregnancy rate by [a-z ]*company|>Company<\/th>[\s\S]*?Pregnancy Rate/i.test(h.slice(h.indexOf("Your breakdowns")))) { fails++; console.log(`FAIL company comparison on customer page (${by})`); }
+    }
+  }
   const sneak = await show("customer can't peek at another owner with ?as=", "my/page", { searchParams: { as: "Buck Creek" } }, ["Lehman - your recips"], "cust");
   if (/Buck Creek/.test(sneak)) { fails++; console.log("FAIL customer saw another owner via ?as="); }
   {
