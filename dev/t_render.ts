@@ -231,6 +231,15 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     await recs.setPregDraft(org.id, p1.id, "");
     await recs.setPregDraft(org.id, n1.id, "");
   }
+  {
+    // Customer page (Carter, 2026-10-16): Transfer Date instead of Batch, Sort by above the tip.
+    const h = await show("customer page: Transfer Date, Sort by", "my/page", { searchParams: { as: "Buck" } }, ["Sort by", "Transfer Date", "Status", "Show", "By Transfer Date", "5/21/2026", "type=\"radio\""]);
+    const top = h.slice(0, h.indexOf("Your breakdowns"));
+    if (/>Batch</.test(top) || /legend[^>]*>Batch/.test(top)) { fails++; console.log("FAIL customer page still says Batch"); } else console.log("ok   customer page says Transfer Date, not Batch");
+    if (h.indexOf("Sort by") > h.indexOf("Tip: click any column") || h.indexOf("Sort by") < h.indexOf("Total Transferred")) { fails++; console.log("FAIL Sort by is not above the tip"); } else console.log("ok   the bold bar (Sort by, Transfer Date, Status, Show) sits under the totals, above the tip");
+    const st = await show("staff Customer Search keeps Batch", "(staff)/customer/page", { searchParams: { owner: "Buck", go: "1" } }, [">Batch<"]);
+    if (!st) fails++;
+  }
   await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading", "first preg check", "final preg check"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");

@@ -7,7 +7,9 @@ import { Logo } from "./Logo";
 export const METRICS = ["Total Transferred", "75-Day Confirmed", "Currently Probable", "Pregnancy Rate"] as const;
 
 /** One owner's herd summary: the cards they picked, then their cows. Prints clean on one letter page width. */
-export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }: { calc: Calc[]; f: CustomerFilter; show: string[]; ranch: string; today: string; linkCows?: boolean }) {
+export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, bar, dateOf }: { calc: Calc[]; f: CustomerFilter; show: string[]; ranch: string; today: string; linkCows?: boolean; /** The customer's page: Sort by, shown above the tip. */ bar?: React.ReactNode; /** The customer's page: a group reads as its transfer date. */ dateOf?: (batch: string) => string }) {
+  // A customer sees Transfer Date, not the group label (Carter, 2026-10-16) - the label is just the date written short.
+  const customer = !linkCows;
   const r = customerSearch(calc, f);
   const val: Record<string, string> = {
     "Total Transferred": String(r.totalTransferred),
@@ -17,7 +19,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
   };
   const rows: Row[] = r.rows.map((c) => ({
     key: c.id,
-    cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, batchCell(c), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null)],
+    cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, ...(customer ? [] : [batchCell(c)]), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null)],
   }));
   return (
     <div>
@@ -27,7 +29,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
             <div className="text-lg font-bold text-brand-700">{f.owner} - Herd Summary</div>
             <div className="text-xs text-slate-600">
               {ranch} · {showDate(today)}
-              {f.batches.length ? ` · Groups ${f.batches.join(", ")}` : ""}
+              {f.batches.length ? (customer && dateOf ? ` · Transferred ${f.batches.map(dateOf).join(", ")}` : ` · Groups ${f.batches.join(", ")}`) : ""}
               {f.statuses.length ? ` · ${f.statuses.join(", ")}` : ""}
             </div>
           </div>
@@ -44,14 +46,16 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true }:
           ))}
         </div>
       )}
+      {/* The customer's Sort by / Transfer Date / Status / Show, in one bold bar over their list (Carter, 2026-10-16). */}
+      {bar}
       {!linkCows && (
         <div className="no-print mb-3 flex items-center gap-2 rounded-md border-l-4 border-rust bg-amber-50 px-4 py-2.5 text-sm font-semibold text-slate-800">
           <span className="text-lg text-rust" aria-hidden>⇅</span>
-          Tip: click any column heading (Cow ID, Batch, Mating, Status, Due Date...) to sort the list by that column. Click it again to flip the order.
+          Tip: click any column heading (Cow ID, Transfer Date, Mating, Status, Due Date...) to sort the list by that column. Click it again to flip the order.
         </div>
       )}
       <StatusKey className="mb-3" />
-      <Table cols={[{ label: "Cow ID" }, { label: "Batch" }, { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." />
+      <Table cols={[{ label: "Cow ID" }, ...(customer ? [] : [{ label: "Batch" }]), { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." />
     </div>
   );
 }

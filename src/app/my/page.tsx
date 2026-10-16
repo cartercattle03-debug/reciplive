@@ -5,10 +5,10 @@ import { StatusKey } from "@/components/StatusKey";
 import { MATE_LABELS, MIN_CHECKED, type MateBy } from "@/lib/matings";
 import { Checks, PrintButton } from "@/components/Checks";
 import { CustomerReport, METRICS } from "@/components/CustomerReport";
-import { FilterForm, Pick } from "@/components/FilterForm";
+import { FilterForm } from "@/components/FilterForm";
 import { PageHeader, Shell } from "@/components/Shell";
 import { customerParams, type SP } from "@/lib/customerParams";
-import { BREAKDOWN_LABELS, EMBRYO_TYPES, inYear, type BreakdownBy, type Calc } from "@/lib/recip";
+import { BREAKDOWN_LABELS, EMBRYO_TYPES, inYear, showDate, type BreakdownBy, type Calc } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { anyPage } from "@/lib/server/session";
 import { pickedYear, yearChoices } from "@/lib/server/year";
@@ -52,6 +52,11 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
     for (const [k, v] of Object.entries(extra)) q.set(k, v);
     return `/my?${q.toString()}`;
   };
+  // A group reads as its transfer date on a customer's page (Carter, 2026-10-16).
+  const dateOf = (b: string) => {
+    const d = lists.batches.find((x) => x.label === b)?.transferDate;
+    return d ? showDate(d) : b;
+  };
   const yearsWithCows = [...new Set(all.map((c) => Number(c.transferDate?.slice(0, 4))).filter(Boolean))];
   return (
     <Shell member={m} customer year={{ year, years: yearChoices({ ...lists, batches: [] }, [year, ...yearsWithCows]).filter((y) => y <= Math.max(year, ...yearsWithCows)) }}>
@@ -66,16 +71,26 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
       <PageHeader title={`${owner} - your recips (${year})`} sub={`Your cows at ${m.ranch}, live as results are recorded. Pick another year in the Year box at the top.`}>
         <PrintButton />
       </PageHeader>
-      <FilterForm className="card items-start p-3">
-        <input type="hidden" name="go" value="1" />
-        {preview && <input type="hidden" name="as" value={owner} />}
-        <input type="hidden" name="by" value={mate ?? by} />
-        <Pick name="sort" label="Sort By" value={f.sort} options={["Cow ID", "Mating"]} all={null} />
-        <Checks name="b" label="Batch" options={myBatches} on={f.batches} />
-        <Checks name="s" label="Status" options={["Safe", "Probable", "Pending", "Open"]} on={f.statuses} />
-        <Checks name="m" label="Show" options={[...METRICS]} on={show} />
-      </FilterForm>
-      <CustomerReport calc={calc} f={f} show={show} ranch={m.ranch} today={today} linkCows={false} />
+      <CustomerReport
+        calc={calc}
+        f={f}
+        show={show}
+        ranch={m.ranch}
+        today={today}
+        linkCows={false}
+        dateOf={dateOf}
+        bar={
+          <FilterForm className="mb-3 items-start gap-x-6 rounded-lg border-2 border-brand-600 bg-sky-50 p-3 shadow-sm">
+          <input type="hidden" name="go" value="1" />
+          {preview && <input type="hidden" name="as" value={owner} />}
+          <input type="hidden" name="by" value={mate ?? by} />
+          <Checks name="sort" label="Sort by" options={["Cow ID", "Mating"]} on={[f.sort]} bold one />
+          <Checks name="b" label="Transfer Date" options={myBatches} on={f.batches} labels={Object.fromEntries(myBatches.map((b) => [b, dateOf(b)]))} bold />
+          <Checks name="s" label="Status" options={["Safe", "Probable", "Pending", "Open"]} on={f.statuses} bold />
+          <Checks name="m" label="Show" options={[...METRICS]} on={show} bold />
+          </FilterForm>
+        }
+      />
 
       <section className="mt-8 break-before-page">
         <h2 className="mb-1 text-lg font-semibold text-slate-900">Your breakdowns</h2>
@@ -84,7 +99,7 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
         <div className="no-print mb-4 flex flex-wrap gap-1">
           {BYS.map((b) => (
             <Link key={b} href={keep({ by: b })} className={!mate && b === by ? "btn" : "btn-quiet"}>
-              By {BREAKDOWN_LABELS[b]}
+              By {b === "batch" ? "Transfer Date" : BREAKDOWN_LABELS[b]}
             </Link>
           ))}
           {MATES.map((b) => (
@@ -104,7 +119,7 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
           </>
         ) : (
           <>
-            <Summary calc={calc} by={by} vals={vals[by]} />
+            <Summary calc={calc} by={by} vals={vals[by]} {...(by === "batch" ? { head: "Transfer Date", show: dateOf } : {})} />
           </>
         )}
       </section>

@@ -4,10 +4,10 @@ import { MATE_LABELS, MIN_CHECKED, mateBreakdown, type MateBy, type MateRow } fr
 const th = "whitespace-nowrap bg-brand-600 px-3 py-2 text-xs font-semibold text-white";
 
 /** A breakdown line per value (By Group / Company / ...), then a Total line. Shared by the staff page and a customer's portal. */
-export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; vals: string[] }) {
+export function Summary({ calc, by, vals, head, show }: { calc: Calc[]; by: BreakdownBy; vals: string[]; /** First column's heading, if not the usual. */ head?: string; /** How a value reads (a customer sees a group as its transfer date). */ show?: (v: string) => string }) {
   const b = breakdown(calc, by, vals);
   const pass = by === "batch";
-  const heads = [BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable"];
+  const heads = [head ?? BREAKDOWN_LABELS[by], pass ? "Total Attempts" : "Total Transfers", ...(pass ? ["Pass"] : []), "Safe", "Probable", "Pending", "Open", "Unchecked", "Pregnant / Checked", "Pregnancy Rate", "Lost after Probable"];
   const line = (k: (typeof b.rows)[number] | (typeof b)["total"], label: string, cls = "") => (
     <tr key={label} className={cls}>
       <td className="tc font-semibold">{label}</td>
@@ -30,7 +30,7 @@ export function Summary({ calc, by, vals }: { calc: Calc[]; by: BreakdownBy; val
           <tr>{heads.map((h) => <th key={h} className={th}>{h}</th>)}</tr>
         </thead>
         <tbody>
-          {b.rows.map((r, i) => line(r, r.value, i % 2 ? "bg-stripe" : ""))}
+          {b.rows.map((r, i) => line(r, show ? show(r.value) : r.value, i % 2 ? "bg-stripe" : ""))}
           {line(b.total, "TOTAL", "border-t-2 border-brand-600 bg-tan")}
         </tbody>
       </table>
