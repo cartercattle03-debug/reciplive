@@ -98,7 +98,95 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
       }
     }
   };
+  // Highlight a run of boxes down a column (drag, or Shift + up / down arrow), then paste or use the Fill bar to put the
+  // same thing in all of them (Carter, 2026-10-16: fill like cells in a new batch before it's added).
+  const [gsel, setGsel] = useState<{ k: keyof Line; r1: number; r2: number } | null>(null);
+  const [gfill, setGfill] = useState("");
+  const gdrag = useRef<{ k: keyof Line; r0: number; moved?: boolean } | null>(null);
+  const many = !!gsel && gsel.r2 > gsel.r1;
+  const gEnd = useRef<{ anchor: number; to: number } | null>(null);
+  const locked = (r: Line, k: keyof Line) => r.status === "Pass" && k !== "cowId" && k !== "notes" && k !== "status";
+  const fillRun = (vals: string[]) => {
+    if (!gsel) return;
+    const col = COLS.find((c) => c.k === gsel.k)!;
+    const fit = (v: string) => (col.pick ? col.pick.find((o) => o.toLowerCase() === v.trim().toLowerCase()) ?? null : v.trim());
+    let skipped = 0;
+    setRows((rs) => {
+      const out = [...rs];
+      const n = vals.length === 1 ? gsel.r2 - gsel.r1 + 1 : vals.length;
+      while (out.length < gsel.r1 + n) out.push(blankLine());
+      for (let j = 0; j < n; j++) {
+        const r = gsel.r1 + j;
+        const v = fit(vals.length === 1 ? vals[0] : vals[j]);
+        if (v === null || locked(out[r], gsel.k)) {
+          skipped++;
+          continue;
+        }
+        out[r] = { ...out[r], [gsel.k]: v };
+      }
+      while (out.length % 10) out.push(blankLine());
+      return out;
+    });
+    toast(skipped ? `Filled - ${skipped} box${skipped === 1 ? "" : "es"} skipped (not one of the choices, or a Pass line).` : `Filled ${col.label} on ${vals.length === 1 ? gsel.r2 - gsel.r1 + 1 : vals.length} lines.`);
+    setGfill("");
+  };
+  const fillRef = useRef(fillRun);
+  fillRef.current = fillRun;
+  const gselRef = useRef(gsel);
+  gselRef.current = gsel;
+  useEffect(() => {
+    const move = (ev: MouseEvent) => {
+      const d = gdrag.current;
+      if (!d || !(ev.buttons & 1)) return;
+      const el = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>("[data-gk]");
+      if (!el || el.dataset.gk !== d.k) return;
+      const r = Number(el.dataset.gr);
+      if (r === d.r0 && !d.moved) return;
+      if (!d.moved) (document.activeElement as HTMLElement | null)?.blur?.();
+      d.moved = true;
+      ev.preventDefault();
+      window.getSelection()?.removeAllRanges();
+      document.body.style.userSelect = "none";
+      setGsel({ k: d.k, r1: Math.min(d.r0, r), r2: Math.max(d.r0, r) });
+    };
+    const up = () => {
+      gdrag.current = null;
+      document.body.style.userSelect = "";
+    };
+    // Paste onto the highlighted boxes, wherever the keyboard is (Safari doesn't keep it on the box).
+    const paste = (ev: ClipboardEvent) => {
+      const s = gselRef.current;
+      if (!s || s.r2 <= s.r1 || !ev.clipboardData) return;
+      const a = document.activeElement as HTMLElement | null;
+      if (a && a !== document.body && !a.closest("[data-gk]")) return; // typing somewhere else on the page
+      const vals = ev.clipboardData.getData("text/plain").replace(/\r/g, "").replace(/\n+$/, "").split("\n").map((l) => l.split("\t")[0]);
+      ev.preventDefault();
+      fillRef.current(vals);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    document.addEventListener("paste", paste);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      document.removeEventListener("paste", paste);
+    };
+  }, []);
   const arrows = (i: number, k: keyof Line) => (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (e.key === "Escape") return setGsel(null);
+    if (e.shiftKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      // The box with the keyboard stays the anchor; each press moves the far end of the run up or down.
+      e.preventDefault();
+      if (!gsel || gsel.k !== k || !gEnd.current) gEnd.current = { anchor: i, to: i };
+      const g = gEnd.current;
+      g.to = Math.max(0, Math.min(rows.length - 1, g.to + (e.key === "ArrowDown" ? 1 : -1)));
+      setGsel({ k, r1: Math.min(g.anchor, g.to), r2: Math.max(g.anchor, g.to) });
+      return;
+    }
+    if (e.key.startsWith("Arrow")) {
+      gEnd.current = null;
+      if (many) setGsel(null);
+    }
     const el = e.currentTarget;
     const isInput = el instanceof HTMLInputElement;
     const atStart = !isInput || (el.selectionStart === 0 && el.selectionEnd === 0);
@@ -244,7 +332,23 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                     {i + 1}
                   </td>
                   {COLS.map((c) => (
-                    <td key={c.k} className="px-0.5 py-0.5">
+                    <td
+                      key={c.k}
+                      data-gk={c.k}
+                      data-gr={i}
+                      className={"px-0.5 py-0.5 " + (gsel && many && gsel.k === c.k && i >= gsel.r1 && i <= gsel.r2 ? "rounded bg-sky-200 ring-2 ring-brand-600" : "")}
+                      onMouseDownCapture={(ev) => {
+                        if (ev.button !== 0) return;
+                        if (ev.shiftKey && gsel && gsel.k === c.k) {
+                          ev.preventDefault();
+                          setGsel({ k: c.k, r1: Math.min(gsel.r1, i), r2: Math.max(gsel.r2, i) });
+                          return;
+                        }
+                        gdrag.current = { k: c.k, r0: i };
+                        gEnd.current = null;
+                        setGsel({ k: c.k, r1: i, r2: i });
+                      }}
+                    >
                       {c.pick ? (
                         <select className={"field px-1 py-1 " + c.w} value={r[c.k]} disabled={pass && c.k !== "status"} onChange={(e) => set(i, c.k, e.target.value)} onKeyDown={arrows(i, c.k)} data-cell={`${i}-${c.k}`}>
                           {c.k !== "status" && <option value=""></option>}
@@ -301,6 +405,34 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
           {busy ? "Adding..." : `Add ${filled.length || ""} transfer${filled.length === 1 ? "" : "s"}`}
         </button>
       </div>
+      {gsel && many && (
+        <div className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border-2 border-brand-600 bg-sky-50 px-4 py-3 text-sm shadow-xl">
+          <b>
+            {COLS.find((c) => c.k === gsel.k)?.label}: lines {gsel.r1 + 1} to {gsel.r2 + 1} picked.
+          </b>
+          <span>Fill them with:</span>
+          {(() => {
+            const col = COLS.find((c) => c.k === gsel.k)!;
+            return col.pick ? (
+              <select className="field w-40" value={gfill} onChange={(ev) => setGfill(ev.target.value)}>
+                <option value=""></option>
+                {col.pick.map((o) => (
+                  <option key={o}>{o}</option>
+                ))}
+              </select>
+            ) : (
+              <input className="field w-48" value={gfill} list={col.list ? `dl-${col.list}` : undefined} placeholder="Type, then Fill" onChange={(ev) => setGfill(ev.target.value)} onKeyDown={(ev) => ev.key === "Enter" && (ev.preventDefault(), fillRun([gfill]))} />
+            );
+          })()}
+          <button type="button" className="btn" onClick={() => fillRun([gfill])}>
+            Fill
+          </button>
+          <span className="text-xs text-slate-500">or paste (Cmd+V / Ctrl+V)</span>
+          <button type="button" className="btn-quiet ml-auto" onClick={() => (setGsel(null), setGfill(""))}>
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
