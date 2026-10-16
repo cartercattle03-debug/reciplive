@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
 import { EditRecord, type EditLists, type RecordValues } from "./EditRecord";
@@ -90,6 +90,16 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
   const [val, setVal] = useState(e.value);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
+  // When an edit ends and nothing else took the focus, it comes back to this cell - the arrow keys carry on from here.
+  const cellBtn = useRef<HTMLButtonElement>(null);
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (editing) wasEditing.current = true;
+    else if (wasEditing.current) {
+      wasEditing.current = false;
+      if (!document.activeElement || document.activeElement === document.body) cellBtn.current?.focus();
+    }
+  }, [editing]);
   // A fresh value from the server (after a save here or anywhere) shows unless this cell is being typed in.
   useEffect(() => {
     if (!editing) setVal(e.value);
@@ -137,11 +147,31 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
     );
   }
   if (e.kind === "select") {
+    // Shown like a typed cell until clicked (so a drag down the column can highlight it), then the pick list opens.
+    if (!editing)
+      return (
+        <button ref={cellBtn} type="button" className="ic" onClick={() => setEditing(true)} title="Click to change">
+          {(val !== e.value ? val : shown) || " "}
+        </button>
+      );
     return (
       <select
+        autoFocus
+        ref={(el) => {
+          if (el && !el.dataset.opened) {
+            el.dataset.opened = "1";
+            try {
+              (el as HTMLSelectElement & { showPicker?: () => void }).showPicker?.();
+            } catch {
+              /* the browser opens it on the next tap instead */
+            }
+          }
+        }}
         className={"cell-select" + (busy ? " opacity-50" : "")}
         value={val}
         disabled={busy}
+        onBlur={() => !busy && setEditing(false)}
+        onKeyDown={(ev) => ev.key === "Escape" && setEditing(false)}
         onChange={(ev) => {
           setVal(ev.target.value);
           commit(ev.target.value);
@@ -158,7 +188,7 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
   }
   if (!editing) {
     return (
-      <button type="button" className="ic" onClick={() => setEditing(true)} title="Click to edit">
+      <button ref={cellBtn} type="button" className="ic" onClick={() => setEditing(true)} title="Click to edit">
         {shown || " "}
       </button>
     );
@@ -222,6 +252,68 @@ export function Table({
   const [anchor, setAnchor] = useState<{ r: number; c: number } | null>(null);
   const [sel, setSel] = useState<{ c: number; r1: number; r2: number } | null>(null);
   const [pasting, setPasting] = useState(false);
+  const drag = useRef<{ c: number; r0: number } | null>(null);
+  const [fill, setFill] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  const extendTo = useRef<number | null>(null);
+  /** Focus the cell at row r, column c - the next one that can be changed, stepping the way we're going. */
+  const focusCell = (r: number, c: number, dc = 0) => {
+    for (let n = 0; n < cols.length + 1; n++) {
+      const td = box.current?.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"]`);
+      if (td) {
+        const el = td.querySelector<HTMLElement>("button, select, input");
+        if (el) {
+          el.focus();
+          td.scrollIntoView({ block: "nearest", inline: "nearest" });
+          return true;
+        }
+      }
+      if (!dc) return false;
+      c += dc;
+      if (c < 0 || c >= cols.length) return false;
+    }
+    return false;
+  };
+  /** Arrow keys move around the cells like a sheet (Carter, 2026-10-16). Enter opens a cell; typing in one, Enter or
+   *  Up / Down saves it and moves on. Shift + Up / Down highlights a run down the column to fill. */
+  const onKey = (ev: React.KeyboardEvent) => {
+    if (ev.key === "Escape") {
+      setSel(null);
+      return;
+    }
+    const t = ev.target as HTMLElement;
+    const td = t.closest<HTMLElement>("td[data-c]");
+    if (!td) return;
+    const r = Number(td.dataset.r);
+    const c = Number(td.dataset.c);
+    const dirs: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    if (t.tagName === "INPUT") {
+      const dr = ev.key === "ArrowUp" ? -1 : ev.key === "ArrowDown" || ev.key === "Enter" ? 1 : 0;
+      if (!dr) return;
+      ev.preventDefault();
+      (t as HTMLInputElement).blur(); // saves it
+      setTimeout(() => focusCell(r + dr, c), 0);
+      return;
+    }
+    if (t.tagName === "SELECT") return; // the arrows choose from its list
+    const d = dirs[ev.key];
+    if (!d) return;
+    ev.preventDefault();
+    if (ev.shiftKey && d[0] && anchor && anchor.c === c) {
+      const to = Math.max(0, Math.min(shown.length - 1, (extendTo.current ?? anchor.r) + d[0]));
+      extendTo.current = to;
+      setSel({ c, r1: Math.min(anchor.r, to), r2: Math.max(anchor.r, to) });
+      box.current?.querySelector<HTMLElement>(`td[data-r="${to}"][data-c="${c}"]`)?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    extendTo.current = null;
+    focusCell(r + d[0], c + d[1], d[1]);
+  };
+  useEffect(() => {
+    const up = () => (drag.current = null);
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, []);
   const shown = useMemo(() => {
     let out = rows;
     if (q.trim()) {
@@ -261,6 +353,30 @@ export function Table({
     ev.preventDefault();
     toast(vals.length === 1 ? `Copied "${vals[0]}".` : `Copied ${vals.length} cells.`);
   };
+  const fillAll = async (v: string) => {
+    if (!sel || viewOnly()) return;
+    const todo: Edit[] = [];
+    for (let r = sel.r1; r <= sel.r2; r++) {
+      const e = pastable(r, sel.c);
+      if (e && e.value !== v) todo.push(e);
+    }
+    if (!todo.length) return toast("They already say that.");
+    setPasting(true);
+    let done = 0;
+    try {
+      for (const e of todo) {
+        await save(e, v);
+        done++;
+      }
+      toast(`Filled ${done} cell${done === 1 ? "" : "s"}.`);
+      setFill("");
+    } catch (err) {
+      toast(`${done ? `Filled ${done}, then: ` : ""}${(err as Error).message}`, true);
+    } finally {
+      setPasting(false);
+      router.refresh();
+    }
+  };
   const onPaste = async (ev: React.ClipboardEvent) => {
     if (!sel || viewOnly()) return;
     const text = ev.clipboardData.getData("text/plain").replace(/\r/g, "").replace(/\n+$/, "");
@@ -290,7 +406,7 @@ export function Table({
     }
   };
   return (
-    <div onCopy={onCopy} onPaste={onPaste} onKeyDown={(e) => e.key === "Escape" && setSel(null)}>
+    <div ref={box} onCopy={onCopy} onPaste={onPaste} onKeyDown={onKey}>
       {(search || picks) && (
         <div className="no-print mb-2 flex flex-wrap items-center gap-2">
           {search && <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />}
@@ -327,6 +443,35 @@ export function Table({
               ))}
             </span>
           )}
+        </div>
+      )}
+      {sel && sel.r2 > sel.r1 && pastable(sel.r1, sel.c) && !viewOnly() && (
+        // Floats at the bottom of the screen - it never pushes the rows around mid-drag.
+        <div className="no-print edit-only fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border-2 border-brand-600 bg-sky-50 px-4 py-3 text-sm shadow-xl">
+          <b>
+            {sel.r2 - sel.r1 + 1} {cols[sel.c]?.label} cells picked.
+          </b>
+          <span>Fill them with:</span>
+          {(() => {
+            const e = pastable(sel.r1, sel.c)!;
+            return e.kind === "select" ? (
+              <select className="field w-44" value={fill} onChange={(ev) => setFill(ev.target.value)}>
+                <option value=""></option>
+                {(e.options ?? []).map((o) => (
+                  <option key={o}>{o}</option>
+                ))}
+              </select>
+            ) : (
+              <input className="field w-44" type={e.kind === "date" ? "date" : "text"} value={fill} onChange={(ev) => setFill(ev.target.value)} onKeyDown={(ev) => ev.key === "Enter" && fillAll(fill.trim())} placeholder="Type, then Fill" />
+            );
+          })()}
+          <button type="button" className="btn" disabled={pasting} onClick={() => fillAll(fill.trim())}>
+            {pasting ? "Filling..." : "Fill"}
+          </button>
+          <span className="text-xs text-slate-500">or paste (Ctrl+V / Cmd+V)</span>
+          <button type="button" className="btn-quiet ml-auto" onClick={() => (setSel(null), setFill(""))}>
+            Cancel
+          </button>
         </div>
       )}
       <div className={"card overflow-auto print-full " + (maxHeight ? "list-box" : "")}>
@@ -373,9 +518,11 @@ export function Table({
                 {r.cells.map((c, i) => (
                   <td
                     key={i}
+                    data-r={c.edit && c.edit.kind !== "buttons" ? ri : undefined}
+                    data-c={c.edit && c.edit.kind !== "buttons" ? i : undefined}
                     title={c.title}
                     className={"tc " + (c.edit ? "editable " : "") + (c.cls ?? "") + (sel && sel.c === i && ri >= sel.r1 && ri <= sel.r2 ? " cell-sel" : "") + (pasting ? " opacity-60" : "")}
-                    onFocusCapture={c.edit && c.edit.kind !== "buttons" ? () => (setAnchor({ r: ri, c: i }), setSel((s) => (s && s.c === i && ri >= s.r1 && ri <= s.r2 && s.r2 > s.r1 ? s : { c: i, r1: ri, r2: ri }))) : undefined}
+                    onFocusCapture={c.edit && c.edit.kind !== "buttons" ? () => (extendTo.current = null, setAnchor({ r: ri, c: i }), setSel((s) => (s && s.c === i && ri >= s.r1 && ri <= s.r2 && s.r2 > s.r1 ? s : { c: i, r1: ri, r2: ri }))) : undefined}
                     onMouseDownCapture={
                       c.edit && c.edit.kind !== "buttons"
                         ? (ev) => {
@@ -384,7 +531,23 @@ export function Table({
                               ev.preventDefault();
                               ev.stopPropagation();
                               setSel({ c: i, r1: Math.min(anchor.r, ri), r2: Math.max(anchor.r, ri) });
+                              return;
                             }
+                            // Start of a drag down (or up) the column, like a sheet.
+                            if (ev.button === 0) drag.current = { c: i, r0: ri };
+                          }
+                        : undefined
+                    }
+                    onMouseEnter={
+                      c.edit && c.edit.kind !== "buttons"
+                        ? (ev) => {
+                            const d = drag.current;
+                            if (!d || ev.buttons !== 1 || d.c !== i) return;
+                            ev.preventDefault();
+                            window.getSelection()?.removeAllRanges();
+                            setAnchor({ r: d.r0, c: i });
+                            setFill("");
+                            setSel({ c: i, r1: Math.min(d.r0, ri), r2: Math.max(d.r0, ri) });
                           }
                         : undefined
                     }

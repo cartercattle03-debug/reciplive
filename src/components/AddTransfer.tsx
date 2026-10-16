@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
 import { EMBRYO_TYPES, showDate } from "@/lib/recip";
@@ -44,8 +44,71 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
   const [rows, setRows] = useState<Line[]>(lines(10));
   const [busy, setBusy] = useState(false);
   const [bad, setBad] = useState<number[]>([]);
+  // Lines typed but not added yet are kept in this browser, so an update, a refresh or closing the page can't lose them
+  // (Carter, 2026-10-16: a whole sheet of lines was lost when the site updated). Cleared once they're added, or by Clear.
+  const KEEP = "rl_addTransfer_v1";
+  const restored = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(KEEP);
+      if (raw) {
+        const k = JSON.parse(raw) as { rows?: Line[]; pickB?: string; newLabel?: string; typedDate?: { for: string; d: string } | null };
+        const kept = (k.rows ?? []).filter(used);
+        if (kept.length) {
+          const out = [...(k.rows ?? [])];
+          while (out.length < 10 || out.length % 10) out.push(blankLine());
+          setRows(out);
+          if (k.pickB && (k.pickB === NEW || lists.batches.includes(k.pickB))) setPickB(k.pickB);
+          if (k.newLabel) setNewLabel(k.newLabel);
+          if (k.typedDate) setTypedDate(k.typedDate);
+          toast(`Brought back ${kept.length} line${kept.length === 1 ? "" : "s"} you hadn't added yet.`);
+        }
+      }
+    } catch {
+      /* nothing kept, or this browser won't keep it - start blank */
+    }
+    restored.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!restored.current) return;
+    try {
+      if (rows.some(used)) localStorage.setItem(KEEP, JSON.stringify({ rows, pickB, newLabel, typedDate }));
+      else localStorage.removeItem(KEEP);
+    } catch {
+      /* can't keep it in this browser */
+    }
+  }, [rows, pickB, newLabel, typedDate]);
   const filled = rows.filter(used);
 
+  /** Arrow keys move between boxes like a sheet (Carter, 2026-10-16); a greyed-out box (a Pass line) is stepped over. */
+  const go = (i: number, k: keyof Line, dr: number, dc: number) => {
+    let r = i;
+    let c = COLS.findIndex((x) => x.k === k);
+    for (let n = 0; n < 40; n++) {
+      r += dr;
+      c += dc;
+      if (c < 0 || c >= COLS.length || r < 0) return;
+      const el = document.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-cell="${r}-${COLS[c].k}"]`);
+      if (!el) return;
+      if (!el.disabled) {
+        el.focus();
+        if (el instanceof HTMLInputElement) el.select();
+        return;
+      }
+    }
+  };
+  const arrows = (i: number, k: keyof Line) => (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const el = e.currentTarget;
+    const isInput = el instanceof HTMLInputElement;
+    const atStart = !isInput || (el.selectionStart === 0 && el.selectionEnd === 0);
+    const atEnd = !isInput || (el.selectionStart === el.value.length && el.selectionEnd === el.value.length);
+    if (e.key === "ArrowLeft" && atStart) (e.preventDefault(), go(i, k, 0, -1));
+    else if (e.key === "ArrowRight" && atEnd) (e.preventDefault(), go(i, k, 0, 1));
+    // Up / Down change a pick list's choice, so only typed boxes move rows with them.
+    else if (isInput && e.key === "ArrowUp") (e.preventDefault(), go(i, k, -1, 0));
+    else if (isInput && e.key === "ArrowDown") (e.preventDefault(), go(i, k, 1, 0));
+  };
   const set = (i: number, k: keyof Line, v: string) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   const paste = (i: number, k: keyof Line, e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData("text");
@@ -183,7 +246,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                   {COLS.map((c) => (
                     <td key={c.k} className="px-0.5 py-0.5">
                       {c.pick ? (
-                        <select className={"field px-1 py-1 " + c.w} value={r[c.k]} disabled={pass && c.k !== "status"} onChange={(e) => set(i, c.k, e.target.value)}>
+                        <select className={"field px-1 py-1 " + c.w} value={r[c.k]} disabled={pass && c.k !== "status"} onChange={(e) => set(i, c.k, e.target.value)} onKeyDown={arrows(i, c.k)} data-cell={`${i}-${c.k}`}>
                           {c.k !== "status" && <option value=""></option>}
                           {c.pick.map((o) => (
                             <option key={o}>{o}</option>
@@ -198,6 +261,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                           onChange={(e) => set(i, c.k, e.target.value)}
                           onPaste={(e) => paste(i, c.k, e)}
                           onKeyDown={(e) => {
+                            arrows(i, c.k)(e);
                             // Enter moves down the same column, like a sheet.
                             if (e.key === "Enter") {
                               e.preventDefault();
