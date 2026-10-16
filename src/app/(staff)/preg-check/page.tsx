@@ -51,17 +51,15 @@ export default async function PregCheck() {
     ...(second.length ? [tally(second, first.length ? "75-day check" : "", ["Safe", "Open"])] : []),
   ];
   const TONE: Record<string, string> = { Probable: "border-amber-300 bg-amber-100 text-amber-900", Safe: "border-emerald-300 bg-emerald-100 text-emerald-900", Open: "border-red-300 bg-red-100 text-red-900" };
-  // An Open gets a red line through her Cow ID, Mating, Days Bred and Due Date (Carter, 2026-10-16). Tap Open again,
+  // An Open gets a red line through her Mating, Days Bred and Due Date - not her Cow ID, it must stay easy to read
+  // (Carter, 2026-10-16). Tap Open again,
   // or another result, if it was the wrong button - the line goes with it.
   const strike = (c: (typeof list)[number]) => (c.pregDraft === "Open" ? " struck" : "");
   const rows: Row[] = list.map((c) => ({
     key: c.id,
     cells: [
       batchCell(c),
-      (() => {
-        const cc = cowCell(c.cowId);
-        return { ...cc, cls: (cc.cls ?? "") + strike(c), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` };
-      })(),
+      { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
       { ...numCell(c.embryoAge), cls: strike(c) },
       // A cow already checked Probable can only come back Safe or Open (Carter, 2026-10-14) - no Probable button for her.
       { t: c.pregDraft ?? "", s: c.pregDraft ?? "", cls: "noshade", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: resultsFor(c.status, c.pregDraft), value: c.pregDraft ?? "" } },

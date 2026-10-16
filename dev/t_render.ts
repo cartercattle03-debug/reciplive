@@ -219,7 +219,7 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     await recs.setPregDraft(org.id, n1.id, "Open");
     const html = await show("preg check: Open struck, % Loss, Add cow on the totals row", "(staff)/preg-check/page", { searchParams: {} }, ["struck", "% Loss", "+ Add cow", "75-day check"]);
     const struckCells = (html.match(/class="[^"]*struck[^"]*"/g) || []).length;
-    if (struckCells !== 8) { fails++; console.log("FAIL struck cells", struckCells); } else console.log("ok   two Opens = 8 struck cells (Cow ID, Days Bred, Mating, Due Date each)");
+    if (struckCells !== 6) { fails++; console.log("FAIL struck cells", struckCells); } else console.log("ok   two Opens = 6 struck cells (Days Bred, Mating, Due Date - never the Cow ID)");
     if (!/% Loss <strong[^>]*>[\d.]+% \(1 of \d+\)/.test(html)) { fails++; console.log("FAIL % Loss shows its count"); } else console.log("ok   75-day row shows % Loss with its count");
     await recs.setPregDraft(org.id, p1.id, "");
     await recs.setPregDraft(org.id, n1.id, "");

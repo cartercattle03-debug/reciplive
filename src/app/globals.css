@@ -261,7 +261,7 @@ td.tc.notes .cell-input {
 }
 [data-view] .pick-btn { pointer-events: none; }
 
-/* Preg Check: a cow tapped Open gets a red line through her Cow ID, Mating, Days Bred and Due Date (Carter, 2026-10-16). */
+/* Preg Check: a cow tapped Open gets a red line through her Mating, Days Bred and Due Date - never her Cow ID (Carter, 2026-10-16). */
 td.struck, td.struck * {
   text-decoration: line-through;
   text-decoration-color: #e00000;
