@@ -105,6 +105,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
   const gdrag = useRef<{ k: keyof Line; r0: number; moved?: boolean } | null>(null);
   const many = !!gsel && gsel.r2 > gsel.r1;
   const gEnd = useRef<{ anchor: number; to: number } | null>(null);
+  const [dragOn, setDragOn] = useState(false);
   const locked = (r: Line, k: keyof Line) => r.status === "Pass" && k !== "cowId" && k !== "notes" && k !== "status";
   const fillRun = (vals: string[]) => {
     if (!gsel) return;
@@ -140,23 +141,55 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
   const gselRef = useRef(gsel);
   gselRef.current = gsel;
   useEffect(() => {
-    const move = (ev: MouseEvent) => {
+    const pos = { x: 0, y: 0 };
+    let raf = 0;
+    // The box under the mouse, same column -> the run from where the drag started to it.
+    const pick = () => {
       const d = gdrag.current;
-      if (!d || !(ev.buttons & 1)) return;
-      const el = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>("[data-gk]");
+      if (!d) return;
+      const el = (document.elementFromPoint(pos.x, pos.y) as HTMLElement | null)?.closest<HTMLElement>("[data-gk]");
       if (!el || el.dataset.gk !== d.k) return;
       const r = Number(el.dataset.gr);
       if (r === d.r0 && !d.moved) return;
-      if (!d.moved) (document.activeElement as HTMLElement | null)?.blur?.();
+      if (!d.moved) {
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        // The Fill bar lets the mouse through while dragging, so the rows under it can be reached.
+        setDragOn(true);
+      }
       d.moved = true;
-      ev.preventDefault();
       window.getSelection()?.removeAllRanges();
       document.body.style.userSelect = "none";
       setGsel({ k: d.k, r1: Math.min(d.r0, r), r2: Math.max(d.r0, r) });
     };
+    // Near the bottom (or top) of the screen the page scrolls on its own and the run keeps growing (Carter, 2026-10-16).
+    const tick = () => {
+      const d = gdrag.current;
+      if (!d) return void (raf = 0);
+      const hdr = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hdr")) || 0;
+      const low = window.innerHeight - 110;
+      const high = hdr + 60;
+      const dy = pos.y > low ? Math.min(28, (pos.y - low) / 3 + 4) : pos.y < high ? -Math.min(28, (high - pos.y) / 3 + 4) : 0;
+      if (dy && d.moved) {
+        window.scrollBy(0, dy);
+        pick();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    const move = (ev: MouseEvent) => {
+      const d = gdrag.current;
+      if (!d || !(ev.buttons & 1)) return;
+      pos.x = ev.clientX;
+      pos.y = ev.clientY;
+      pick();
+      if (d.moved) ev.preventDefault();
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
     const up = () => {
       gdrag.current = null;
       document.body.style.userSelect = "";
+      setDragOn(false);
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
     };
     // Paste onto the highlighted boxes, wherever the keyboard is (Safari doesn't keep it on the box).
     const paste = (ev: ClipboardEvent) => {
@@ -441,7 +474,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
         </button>
       </div>
       {gsel && many && (
-        <div className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border-2 border-brand-600 bg-sky-50 px-4 py-3 text-sm shadow-xl">
+        <div data-fillbar style={dragOn ? { pointerEvents: "none", opacity: 0.6 } : undefined} className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border-2 border-brand-600 bg-sky-50 px-4 py-3 text-sm shadow-xl">
           <b>
             {COLS.find((c) => c.k === gsel.k)?.label}: lines {gsel.r1 + 1} to {gsel.r2 + 1} picked.
           </b>

@@ -254,6 +254,7 @@ export function Table({
   const [pasting, setPasting] = useState(false);
   const drag = useRef<{ c: number; r0: number; moved?: boolean } | null>(null);
   const [fill, setFill] = useState("");
+  const [dragOn, setDragOn] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const extendTo = useRef<number | null>(null);
   /** Focus the cell at row r, column c - the next one that can be changed, stepping the way we're going. */
@@ -312,21 +313,61 @@ export function Table({
   // Drag to highlight: follow the mouse over the page (not each cell's own events - Safari and some buttons swallow
   // those), and pick the cells from where the drag started to the one under the mouse, same column.
   useEffect(() => {
-    const move = (ev: MouseEvent) => {
+    const pos = { x: 0, y: 0 };
+    let raf = 0;
+    const pick = () => {
       const d = drag.current;
-      if (!d || !(ev.buttons & 1)) return;
-      const td = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>("td[data-c]");
+      if (!d) return;
+      const td = (document.elementFromPoint(pos.x, pos.y) as HTMLElement | null)?.closest<HTMLElement>("td[data-c]");
       if (!td || !box.current?.contains(td) || Number(td.dataset.c) !== d.c) return;
       const r = Number(td.dataset.r);
       if (r === d.r0 && !d.moved) return;
+      if (!d.moved) setDragOn(true);
       d.moved = true;
-      ev.preventDefault();
       window.getSelection()?.removeAllRanges();
       document.body.style.userSelect = "none";
       setAnchor({ r: d.r0, c: d.c });
       setSel({ c: d.c, r1: Math.min(d.r0, r), r2: Math.max(d.r0, r) });
     };
+    // Near the bottom (or top) of the list's box - or of the screen - it scrolls on its own and the run keeps growing.
+    const tick = () => {
+      const d = drag.current;
+      if (!d) return void (raf = 0);
+      if (d.moved) {
+        const list = box.current?.querySelector<HTMLElement>(".list-box");
+        const hdr = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hdr")) || 0;
+        const speed = (over: number) => Math.min(28, over / 3 + 4);
+        let moved = false;
+        if (list && list.scrollHeight > list.clientHeight) {
+          const rect = list.getBoundingClientRect();
+          const low = Math.min(rect.bottom, window.innerHeight - 110) - 40;
+          const high = Math.max(rect.top + 40, hdr + 60);
+          if (pos.y > low && list.scrollTop + list.clientHeight < list.scrollHeight) (list.scrollTop += speed(pos.y - low), (moved = true));
+          else if (pos.y < high && list.scrollTop > 0) (list.scrollTop -= speed(high - pos.y), (moved = true));
+        }
+        if (!moved) {
+          const low = window.innerHeight - 110;
+          const high = hdr + 60;
+          if (pos.y > low) (window.scrollBy(0, speed(pos.y - low)), (moved = true));
+          else if (pos.y < high) (window.scrollBy(0, -speed(high - pos.y)), (moved = true));
+        }
+        if (moved) pick();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    const move = (ev: MouseEvent) => {
+      const d = drag.current;
+      if (!d || !(ev.buttons & 1)) return;
+      pos.x = ev.clientX;
+      pos.y = ev.clientY;
+      pick();
+      if (d.moved) ev.preventDefault();
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
     const up = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      setDragOn(false);
       if (drag.current?.moved) {
         // A drag isn't a click - keep the cell it started on from opening for editing.
         const stop = (e: Event) => (e.stopPropagation(), e.preventDefault());
@@ -496,7 +537,7 @@ export function Table({
       )}
       {sel && sel.r2 > sel.r1 && pastable(sel.r1, sel.c) && !viewOnly() && (
         // Floats at the bottom of the screen - it never pushes the rows around mid-drag.
-        <div className="no-print edit-only fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border-2 border-brand-600 bg-sky-50 px-4 py-3 text-sm shadow-xl">
+        <div style={dragOn ? { pointerEvents: "none", opacity: 0.6 } : undefined} className="no-print edit-only fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border-2 border-brand-600 bg-sky-50 px-4 py-3 text-sm shadow-xl">
           <b>
             {sel.r2 - sel.r1 + 1} {cols[sel.c]?.label} cells picked.
           </b>
