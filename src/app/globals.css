@@ -248,7 +248,7 @@ td.tc.notes .cell-input {
 }
 .pick-btn:disabled { opacity: 0.6; }
 .pb-Probable { border-color: #eab308; color: #a16207; background: #fefce8; }
-.pb-Safe { border-color: #22c55e; color: #15803d; background: #f0fdf4; }
+.pb-Safe { border-color: #22c55e; color: #111827; background: #f0fdf4; } /* black word until picked (Carter, 2026-10-16) */
 .pb-Open { border-color: #ff1f1f; color: #e00000; background: #fff1f1; }
 .pb-Probable.on { background: #facc15; border-color: #eab308; color: #422006; }
 .pb-Safe.on { background: #22c55e; border-color: #16a34a; color: #fff; }
@@ -260,3 +260,10 @@ td.tc.notes .cell-input {
   .pick-btn { min-width: 5.6rem; min-height: 2.75rem; font-size: 16px; }
 }
 [data-view] .pick-btn { pointer-events: none; }
+
+/* Preg Check: a cow tapped Open gets a red line through her Cow ID, Mating, Days Bred and Due Date (Carter, 2026-10-16). */
+td.struck, td.struck * {
+  text-decoration: line-through;
+  text-decoration-color: #e00000;
+  text-decoration-thickness: 2px;
+}

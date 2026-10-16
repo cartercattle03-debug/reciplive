@@ -43,19 +43,26 @@ export default async function PregCheck() {
   const tally = (cows: typeof list, title: string, picks: string[]) => {
     const results = cows.map((c) => c.pregDraft).filter(Boolean) as string[];
     const pct = (r: string) => (results.length ? ((results.filter((x) => x === r).length / results.length) * 100).toFixed(1) + "%" : "-");
-    return { title, cows: cows.length, checked: results.length, pcts: picks.map((r) => [r, pct(r)] as const) };
+    const n = (r: string) => results.filter((x) => x === r).length;
+    return { title, cows: cows.length, checked: results.length, pcts: picks.map((r) => [r, pct(r)] as const), open: n("Open") };
   };
   const tallies = [
     ...(first.length || !second.length ? [tally(first, second.length ? "First check" : "", ["Probable", "Safe", "Open"])] : []),
     ...(second.length ? [tally(second, first.length ? "75-day check" : "", ["Safe", "Open"])] : []),
   ];
   const TONE: Record<string, string> = { Probable: "border-amber-300 bg-amber-100 text-amber-900", Safe: "border-emerald-300 bg-emerald-100 text-emerald-900", Open: "border-red-300 bg-red-100 text-red-900" };
+  // An Open gets a red line through her Cow ID, Mating, Days Bred and Due Date (Carter, 2026-10-16). Tap Open again,
+  // or another result, if it was the wrong button - the line goes with it.
+  const strike = (c: (typeof list)[number]) => (c.pregDraft === "Open" ? " struck" : "");
   const rows: Row[] = list.map((c) => ({
     key: c.id,
     cells: [
       batchCell(c),
-      { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
-      numCell(c.embryoAge),
+      (() => {
+        const cc = cowCell(c.cowId);
+        return { ...cc, cls: (cc.cls ?? "") + strike(c), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` };
+      })(),
+      { ...numCell(c.embryoAge), cls: strike(c) },
       // A cow already checked Probable can only come back Safe or Open (Carter, 2026-10-14) - no Probable button for her.
       { t: c.pregDraft ?? "", s: c.pregDraft ?? "", cls: "noshade", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: resultsFor(c.status, c.pregDraft), value: c.pregDraft ?? "" } },
       // Status follows the Result the moment it's tapped (Carter, 2026-10-16); her record takes it at Confirm & Archive.
@@ -63,8 +70,8 @@ export default async function PregCheck() {
         ? { t: c.pregDraft, s: c.pregDraft, cls: `st-${c.pregDraft}`, title: `Was ${c.status || "blank"} - goes on her record at Confirm & Archive` }
         : { t: c.status || "(blank)", cls: c.status ? `st-${c.status}` : "text-slate-400" },
       c.pregDraft ? { ...dateCell(c.pregDraftDate ?? org?.pregDate ?? null), cls: "noshade", edit: { api: "preg", id: c.id, field: "checkDate", kind: "date", value: c.pregDraftDate ?? "" } } : { t: "" },
-      { t: c.mating, cls: "noshade", edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
-      { ...dateCell(c.dueDate), cls: "noshade" + (c.dueOverride ? " font-semibold" : ""), title: c.dueOverride ? "Typed in by hand" : "Transfer date + 276", edit: { api: "transfers", id: c.id, field: "dueOverride", kind: "date", value: c.dueDate ?? "" } },
+      { t: c.mating, cls: "noshade" + strike(c), edit: { api: "transfers", id: c.id, field: "mating", kind: "text", value: c.mating } },
+      { ...dateCell(c.dueDate), cls: "noshade" + (c.dueOverride ? " font-semibold" : "") + strike(c), title: c.dueOverride ? "Typed in by hand" : "Transfer date + 276", edit: { api: "transfers", id: c.id, field: "dueOverride", kind: "date", value: c.dueDate ?? "" } },
       { t: c.notes, cls: "noshade notes", edit: { api: "transfers", id: c.id, field: "notes", kind: "text", value: c.notes } },
     ],
   }));
@@ -74,7 +81,6 @@ export default async function PregCheck() {
         title="Preg Check"
         sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off) - a cow already Probable gets only Safe or Open. Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it. + Add cow looks her up as you type her Cow ID: already on the sheet, you can put her result in right there; otherwise her latest info fills in."
       >
-        <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} cows={known} />
         <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} />
       </PageHeader>
       <PregSettings s={{ pregDate: org?.pregDate ?? "", pregBatch: org?.pregBatch ?? "", pregMinAge: org?.pregMinAge?.toString() ?? "", pregMaxAge: org?.pregMaxAge?.toString() ?? "" }} batches={lists.batches.map((b) => b.label)} />
@@ -86,20 +92,29 @@ export default async function PregCheck() {
         <b>{m.ranch} - Preg Check {showDate(ranchToday())}</b> {org?.pregBatch ? ` · Group ${org.pregBatch}` : ""}
         {org?.pregMinAge != null || org?.pregMaxAge != null ? ` · Age ${org?.pregMinAge ?? ""}-${org?.pregMaxAge ?? ""} days` : ""}
       </div>
-      {tallies.map((t) => (
-        <div key={t.title || "all"} className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-          {t.title && <span className="w-28 text-xs font-bold uppercase tracking-wide text-brand-700">{t.title}</span>}
-          {[
-            ["Total Cows", String(t.cows), "border-slate-200 bg-white text-slate-700"],
-            ["Cows Checked", String(t.checked), "border-slate-200 bg-white text-slate-700"],
-            ...t.pcts.map(([r, v]) => [`% ${r}`, v, TONE[r]]),
-          ].map(([k, v, tone]) => (
-            <span key={k} className={"rounded-md border px-3 py-1.5 font-medium " + tone}>
-              {k} <strong className="ml-1 text-base">{v}</strong>
-            </span>
+      {/* + Add cow sits on the totals row, over Notes (Carter, 2026-10-16). */}
+      <div className="flex flex-wrap items-end justify-between gap-x-4">
+        <div>
+          {tallies.map((t) => (
+            <div key={t.title || "all"} className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+              {t.title && <span className="w-28 text-xs font-bold uppercase tracking-wide text-brand-700">{t.title}</span>}
+              {[
+                ["Total Cows", String(t.cows), "border-slate-200 bg-white text-slate-700"],
+                ["Cows Checked", String(t.checked), "border-slate-200 bg-white text-slate-700"],
+                // At the 75-day check an Open is a pregnancy lost (Carter, 2026-10-16): % Loss, with the count.
+                ...t.pcts.map(([r, v]) => (t.title === "75-day check" || (!t.title && second.length && !first.length)) && r === "Open" ? [`% Loss`, t.checked ? `${v} (${t.open} of ${t.checked})` : v, TONE.Open] : [`% ${r}`, v, TONE[r]]),
+              ].map(([k, v, tone]) => (
+                <span key={k} className={"rounded-md border px-3 py-1.5 font-medium " + tone}>
+                  {k} <strong className="ml-1 text-base">{v}</strong>
+                </span>
+              ))}
+            </div>
           ))}
         </div>
-      ))}
+        <div className="mb-3">
+          <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} cows={known} />
+        </div>
+      </div>
       <Table
         cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Status", title: "Shows the Result as soon as it's tapped (point at it to see what she was); her record takes it at Confirm & Archive" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
         rows={rows}

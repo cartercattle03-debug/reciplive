@@ -207,6 +207,23 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const cp = await show("customer page has no rating", "my/page", { searchParams: { as: "Buck" } }, ["Buck"]);
     if (/Recip Rating|Cull candidate/.test(cp)) { fails++; console.log("FAIL rating on the customer page"); }
   }
+  {
+    // Preg Check (Carter, 2026-10-16): an Open draft strikes her row; Add cow on the totals row; 75-day % Loss.
+    const recs = require("../src/lib/server/records");
+    const { loadRanch } = require("../src/lib/server/data");
+    const { pregCheckList } = require("../src/lib/recip");
+    const L = pregCheckList((await loadRanch(org.id)).calc, {});
+    const p1 = L.find((c: any) => c.status === "Probable" && !c.pregDraft);
+    const n1 = L.find((c: any) => c.status !== "Probable" && !c.pregDraft);
+    await recs.setPregDraft(org.id, p1.id, "Open");
+    await recs.setPregDraft(org.id, n1.id, "Open");
+    const html = await show("preg check: Open struck, % Loss, Add cow on the totals row", "(staff)/preg-check/page", { searchParams: {} }, ["struck", "% Loss", "+ Add cow", "75-day check"]);
+    const struckCells = (html.match(/class="[^"]*struck[^"]*"/g) || []).length;
+    if (struckCells !== 8) { fails++; console.log("FAIL struck cells", struckCells); } else console.log("ok   two Opens = 8 struck cells (Cow ID, Days Bred, Mating, Due Date each)");
+    if (!/% Loss <strong[^>]*>[\d.]+% \(1 of \d+\)/.test(html)) { fails++; console.log("FAIL % Loss shows its count"); } else console.log("ok   75-day row shows % Loss with its count");
+    await recs.setPregDraft(org.id, p1.id, "");
+    await recs.setPregDraft(org.id, n1.id, "");
+  }
   await show("owner previews Lehman's portal", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:", "Lehman - your recips", "Your breakdowns", "click any column heading", "first preg check", "final preg check"]);
   await show("manager can't use the preview", "my/page", { searchParams: { as: "Lehman" } }, ["REDIRECT /customer"], "mgr");
   await show("customer kept out of staff pages", "(staff)/layout", { children: "x" }, ["REDIRECT /my"], "cust");
