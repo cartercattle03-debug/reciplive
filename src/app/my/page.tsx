@@ -8,7 +8,7 @@ import { CustomerReport, METRICS } from "@/components/CustomerReport";
 import { FilterForm } from "@/components/FilterForm";
 import { PageHeader, Shell } from "@/components/Shell";
 import { customerParams, type SP } from "@/lib/customerParams";
-import { BREAKDOWN_LABELS, EMBRYO_TYPES, inYear, showDate, type BreakdownBy, type Calc } from "@/lib/recip";
+import { BREAKDOWN_LABELS, CUSTOMER_SORTS, EMBRYO_TYPES, inYear, showDate, type BreakdownBy, type Calc } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { anyPage } from "@/lib/server/session";
 import { pickedYear, yearChoices } from "@/lib/server/year";
@@ -33,7 +33,8 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
   const { calc: all, lists, today } = await loadRanch(m.organizationId, { owner: owner || "\u0000none" });
   const year = pickedYear();
   const calc = inYear(all, year);
-  const { f, show } = customerParams(searchParams, owner);
+  // Their list sorts by Transfer Date, then Mating, unless they pick otherwise (Carter, 2026-10-16).
+  const { f, show } = customerParams(searchParams, owner, "Transfer Date");
   const myBatches = lists.batches.map((b) => b.label).filter((b) => calc.some((c) => c.batch === b));
   const mate = (MATES as string[]).includes(String(searchParams.by)) ? (searchParams.by as MateBy) : null;
   const by = (BYS as string[]).includes(String(searchParams.by)) ? (searchParams.by as BreakdownBy) : "batch";
@@ -84,7 +85,7 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
           <input type="hidden" name="go" value="1" />
           {preview && <input type="hidden" name="as" value={owner} />}
           <input type="hidden" name="by" value={mate ?? by} />
-          <Checks name="sort" label="Sort by" options={["Cow ID", "Mating"]} on={[f.sort]} bold one />
+          <Checks name="sort" label="Sort by" options={[...CUSTOMER_SORTS]} on={[f.sort]} bold one />
           <Checks name="b" label="Transfer Date" options={myBatches} on={f.batches} labels={Object.fromEntries(myBatches.map((b) => [b, dateOf(b)]))} bold />
           <Checks name="s" label="Status" options={["Safe", "Probable", "Pending", "Open"]} on={f.statuses} bold />
           <Checks name="m" label="Show" options={[...METRICS]} on={show} bold />

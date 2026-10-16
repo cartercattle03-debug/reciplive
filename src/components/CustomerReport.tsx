@@ -1,7 +1,7 @@
 import { StatusKey } from "./StatusKey";
 import { Table, type Row } from "./Table";
 import { batchCell, cowCell, dateCell } from "@/lib/cells";
-import { customerSearch, shownStatus, showDate, showRate, type Calc, type CustomerFilter } from "@/lib/recip";
+import { countsOf, customerSearch, shownStatus, showDate, showRate, type Calc, type CustomerFilter } from "@/lib/recip";
 import { Logo } from "./Logo";
 
 export const METRICS = ["Total Transferred", "75-Day Confirmed", "Currently Probable", "Pregnancy Rate"] as const;
@@ -17,6 +17,11 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, b
     "Currently Probable": String(r.currentlyProbable),
     "Pregnancy Rate": showRate(r.rate),
   };
+  // Transferred and pregnancy rate for each transfer date on their list, oldest first (Pass lines aren't transfers).
+  const byDate = [...new Set(r.rows.map((c) => c.batch))]
+    .map((batch) => ({ batch, order: r.rows.find((c) => c.batch === batch)!.batchOrder, k: countsOf(r.rows.filter((c) => c.batch === batch && c.outcome !== "Pass")) }))
+    .filter((d) => d.batch && d.k.total)
+    .sort((a, b) => a.order - b.order);
   const rows: Row[] = r.rows.map((c) => ({
     key: c.id,
     cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, ...(customer ? [] : [batchCell(c)]), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null)],
@@ -44,6 +49,22 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, b
               <span>{k}</span>
             </div>
           ))}
+        </div>
+      )}
+      {/* More than one transfer date on their list: a card for each - how many went in, and how that date's doing. */}
+      {customer && dateOf && byDate.length > 1 && (
+        <div className="mb-4">
+          <div className="mb-1 text-xs font-bold uppercase tracking-wide text-brand-700">By transfer date</div>
+          <div className="flex flex-wrap gap-2">
+            {byDate.map((d) => (
+              <div key={d.batch} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
+                <div className="text-sm font-bold text-slate-800">{dateOf(d.batch)}</div>
+                <div className="text-xs text-slate-600">{d.k.total} transferred</div>
+                <div className="text-base font-bold text-brand-700">{showRate(d.k.rate)}</div>
+                <div className="text-[11px] text-slate-500">pregnancy rate</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {/* The customer's Sort by / Transfer Date / Status / Show, in one bold bar over their list (Carter, 2026-10-16). */}

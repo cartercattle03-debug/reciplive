@@ -402,7 +402,8 @@ export function repeats(calc: Calc[]) {
   return { unique, neverSettled, repeat, byAttempt, settled, list };
 }
 
-export type CustomerFilter = { owner: string; batches: string[]; statuses: string[]; sort: "Cow ID" | "Mating" };
+export const CUSTOMER_SORTS = ["Transfer Date", "Mating", "Cow ID"] as const;
+export type CustomerFilter = { owner: string; batches: string[]; statuses: string[]; sort: (typeof CUSTOMER_SORTS)[number] };
 
 /** Customer Search: one owner's transfers, narrowed by any batches / statuses ticked (none ticked = all). */
 export function customerSearch(calc: Calc[], f: CustomerFilter) {
@@ -410,7 +411,12 @@ export function customerSearch(calc: Calc[], f: CustomerFilter) {
     .filter((c) => norm(c.cowId) && same(c.owner, f.owner))
     .filter((c) => !f.batches.length || f.batches.some((b) => same(b, c.batch)))
     .filter((c) => !f.statuses.length || f.statuses.includes(shownStatus(c)))
-    .sort((a, b) => (f.sort === "Mating" ? norm(a.mating).localeCompare(norm(b.mating)) || a.seq - b.seq : compareFamily(a.cowId, b.cowId) || a.seq - b.seq));
+    .sort((a, b) => {
+      const byMating = norm(a.mating).localeCompare(norm(b.mating), undefined, { numeric: true });
+      // Transfer Date (the customer's page, Carter 2026-10-16): oldest transfer first, then Mating, then Cow ID.
+      if (f.sort === "Transfer Date") return (a.batch ? a.batchOrder : 1e9) - (b.batch ? b.batchOrder : 1e9) || byMating || compareFamily(a.cowId, b.cowId) || a.seq - b.seq;
+      return f.sort === "Mating" ? byMating || a.seq - b.seq : compareFamily(a.cowId, b.cowId) || a.seq - b.seq;
+    });
   const safe = rows.filter((c) => c.outcome === "Safe").length;
   const probable = rows.filter((c) => c.outcome === "Probable").length;
   const open = rows.filter((c) => c.outcome === "Open").length;

@@ -237,6 +237,17 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const top = h.slice(0, h.indexOf("Your breakdowns"));
     if (/>Batch</.test(top) || /legend[^>]*>Batch/.test(top)) { fails++; console.log("FAIL customer page still says Batch"); } else console.log("ok   customer page says Transfer Date, not Batch");
     if (h.indexOf("Sort by") > h.indexOf("Tip: click any column") || h.indexOf("Sort by") < h.indexOf("Total Transferred")) { fails++; console.log("FAIL Sort by is not above the tip"); } else console.log("ok   the bold bar (Sort by, Transfer Date, Status, Show) sits under the totals, above the tip");
+    {
+      // Sorted by transfer date, then mating; a card per transfer date (Carter, 2026-10-16).
+      const { loadRanch } = require("../src/lib/server/data");
+      const { customerSearch, inYear, countsOf, showRate } = require("../src/lib/recip");
+      const bc = inYear((await loadRanch(org.id, { owner: "Buck" })).calc, 2026);
+      const r = customerSearch(bc, { owner: "Buck", batches: [], statuses: [], sort: "Transfer Date" });
+      const inOrder = r.rows.every((c: any, i: number) => i === 0 || r.rows[i - 1].batchOrder < c.batchOrder || (r.rows[i - 1].batchOrder === c.batchOrder && r.rows[i - 1].mating.trim().localeCompare(c.mating.trim(), undefined, { numeric: true }) <= 0));
+      if (!inOrder) { fails++; console.log("FAIL customer list not by transfer date then mating"); } else console.log("ok   customer list sorts by transfer date, then mating");
+      const k = countsOf(bc.filter((c: any) => c.batch === "5-21" && c.outcome !== "Pass"));
+      if (!h.includes("By transfer date") || !h.includes(`${k.total} transferred`) || !h.includes(showRate(k.rate))) { fails++; console.log("FAIL per-date cards"); } else console.log(`ok   per-date cards: 5/21/2026 ${k.total} transferred, ${showRate(k.rate)}`);
+    }
     const st = await show("staff Customer Search keeps Batch", "(staff)/customer/page", { searchParams: { owner: "Buck", go: "1" } }, [">Batch<"]);
     if (!st) fails++;
   }
