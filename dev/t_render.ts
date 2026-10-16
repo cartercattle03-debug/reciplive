@@ -248,6 +248,19 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
       const k = countsOf(bc.filter((c: any) => c.batch === "5-21" && c.outcome !== "Pass"));
       if (!h.includes("By transfer date") || !h.includes(`${k.total} transferred`) || !h.includes(showRate(k.rate))) { fails++; console.log("FAIL per-date cards"); } else console.log(`ok   per-date cards: 5/21/2026 ${k.total} transferred, ${showRate(k.rate)}`);
     }
+    {
+      // Notes: a customer sees them on Probable / Safe cows only (Carter, 2026-10-16).
+      const recs = require("../src/lib/server/records");
+      const { loadRanch } = require("../src/lib/server/data");
+      const bc = (await loadRanch(org.id, { owner: "Buck" })).calc.filter((c: any) => c.transferDate?.startsWith("2026"));
+      const safe = bc.find((c: any) => c.status === "Safe"), open = bc.find((c: any) => c.status === "Open");
+      await recs.updateTransfer(org.id, safe.id, "notes", "Twin check at 60 days");
+      await recs.updateTransfer(org.id, open.id, "notes", "Cystic - do not reuse");
+      const hn = await show("customer sees Safe / Probable notes only", "my/page", { searchParams: { as: "Buck" } }, [">Notes<", "Twin check at 60 days"]);
+      if (hn.includes("Cystic - do not reuse")) { fails++; console.log("FAIL customer sees a note on an Open cow"); } else console.log("ok   a note on an Open cow stays hidden");
+      await recs.updateTransfer(org.id, safe.id, "notes", safe.notes);
+      await recs.updateTransfer(org.id, open.id, "notes", open.notes);
+    }
     const st = await show("staff Customer Search keeps Batch", "(staff)/customer/page", { searchParams: { owner: "Buck", go: "1" } }, [">Batch<"]);
     if (!st) fails++;
   }

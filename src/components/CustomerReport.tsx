@@ -24,7 +24,11 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, b
     .sort((a, b) => a.order - b.order);
   const rows: Row[] = r.rows.map((c) => ({
     key: c.id,
-    cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, ...(customer ? [] : [batchCell(c)]), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null)],
+    cells: [linkCows ? cowCell(c.cowId) : { t: c.cowId }, ...(customer ? [] : [batchCell(c)]), dateCell(c.transferDate), { t: c.mating }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.status === "Safe" || c.status === "Probable" ? c.dueDate : null),
+      // A customer sees the note on a Probable or Safe cow only (Carter, 2026-10-16) - notes on Open, Pending or culled
+      // cows stay with the ranch.
+      ...(customer ? [{ t: shownStatus(c) === "Probable" || shownStatus(c) === "Safe" ? c.notes : "", cls: "notes" }] : []),
+    ],
   }));
   return (
     <div>
@@ -76,7 +80,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, b
         </div>
       )}
       <StatusKey className="mb-3" />
-      <Table cols={[{ label: "Cow ID" }, ...(customer ? [] : [{ label: "Batch" }]), { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }]} rows={rows} empty="No cows match." />
+      <Table cols={[{ label: "Cow ID" }, ...(customer ? [] : [{ label: "Batch" }]), { label: "Transfer Date" }, { label: "Mating" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Due Date" }, ...(customer ? [{ label: "Notes" }] : [])]} rows={rows} empty="No cows match." />
     </div>
   );
 }
