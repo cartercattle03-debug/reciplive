@@ -252,7 +252,7 @@ export function Table({
   const [anchor, setAnchor] = useState<{ r: number; c: number } | null>(null);
   const [sel, setSel] = useState<{ c: number; r1: number; r2: number } | null>(null);
   const [pasting, setPasting] = useState(false);
-  const drag = useRef<{ c: number; r0: number } | null>(null);
+  const drag = useRef<{ c: number; r0: number; moved?: boolean } | null>(null);
   const [fill, setFill] = useState("");
   const box = useRef<HTMLDivElement>(null);
   const extendTo = useRef<number | null>(null);
@@ -309,10 +309,39 @@ export function Table({
     extendTo.current = null;
     focusCell(r + d[0], c + d[1], d[1]);
   };
+  // Drag to highlight: follow the mouse over the page (not each cell's own events - Safari and some buttons swallow
+  // those), and pick the cells from where the drag started to the one under the mouse, same column.
   useEffect(() => {
-    const up = () => (drag.current = null);
+    const move = (ev: MouseEvent) => {
+      const d = drag.current;
+      if (!d || !(ev.buttons & 1)) return;
+      const td = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>("td[data-c]");
+      if (!td || !box.current?.contains(td) || Number(td.dataset.c) !== d.c) return;
+      const r = Number(td.dataset.r);
+      if (r === d.r0 && !d.moved) return;
+      d.moved = true;
+      ev.preventDefault();
+      window.getSelection()?.removeAllRanges();
+      document.body.style.userSelect = "none";
+      setAnchor({ r: d.r0, c: d.c });
+      setSel({ c: d.c, r1: Math.min(d.r0, r), r2: Math.max(d.r0, r) });
+    };
+    const up = () => {
+      if (drag.current?.moved) {
+        // A drag isn't a click - keep the cell it started on from opening for editing.
+        const stop = (e: Event) => (e.stopPropagation(), e.preventDefault());
+        window.addEventListener("click", stop, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener("click", stop, { capture: true }), 0);
+      }
+      drag.current = null;
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
-    return () => window.removeEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
   }, []);
   const shown = useMemo(() => {
     let out = rows;
@@ -343,7 +372,9 @@ export function Table({
     return e && e.kind !== "buttons" ? e : undefined;
   };
   const viewOnly = () => typeof document !== "undefined" && !!document.querySelector("[data-view]");
-  const onCopy = (ev: React.ClipboardEvent) => {
+  const onCopy = (ev: ClipboardEvent) => {
+    if (!ev.clipboardData) return;
+    if (window.getSelection()?.toString()) return; // copying words highlighted on the page - leave it be
     const t = ev.target as HTMLElement;
     if (t.tagName === "INPUT" && (t as HTMLInputElement).selectionStart !== (t as HTMLInputElement).selectionEnd) return; // copying typed text
     if (!sel) return;
@@ -377,8 +408,8 @@ export function Table({
       router.refresh();
     }
   };
-  const onPaste = async (ev: React.ClipboardEvent) => {
-    if (!sel || viewOnly()) return;
+  const onPaste = async (ev: ClipboardEvent) => {
+    if (!sel || viewOnly() || !ev.clipboardData) return;
     const text = ev.clipboardData.getData("text/plain").replace(/\r/g, "").replace(/\n+$/, "");
     const lines = text.split("\n").map((l) => l.split("\t")[0].trim());
     const t = ev.target as HTMLElement;
@@ -405,8 +436,26 @@ export function Table({
       router.refresh();
     }
   };
+  // Copy / paste are heard page-wide (Safari doesn't give a clicked cell the keyboard), but only while this list's cells
+  // are the ones picked and nothing else on the page is being typed in.
+  const clip = useRef({ onCopy, onPaste });
+  clip.current = { onCopy, onPaste };
+  useEffect(() => {
+    const ours = () => {
+      const a = document.activeElement;
+      return !a || a === document.body || !!box.current?.contains(a);
+    };
+    const c = (e: ClipboardEvent) => ours() && clip.current.onCopy(e);
+    const p = (e: ClipboardEvent) => ours() && clip.current.onPaste(e);
+    document.addEventListener("copy", c);
+    document.addEventListener("paste", p);
+    return () => {
+      document.removeEventListener("copy", c);
+      document.removeEventListener("paste", p);
+    };
+  }, []);
   return (
-    <div ref={box} onCopy={onCopy} onPaste={onPaste} onKeyDown={onKey}>
+    <div ref={box} onKeyDown={onKey}>
       {(search || picks) && (
         <div className="no-print mb-2 flex flex-wrap items-center gap-2">
           {search && <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />}
@@ -533,21 +582,13 @@ export function Table({
                               setSel({ c: i, r1: Math.min(anchor.r, ri), r2: Math.max(anchor.r, ri) });
                               return;
                             }
-                            // Start of a drag down (or up) the column, like a sheet.
-                            if (ev.button === 0) drag.current = { c: i, r0: ri };
-                          }
-                        : undefined
-                    }
-                    onMouseEnter={
-                      c.edit && c.edit.kind !== "buttons"
-                        ? (ev) => {
-                            const d = drag.current;
-                            if (!d || ev.buttons !== 1 || d.c !== i) return;
-                            ev.preventDefault();
-                            window.getSelection()?.removeAllRanges();
-                            setAnchor({ r: d.r0, c: i });
-                            setFill("");
-                            setSel({ c: i, r1: Math.min(d.r0, ri), r2: Math.max(d.r0, ri) });
+                            // Start of a drag down (or up) the column, like a sheet. The cell takes the keyboard too (Safari
+                            // won't on its own), so the arrows and paste work from it.
+                            if (ev.button === 0) {
+                              drag.current = { c: i, r0: ri };
+                              const el = (ev.currentTarget as HTMLElement).querySelector<HTMLElement>("button, select, input");
+                              if (el && document.activeElement !== el) el.focus({ preventScroll: true });
+                            }
                           }
                         : undefined
                     }
