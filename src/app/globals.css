@@ -267,3 +267,9 @@ td.struck, td.struck * {
   text-decoration-color: #e00000;
   text-decoration-thickness: 2px;
 }
+
+/* Cells picked for copy / paste (click one, shift-click another in the same column). */
+td.cell-sel {
+  background-color: #e0f2fe !important;
+  box-shadow: inset 0 0 0 2px #0369a1;
+}

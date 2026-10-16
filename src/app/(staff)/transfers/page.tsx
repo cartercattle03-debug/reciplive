@@ -50,7 +50,7 @@ export default async function Transfers({ searchParams }: { searchParams: SP }) 
   }));
   return (
     <div>
-      <PageHeader title="Transfers" sub="One line per cow per transfer - or a Pass (a chute visit with no transfer). Click a cream cell to change it. Attempt #, Total Attempts, Repeat Flag, Due Date and Embryo Age work themselves out.">
+      <PageHeader title="Transfers" sub="One line per cow per transfer - or a Pass (a chute visit with no transfer). Click a cream cell to change it. Copy and paste like a sheet: click a cell and Ctrl+C (Cmd+C on a Mac) to copy it; click a cell, shift-click another in the same column to pick the cells between, then Ctrl+V fills them all - or paste a column copied from a sheet and it fills on down. Attempt #, Total Attempts, Repeat Flag, Due Date and Embryo Age work themselves out.">
         <PasteTransfers />
       </PageHeader>
       <AddTransfer lists={{ batches, owners: lists.owners, companies: lists.companies, grades: lists.grades }} start={yearBatches[yearBatches.length - 1]} dates={Object.fromEntries(lists.batches.map((b) => [b.label, b.transferDate]))} year={year} />

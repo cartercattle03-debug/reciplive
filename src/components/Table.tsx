@@ -216,6 +216,12 @@ export function Table({
   const [picked, setPicked] = useState<string[]>(startPicked ? allPicks : []);
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState("");
+  // Copy / paste between cells, like a sheet (Carter, 2026-10-16): click a cell (it's the anchor), shift-click another
+  // in the same column to pick the cells between; Ctrl/Cmd+C copies, Ctrl/Cmd+V pastes - one value fills every picked
+  // cell, several lines (a column copied from a sheet) fill on down.
+  const [anchor, setAnchor] = useState<{ r: number; c: number } | null>(null);
+  const [sel, setSel] = useState<{ c: number; r1: number; r2: number } | null>(null);
+  const [pasting, setPasting] = useState(false);
   const shown = useMemo(() => {
     let out = rows;
     if (q.trim()) {
@@ -235,8 +241,56 @@ export function Table({
     }
     return out;
   }, [rows, sort, q]);
+  // A new sort / search / page of rows moves the cells under the selection - start fresh.
+  useEffect(() => {
+    setSel(null);
+    setAnchor(null);
+  }, [sort, q, rows]);
+  const pastable = (r: number, c: number) => {
+    const e = shown[r]?.cells[c]?.edit;
+    return e && e.kind !== "buttons" ? e : undefined;
+  };
+  const viewOnly = () => typeof document !== "undefined" && !!document.querySelector("[data-view]");
+  const onCopy = (ev: React.ClipboardEvent) => {
+    const t = ev.target as HTMLElement;
+    if (t.tagName === "INPUT" && (t as HTMLInputElement).selectionStart !== (t as HTMLInputElement).selectionEnd) return; // copying typed text
+    if (!sel) return;
+    const vals: string[] = [];
+    for (let r = sel.r1; r <= sel.r2; r++) vals.push(pastable(r, sel.c)?.value ?? shown[r]?.cells[sel.c]?.t ?? "");
+    ev.clipboardData.setData("text/plain", vals.join("\n"));
+    ev.preventDefault();
+    toast(vals.length === 1 ? `Copied "${vals[0]}".` : `Copied ${vals.length} cells.`);
+  };
+  const onPaste = async (ev: React.ClipboardEvent) => {
+    if (!sel || viewOnly()) return;
+    const text = ev.clipboardData.getData("text/plain").replace(/\r/g, "").replace(/\n+$/, "");
+    const lines = text.split("\n").map((l) => l.split("\t")[0].trim());
+    const t = ev.target as HTMLElement;
+    const many = sel.r2 > sel.r1;
+    if (t.tagName === "INPUT" && lines.length === 1 && !many) return; // typing in one cell - paste as normal
+    ev.preventDefault();
+    const todo: { e: Edit; v: string }[] = [];
+    if (lines.length === 1) for (let r = sel.r1; r <= sel.r2; r++) todo.push({ e: pastable(r, sel.c)!, v: lines[0] });
+    else lines.forEach((v, k) => todo.push({ e: pastable(sel.r1 + k, sel.c)!, v }));
+    const real = todo.filter((x) => x.e && x.e.value !== x.v);
+    if (!real.length) return;
+    setPasting(true);
+    let done = 0;
+    try {
+      for (const x of real) {
+        await save(x.e, x.v);
+        done++;
+      }
+      toast(`Pasted into ${done} cell${done === 1 ? "" : "s"}.`);
+    } catch (err) {
+      toast(`${done ? `Pasted ${done}, then: ` : ""}${(err as Error).message}`, true);
+    } finally {
+      setPasting(false);
+      router.refresh();
+    }
+  };
   return (
-    <div>
+    <div onCopy={onCopy} onPaste={onPaste} onKeyDown={(e) => e.key === "Escape" && setSel(null)}>
       {(search || picks) && (
         <div className="no-print mb-2 flex flex-wrap items-center gap-2">
           {search && <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />}
@@ -314,10 +368,28 @@ export function Table({
                 </td>
               </tr>
             )}
-            {shown.map((r) => (
+            {shown.map((r, ri) => (
               <tr key={r.key} className={"even:bg-stripe " + (r.cls ?? "")}>
                 {r.cells.map((c, i) => (
-                  <td key={i} title={c.title} className={"tc " + (c.edit ? "editable " : "") + (c.cls ?? "")}>
+                  <td
+                    key={i}
+                    title={c.title}
+                    className={"tc " + (c.edit ? "editable " : "") + (c.cls ?? "") + (sel && sel.c === i && ri >= sel.r1 && ri <= sel.r2 ? " cell-sel" : "") + (pasting ? " opacity-60" : "")}
+                    onFocusCapture={c.edit && c.edit.kind !== "buttons" ? () => (setAnchor({ r: ri, c: i }), setSel((s) => (s && s.c === i && ri >= s.r1 && ri <= s.r2 && s.r2 > s.r1 ? s : { c: i, r1: ri, r2: ri }))) : undefined}
+                    onMouseDownCapture={
+                      c.edit && c.edit.kind !== "buttons"
+                        ? (ev) => {
+                            // Shift-click: pick every cell from the anchor down (or up) to here, same column - no editing.
+                            if (ev.shiftKey && anchor && anchor.c === i) {
+                              ev.preventDefault();
+                              ev.stopPropagation();
+                              setSel({ c: i, r1: Math.min(anchor.r, ri), r2: Math.max(anchor.r, ri) });
+                            }
+                          }
+                        : undefined
+                    }
+                    onClickCapture={c.edit && c.edit.kind !== "buttons" ? (ev) => ev.shiftKey && (ev.preventDefault(), ev.stopPropagation()) : undefined}
+                  >
                     {c.pick ? (
                       <input
                         type="checkbox"
