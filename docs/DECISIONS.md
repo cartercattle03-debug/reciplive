@@ -73,3 +73,4 @@
 - 2026-10-16: Customer page sorts by Transfer Date, then Mating, then Cow ID unless they pick otherwise (Transfer Date added to Sort by - staff Customer Search can pick it too, still Cow ID first there). The four cards stay; when their list spans more than one transfer date, a card per date shows how many went in and that date's pregnancy rate.
 - 2026-10-16: Customer cow list has a Notes column - the record's note shows only when she's Probable or Safe; notes on Open, Pending or culled cows stay with the ranch.
 - 2026-10-16: Customer per-date cards read "33 Total Transferred" with Safe / Probable / Open counts (in their colors), a "not checked yet" count if any are Pending, then the pregnancy rate.
+- 2026-10-16: Customer per-date cards read "33 Total Transferred" with Safe / Probable / Open counts (in their colors), an "Unchecked" count if any are Pending, then the pregnancy rate.

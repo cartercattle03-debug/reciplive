@@ -69,6 +69,7 @@ export function CustomerReport({ calc, f, show, ranch, today, linkCows = true, b
                   <span className="st-Probable">{d.k.probable} Probable</span>
                   <span className="st-Open">{d.k.open} Open</span>
                 </div>
+                {d.k.pending > 0 && <div className="text-[11px] text-slate-500">{d.k.pending} Unchecked</div>}
                 {d.k.pending > 0 && <div className="text-[11px] text-slate-500">{d.k.pending} not checked yet</div>}
                 <div className="text-base font-bold text-brand-700">{showRate(d.k.rate)}</div>
                 <div className="text-[11px] text-slate-500">pregnancy rate</div>
