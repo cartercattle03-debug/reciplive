@@ -4,7 +4,7 @@ declare module "next" {
 }
 declare module "next/link" {
   import * as React from "react";
-  const Link: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; prefetch?: boolean; children?: React.ReactNode }>;
+  const Link: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; prefetch?: boolean; scroll?: boolean; children?: React.ReactNode }>;
   export default Link;
 }
 declare module "next/navigation" {

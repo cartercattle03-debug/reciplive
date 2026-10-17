@@ -47,8 +47,10 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
     grade: theirs("grade", lists.grades),
     embryoType: theirs("embryoType", [...EMBRYO_TYPES]),
   };
+  // This page's address with one thing changed - their Sort by, dates, Status and Show picks all stay.
   const keep = (extra: Record<string, string>) => {
     const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams)) for (const x of Array.isArray(v) ? v : v ? [v] : []) q.append(k, x);
     if (preview) q.set("as", owner);
     for (const [k, v] of Object.entries(extra)) q.set(k, v);
     return `/my?${q.toString()}`;
@@ -99,12 +101,12 @@ export default async function MyCows({ searchParams }: { searchParams: SP }) {
         <p className="mb-3 text-sm text-slate-500">Pregnancy rate on your cows only = (Safe + Probable) ÷ (Safe + Probable + Open). Lost after Probable = how many of your cows that were pregnant at the first preg check (Probable) lost it before the final preg check, out of every cow checked Probable - e.g. 1 of 10.</p>
         <div className="no-print mb-4 flex flex-wrap gap-1">
           {BYS.map((b) => (
-            <Link key={b} href={keep({ by: b })} className={!mate && b === by ? "btn" : "btn-quiet"}>
+            <Link key={b} href={keep({ by: b })} scroll={false} className={!mate && b === by ? "btn" : "btn-quiet"}>
               By {b === "batch" ? "Transfer Date" : BREAKDOWN_LABELS[b]}
             </Link>
           ))}
           {MATES.map((b) => (
-            <Link key={b} href={keep({ by: b })} className={b === mate ? "btn" : "btn-quiet"}>
+            <Link key={b} href={keep({ by: b })} scroll={false} className={b === mate ? "btn" : "btn-quiet"}>
               By {MATE_LABELS[b]}
             </Link>
           ))}

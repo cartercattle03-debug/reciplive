@@ -74,3 +74,4 @@
 - 2026-10-16: Customer cow list has a Notes column - the record's note shows only when she's Probable or Safe; notes on Open, Pending or culled cows stay with the ranch.
 - 2026-10-16: Customer per-date cards read "33 Total Transferred" with Safe / Probable / Open counts (in their colors), a "not checked yet" count if any are Pending, then the pregnancy rate.
 - 2026-10-16: Customer per-date cards read "33 Total Transferred" with Safe / Probable / Open counts (in their colors), an "Unchecked" count if any are Pending, then the pregnancy rate.
+- 2026-10-16: Customer page breakdown buttons (By Transfer Date / Embryo Type / Grade / Mating / Sire / Donor) no longer jump back to the top of the page, and keep the customer's Sort by / Transfer Date / Status / Show picks.

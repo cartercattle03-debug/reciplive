@@ -261,6 +261,12 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
       await recs.updateTransfer(org.id, safe.id, "notes", safe.notes);
       await recs.updateTransfer(org.id, open.id, "notes", open.notes);
     }
+    {
+      // Picking another breakdown keeps their place on the page and their picks (Carter, 2026-10-16).
+      const hk = await show("customer breakdown buttons keep picks", "my/page", { searchParams: { as: "Buck", go: "1", sort: "Mating", s: "Safe" } }, ["By Mating"]);
+      const link = (hk.match(/href="(\/my\?[^"]*by=mating[^"]*)"/) || [])[1]?.replace(/&amp;/g, "&") ?? "";
+      if (!/sort=Mating/.test(link) || !/s=Safe/.test(link) || !/as=Buck/.test(link)) { fails++; console.log("FAIL breakdown link drops their picks", link); } else console.log("ok   breakdown buttons keep Sort by / Status picks");
+    }
     const st = await show("staff Customer Search keeps Batch", "(staff)/customer/page", { searchParams: { owner: "Buck", go: "1" } }, [">Batch<"]);
     if (!st) fails++;
   }
