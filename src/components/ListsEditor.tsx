@@ -105,7 +105,7 @@ export function ItemList({ kind, title, items, billing }: { kind: string; title:
     }
   };
   const info = (it: Item, k: "ranchName" | "location" | "email", w: string, ph: string) => (
-    <td className="tc editable">
+    <td className="tc editable" data-office-edit>
       <input className={"cell-select " + w} placeholder={ph} type={k === "email" ? "email" : "text"} defaultValue={it[k] ?? ""} onBlur={(e) => e.target.value.trim() !== (it[k] ?? "") && saveInfo(it.id, k, e.target.value)} />
     </td>
   );

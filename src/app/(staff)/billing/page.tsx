@@ -85,7 +85,7 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
   });
   const pending = invoices.filter((i) => i.status === "Open" && !i.exportedAt).length;
   return (
-    <div>
+    <div data-office-edit>
       <PageHeader title="Billing" sub="Bill customers for confirmed 75-day pregnancies. Pick the owner and the group(s) - every confirmed cow comes up ticked; untick any that aren't going, then build the invoice, check the price and add any adjustments, then print it or download it for QuickBooks Online. A cow on an invoice leaves Ready to bill; voiding the invoice puts her back.">
         {pending > 0 && (
           <a className="btn-go edit-only" href="/api/billing/export?pending=1">
@@ -95,7 +95,8 @@ export default async function Billing({ searchParams }: { searchParams: SP }) {
       </PageHeader>
       <BillingSettingsForm s={set} />
       <LetterheadForm lh={await letterhead(m.organizationId, m.ranch)} />
-      <Catchups list={statusCatchups(calc)} />
+      {/* Fixing a record's status is a cattle-record change - the owner's (an Office login doesn't see it). */}
+      {m.role === "OWNER" && <Catchups list={statusCatchups(calc)} />}
       <form method="get" className="no-print card mb-5 flex flex-wrap items-end gap-2 p-3">
         <label className="text-xs font-medium text-slate-600">
           Why isn&apos;t a cow here?

@@ -32,7 +32,7 @@ export default async function Master() {
   const cost = [...cows.values()].reduce((s, c) => s + (c.cost ?? 0), 0);
   const sale = [...cows.values()].reduce((s, c) => s + (c.salePrice ?? 0), 0);
   return (
-    <div>
+    <div data-office-edit>
       <PageHeader title="Master Sheet - All Cows" sub="One line per cow, in Cow ID order. Purchase Date, Loan Location, Cost, Sale Price, Sold Date and Transaction # are typed here and stay with that cow. Final Destination fills itself: Culled, or the owner of her Safe record." />
       <div className="mb-3 flex flex-wrap gap-3">
         <div className="stat"><b>{lines.length}</b><span>Total Cows on List</span></div>

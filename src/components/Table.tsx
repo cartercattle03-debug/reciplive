@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { locked } from "@/lib/viewLock";
 import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
 import { EditRecord, type EditLists, type RecordValues } from "./EditRecord";
@@ -412,7 +413,7 @@ export function Table({
     const e = shown[r]?.cells[c]?.edit;
     return e && e.kind !== "buttons" ? e : undefined;
   };
-  const viewOnly = () => typeof document !== "undefined" && !!document.querySelector("[data-view]");
+  const viewOnly = () => locked(box.current);
   const onCopy = (ev: ClipboardEvent) => {
     if (!ev.clipboardData) return;
     if (window.getSelection()?.toString()) return; // copying words highlighted on the page - leave it be

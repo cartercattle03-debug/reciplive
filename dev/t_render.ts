@@ -41,6 +41,9 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   const mu = await prisma.user.create({ data: { email: "m@x.com", name: "Hand", passwordHash: "h:x" } });
   await prisma.membership.create({ data: { userId: mu.id, organizationId: org.id, role: "MANAGER" } });
   (global as any).mgr = mu.id;
+  const ou = await prisma.user.create({ data: { email: "w@x.com", name: "Office", passwordHash: "h:x" } });
+  await prisma.membership.create({ data: { userId: ou.id, organizationId: org.id, role: "OFFICE" } });
+  (global as any).office = ou.id;
   (global as any).owner = u.id;
   (global as any).cust = cu.id;
 
@@ -89,6 +92,11 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     }
     await show("manager kept off an invoice", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["REDIRECT /dashboard"], "mgr");
     await show("manager kept off Billing", "(staff)/billing/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
+    // Office (Carter's wife, 2026-10-28): billing, money, customer logins - not cattle records.
+    const ob = await show("office opens Billing", "(staff)/billing/page", { searchParams: {} }, ["data-office-edit", "Billing"], "office");
+    if (/didn&#x27;t catch up|didn't catch up/.test(ob)) { fails++; console.log("FAIL office sees the status fix-up on Billing"); }
+    await show("office opens an invoice, can change it", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["data-office-edit", "INVOICE #1001", "Download for QuickBooks", "Add an adjustment"], "office");
+    await show("office Lists has owner billing info", "(staff)/lists/page", { searchParams: {} }, ["Ranch Name", "Test Ranch LLC", "data-office-edit"], "office");
     const ml = await show("manager's Lists has no billing info", "(staff)/lists/page", { searchParams: {} }, ["Owners"], "mgr");
     if (/Ranch Name|Test Ranch LLC|test@example.com/.test(ml)) { fails++; console.log("FAIL manager sees owner billing info"); }
   }
@@ -292,6 +300,44 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
   if (!/\$\d/.test(olk)) { fails++; console.log("FAIL owner lookup lost the money"); }
   const mop = await show("manager open inventory", "(staff)/open/page", { searchParams: {} }, ["Open Inventory"], "mgr");
   if (/Purchase Date/.test(mop)) { fails++; console.log("FAIL manager open page has purchase form"); }
+  const olay = await show("office layout", "(staff)/layout", { children: "x" }, ['data-view="office"', ">Billing<", ">Master Sheet<", ">Master Archive<", "Office"], "office");
+  if (/>Import</.test(olay.replace(/edit-only[^>]*>Import</, ""))) { fails++; console.log("FAIL office Import not hidden"); }
+  await show("office Master Sheet can be changed", "(staff)/master/page", { searchParams: {} }, ["data-office-edit", "Total Cost"], "office");
+  await show("office Master Archive", "(staff)/archive/page", { searchParams: {} }, [], "office");
+  const ofk = await show("office lookup shows money", "(staff)/lookup/page", { searchParams: { cow: "348-1" } }, ["Cow 348-1", "Price", "Sold"], "office");
+  if (!/\$\d/.test(ofk)) { fails++; console.log("FAIL office lookup has no money"); }
+  await show("office kept off Import", "(staff)/import/page", { searchParams: {} }, ["REDIRECT /dashboard"], "office");
+  await show("office can preview a customer", "my/page", { searchParams: { as: "Lehman" } }, ["Preview:"], "office");
+  const oacc = await show("office account: customer logins, no Undo", "account/page", {}, ["Logins", "data-office-edit", "Customer"], "office");
+  if (/Manager \(view only|Office \(billing|text-white">Undo</.test(oacc)) { fails++; console.log("FAIL office can make a manager / office login or sees Undo"); } else console.log("ok   office adds customer logins only, no Undo");
+  await show("owner account offers Office", "account/page", {}, ["Office (billing, money, customer logins)", "Undo"]);
+  {
+    const S = require("../src/lib/server/session");
+    const acct = require("../src/app/api/account/route");
+    const call = async (who: string, body: any) => {
+      (global as any).SESSION = { user: { id: (global as any)[who] } };
+      const r = await acct.POST(new Request("http://x/api/account", { method: "POST", body: JSON.stringify(body) }));
+      return r.status;
+    };
+    const expect = (what: string, got: number, want: number) => { if (got !== want) { fails++; console.log(`FAIL ${what}: ${got}`); } else console.log(`ok   ${what}`); };
+    (global as any).SESSION = { user: { id: ou.id } };
+    await S.staffApi().then(() => { fails++; console.log("FAIL office changed cattle records"); }).catch((e: any) => expect("office can't save transfers / preg / open / import", e.status, 403));
+    await S.officeApi().then(() => console.log("ok   office saves money")).catch(() => { fails++; console.log("FAIL office refused a money save"); });
+    (global as any).SESSION = { user: { id: mu.id } };
+    await S.officeApi().then(() => { fails++; console.log("FAIL manager saved money"); }).catch((e: any) => expect("manager money save refused", e.status, 403));
+    expect("office can't add a manager", await call("office", { action: "addLogin", role: "MANAGER", email: "z1@x.com", password: "12345678" }), 403);
+    expect("office can't add an office login", await call("office", { action: "addLogin", role: "OFFICE", email: "z2@x.com", password: "12345678" }), 403);
+    expect("office adds a customer", await call("office", { action: "addLogin", role: "CUSTOMER", ownerName: "Lehman", email: "z3@x.com", password: "12345678" }), 200);
+    const mm = await prisma.membership.findFirst({ where: { userId: mu.id } });
+    expect("office can't reset the manager", await call("office", { action: "resetPassword", id: mm!.id, password: "12345678" }), 403);
+    const cm = await prisma.membership.findFirst({ where: { userId: cu.id } });
+    expect("office resets a customer password", await call("office", { action: "resetPassword", id: cm!.id, password: "12345678" }), 200);
+    expect("manager can't add logins", await call("mgr", { action: "addLogin", role: "CUSTOMER", ownerName: "Lehman", email: "z4@x.com", password: "12345678" }), 403);
+    expect("owner adds an office login", await call("owner", { action: "addLogin", role: "OFFICE", email: "z5@x.com", password: "12345678" }), 200);
+    const z5 = await prisma.user.findUnique({ where: { email: "z5@x.com" } });
+    const z5m = await prisma.membership.findFirst({ where: { userId: z5!.id } });
+    expect("it's saved as Office", z5m!.role === "OFFICE" ? 1 : 0, 1);
+  }
   await show("manager kept off Import", "(staff)/import/page", { searchParams: {} }, ["REDIRECT /dashboard"], "mgr");
   const { staffApi } = require("../src/lib/server/session");
   (global as any).SESSION = { user: { id: mu.id } };

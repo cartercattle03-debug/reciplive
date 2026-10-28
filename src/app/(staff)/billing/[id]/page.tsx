@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { InvoiceEditor } from "@/components/BillingForms";
 import { prisma } from "@/lib/prisma";
-import { ownerPage } from "@/lib/server/session";
+import { ownerPage, seesMoney } from "@/lib/server/session";
 import { letterhead } from "@/lib/server/billing";
 import { loadRanch } from "@/lib/server/data";
 import { changedSince } from "@/lib/billing";
@@ -13,9 +13,10 @@ export default async function InvoicePage({ params }: { params: { id: string } }
   const { calc, events } = await loadRanch(m.organizationId);
   const byId = new Map(calc.map((c) => [c.id, c]));
   return (
+    <div data-office-edit>
     <InvoiceEditor
       lh={await letterhead(m.organizationId, m.ranch)}
-      canEdit={m.role === "OWNER"}
+      canEdit={seesMoney(m)}
       inv={{
         id: inv.id,
         number: inv.number,
@@ -33,5 +34,6 @@ export default async function InvoicePage({ params }: { params: { id: string } }
         lines: [...inv.lines].sort((a, b) => a.position - b.position).map((l) => ({ id: l.id, kind: l.kind, description: l.description, cowId: l.cowId, batch: l.batch, transferDate: l.transferDate, mating: l.mating, dueDate: l.dueDate, confirmedDate: l.confirmedDate, daysPreg: l.daysPreg, amount: l.amount, changed: l.kind === "Pregnancy" ? changedSince(l.transferId, byId, events) : null })),
       }}
     />
+    </div>
   );
 }

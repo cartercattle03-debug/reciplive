@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { handle, HttpError, staffApi } from "@/lib/server/session";
+import { handle, HttpError, officeApi } from "@/lib/server/session";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -17,10 +17,13 @@ export const POST = handle(async (req) => {
     await prisma.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(String(b.next), 10) } });
     return { ok: true };
   }
-  const m = await staffApi(true);
+  const m = await officeApi();
+  // An Office login handles customer logins only; the owner makes and changes Manager and Office logins (Carter, 2026-10-28).
+  const office = m.role === "OFFICE";
   if (b.action === "addLogin") {
     const email = String(b.email ?? "").trim().toLowerCase();
-    const role = b.role === "MANAGER" ? "MANAGER" : "CUSTOMER";
+    const role = b.role === "MANAGER" ? "MANAGER" : b.role === "OFFICE" ? "OFFICE" : "CUSTOMER";
+    if (office && role !== "CUSTOMER") throw new HttpError(403, "Only the owner makes Manager and Office logins.");
     const ownerName = String(b.ownerName ?? "").trim();
     const password = String(b.password ?? "");
     if (!/^\S+@\S+\.\S+$/.test(email)) throw new HttpError(400, "Enter a good email address.");
@@ -39,6 +42,7 @@ export const POST = handle(async (req) => {
   if (b.action === "resetPassword" || b.action === "removeLogin") {
     const mem = await prisma.membership.findFirst({ where: { id: String(b.id), organizationId: m.organizationId } });
     if (!mem || mem.role === "OWNER") throw new HttpError(400, "That login can't be changed here.");
+    if (office && mem.role !== "CUSTOMER") throw new HttpError(403, "Only the owner changes Manager and Office logins.");
     if (b.action === "removeLogin") {
       await prisma.user.delete({ where: { id: mem.userId } });
       return { ok: true };

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export type Role = "OWNER" | "MANAGER" | "CUSTOMER";
+export type Role = "OWNER" | "OFFICE" | "MANAGER" | "CUSTOMER";
 export type Member = {
   userId: string;
   email: string;
@@ -39,10 +39,14 @@ export async function staffPage(): Promise<Member> {
   if (m.role === "CUSTOMER") redirect("/my");
   return m;
 }
-/** For an owner-only page (Billing, Master Sheet, Master Archive): a Manager login goes back to the Dashboard - no access to anything money or customer contact info (Carter, 2026-10-14). */
+/**
+ * For a money page (Billing, Master Sheet, Master Archive): the owner, or an Office login (Carter, 2026-10-28 - his wife:
+ * billing, money, customer logins). A Manager login goes back to the Dashboard - no access to anything money or
+ * customer contact info (Carter, 2026-10-14).
+ */
 export async function ownerPage(): Promise<Member> {
   const m = await staffPage();
-  if (m.role !== "OWNER") redirect("/dashboard");
+  if (!seesMoney(m)) redirect("/dashboard");
   return m;
 }
 export async function anyPage(): Promise<Member> {
@@ -63,9 +67,22 @@ export class HttpError extends Error {
 export async function staffApi(_ownerOnly = false): Promise<Member> {
   const m = await load();
   if (!m) throw new HttpError(401, "Please log in again.");
+  if (m.role === "OFFICE") throw new HttpError(403, "An Office login doesn't change transfers, preg checks or other cattle records - nothing was changed.");
   if (m.role !== "OWNER") throw new HttpError(403, "This login is view only - nothing was changed.");
   return m;
 }
+/**
+ * For a money save - billing and invoices (and the QuickBooks file), owner billing info, cow purchase / cost / sale on the
+ * Master Sheet, customer logins: the owner or an Office login (Carter, 2026-10-28).
+ */
+export async function officeApi(): Promise<Member> {
+  const m = await load();
+  if (!m) throw new HttpError(401, "Please log in again.");
+  if (m.role !== "OWNER" && m.role !== "OFFICE") throw new HttpError(403, "This login is view only - nothing was changed.");
+  return m;
+}
+/** Owner or Office: sees money and customer contact info. */
+export const seesMoney = (m: { role: string }) => m.role === "OWNER" || m.role === "OFFICE";
 /** True for a login that can only look (Manager). */
 export const viewOnly = (m: Member) => m.role !== "OWNER";
 

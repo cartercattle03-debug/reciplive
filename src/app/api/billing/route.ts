@@ -1,10 +1,10 @@
 import { addAdjustment, createInvoices, removeLine, saveBillingSettings, saveLetterhead, saveOwnerInfo, updateInvoice, updateLine, voidInvoice } from "@/lib/server/billing";
-import { handle, HttpError, staffApi } from "@/lib/server/session";
+import { handle, HttpError, officeApi } from "@/lib/server/session";
 
 export const maxDuration = 60;
 
 export const POST = handle(async (req) => {
-  const m = await staffApi();
+  const m = await officeApi();
   const o = m.organizationId;
   const b = await req.json();
   switch (b.action) {

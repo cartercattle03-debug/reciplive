@@ -11,7 +11,9 @@ const when = (d: Date | null) => (d ? d.toLocaleString("en-US", { timeZone: "Ame
 export default async function Account() {
   const m = await anyPage();
   const owner = m.role === "OWNER";
-  const [members, lists, snaps] = owner
+  // An Office login handles customer logins too (Carter, 2026-10-28); Undo stays the owner's.
+  const office = m.role === "OFFICE";
+  const [members, lists, snaps] = owner || office
     ? await Promise.all([
         prisma.membership.findMany({ where: { organizationId: m.organizationId }, include: { user: true }, orderBy: { createdAt: "asc" } }),
         loadLists(m.organizationId),
@@ -23,13 +25,16 @@ export default async function Account() {
       <PageHeader title="Account" sub={`${m.name} · ${m.ranch}`} />
       <div className="flex flex-col gap-5">
         <ChangePassword />
-        {owner && lists && (
+        {(owner || office) && lists && (
           <>
+            <div data-office-edit>
             <Logins
+              owner={owner}
               owners={lists.owners}
               logins={members.map((x) => ({ id: x.id, email: x.user.email, name: x.user.name ?? "", role: x.role, ownerName: x.ownerName, lastLogin: when(x.user.lastLoginAt) }))}
             />
-            <UndoList snaps={snaps.map((s) => ({ id: s.id, label: s.label, when: when(s.createdAt) }))} />
+            </div>
+            {owner && <UndoList snaps={snaps.map((s) => ({ id: s.id, label: s.label, when: when(s.createdAt) }))} />}
           </>
         )}
       </div>

@@ -128,8 +128,10 @@ main table {
   display: none;
 }
 
-/* A Manager login is view only (Carter, 2026-10-14): no edit, add, import or print controls; cream cells don't open. */
-[data-view] .edit-only {
+/* A Manager login is view only (Carter, 2026-10-14): no edit, add, import or print controls; cream cells don't open.
+   An Office login (Carter, 2026-10-28) is the same, except inside [data-office-edit] - billing, the Master Sheet money,
+   owner billing info, customer logins - where she changes things like the owner. */
+[data-view] .edit-only:not([data-view="office"] [data-office-edit] *) {
   display: none !important;
 }
 .view-only {
@@ -138,18 +140,18 @@ main table {
 [data-view] .view-only {
   display: block;
 }
-[data-view] td.tc.editable {
+[data-view] td.tc.editable:not([data-view="office"] [data-office-edit] *, [data-view="office"] [data-office-edit]) {
   background-color: transparent !important;
 }
-[data-view] td.tc.editable :is(button, select, input) {
+[data-view] td.tc.editable :is(button, select, input):not([data-view="office"] [data-office-edit] *) {
   pointer-events: none;
 }
-[data-view] td.tc.editable select {
+[data-view] td.tc.editable select:not([data-view="office"] [data-office-edit] *) {
   -webkit-appearance: none;
   appearance: none;
 }
 @media print {
-  [data-view] main {
+  [data-view="manager"] main {
     display: none !important;
   }
 }
@@ -259,7 +261,7 @@ td.tc.notes .cell-input {
 @media (pointer: coarse) {
   .pick-btn { min-width: 5.6rem; min-height: 2.75rem; font-size: 16px; }
 }
-[data-view] .pick-btn { pointer-events: none; }
+[data-view] .pick-btn:not([data-view="office"] [data-office-edit] *) { pointer-events: none; }
 
 /* Preg Check: a cow tapped Open gets a red line through her Mating, Days Bred and Due Date - never her Cow ID (Carter, 2026-10-16). */
 td.struck, td.struck * {

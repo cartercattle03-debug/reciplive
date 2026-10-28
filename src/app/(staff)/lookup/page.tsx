@@ -3,7 +3,7 @@ import { Table, type Row } from "@/components/Table";
 import { batchCell, dateCell, numCell } from "@/lib/cells";
 import { cowHistory, shownStatus } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
-import { staffPage } from "@/lib/server/session";
+import { seesMoney, staffPage } from "@/lib/server/session";
 import { money } from "@/lib/cells";
 import { ArchiveTable } from "@/components/ArchiveTable";
 import { cowArchive } from "@/lib/cowArchive";
@@ -15,7 +15,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
   const { calc, archive, events } = R;
   // A Manager login sees nothing about money (Carter, 2026-10-14): her purchase, cost, loan, sale and transaction # stay off the
   // page - so her archive below has no Purchased or Sold lines and no Price column.
-  const owner = m.role === "OWNER";
+  const owner = seesMoney(m);
   const cows = owner ? R.cows : new Map<string, never>();
   const id = (searchParams.cow ?? "").trim();
   const h = id ? cowHistory(calc, id) : [];

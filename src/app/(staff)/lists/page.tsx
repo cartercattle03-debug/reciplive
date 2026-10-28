@@ -2,7 +2,7 @@ import { BatchList, ItemList } from "@/components/ListsEditor";
 import { PageHeader } from "@/components/Shell";
 import { prisma } from "@/lib/prisma";
 import { loadRanch } from "@/lib/server/data";
-import { staffPage } from "@/lib/server/session";
+import { seesMoney, staffPage } from "@/lib/server/session";
 
 export default async function Lists() {
   const m = await staffPage();
@@ -19,7 +19,7 @@ export default async function Lists() {
           <BatchList batches={batches.map((b) => ({ id: b.id, label: b.label, transferDate: b.transferDate, uses: uses("batch", b.label) }))} />
         </div>
         <div className="lg:col-span-2">
-          {m.role === "OWNER" ? (
+          {seesMoney(m) ? (
             <ItemList kind="OWNER" title="Owners" billing items={items.filter((i) => i.kind === "OWNER").map((i) => ({ id: i.id, value: i.value, uses: uses("owner", i.value), ranchName: i.ranchName, location: i.location, email: i.email }))} />
           ) : (
             <ItemList kind="OWNER" title="Owners" items={of("OWNER", "owner")} />

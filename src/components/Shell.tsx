@@ -9,7 +9,7 @@ import type { Member } from "@/lib/server/session";
 /** The page frame: logo, ranch name, Import / Account / Log out, then the tabs (same feel as HerdLive). */
 export function Shell({ member, children, customer = false, year }: { member: Member; children: React.ReactNode; customer?: boolean; year?: { year: number; years: number[] } }) {
   return (
-    <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" || undefined}>
+    <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" ? "manager" : member.role === "OFFICE" ? "office" : undefined}>
       <header id="site-header" className="no-print z-30 bg-white md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 px-4 py-2">
           <Link href={customer ? "/my" : "/dashboard"} className="flex items-center">
@@ -23,6 +23,7 @@ export function Shell({ member, children, customer = false, year }: { member: Me
           )}
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {member.role === "MANAGER" && <span className="rounded-full bg-tan px-3 py-1 text-xs font-semibold text-brand-700">View only</span>}
+            {member.role === "OFFICE" && <span className="rounded-full bg-tan px-3 py-1 text-xs font-semibold text-brand-700" title="Billing, money and customer logins - cattle records are view only">Office</span>}
             {!customer && (
               <Link href="/import" className="btn-quiet edit-only">
                 Import
@@ -34,7 +35,7 @@ export function Shell({ member, children, customer = false, year }: { member: Me
             <SignOut />
           </div>
         </div>
-        {!customer && <Nav owner={member.role === "OWNER"} />}
+        {!customer && <Nav owner={member.role === "OWNER" || member.role === "OFFICE"} />}
       </header>
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">{children}</main>
       <footer className="no-print px-4 pb-4 text-center text-[11px] text-slate-400">© {new Date().getFullYear()} RecipLive</footer>

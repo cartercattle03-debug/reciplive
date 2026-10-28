@@ -29,7 +29,10 @@ export function ChangePassword() {
 
 type Login = { id: string; email: string; name: string; role: string; ownerName: string | null; lastLogin: string };
 
-export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }) {
+const KIND: Record<string, string> = { OWNER: "Owner", OFFICE: "Office", MANAGER: "Manager", CUSTOMER: "Customer" };
+
+/** owner = false for an Office login: she adds and changes customer logins only (Carter, 2026-10-28). */
+export function Logins({ logins, owners, owner = true }: { logins: Login[]; owners: string[]; owner?: boolean }) {
   const router = useRouter();
   const [f, setF] = useState({ role: "CUSTOMER", ownerName: owners[0] ?? "", name: "", email: "", password: "" });
   const act = async (body: Record<string, unknown>, ok: string) => {
@@ -46,7 +49,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
   return (
     <div className="card max-w-6xl overflow-hidden">
       <div className="bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Logins</div>
-      <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager login is view only - no changes, no imports, no printing or downloads - and sees nothing about money or customer contact info: no Billing, Master Sheet or Master Archive, and no purchase, cost or sale figures on Cow Lookup.</p>
+      <p className="px-4 pt-2 text-xs text-slate-500">A customer login sees only that owner&apos;s cows (their own report, live) and can&apos;t change anything. A manager login is view only - no changes, no imports, no printing or downloads - and sees nothing about money or customer contact info: no Billing, Master Sheet or Master Archive, and no purchase, cost or sale figures on Cow Lookup. An office login sees everything and changes the money side - billing and invoices (and the QuickBooks download), cow purchase, cost and sale on the Master Sheet, owner billing info on Lists, and customer logins - but not transfers, preg checks, the open list, imports or Undo.</p>
       {/* The whole table scrolls sideways on a narrow screen instead of cutting off Last log in (Carter, 2026-10-15). */}
       <div className="overflow-x-auto">
       <table className="m-3 text-sm">
@@ -65,7 +68,7 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
             <tr key={l.id} className={i % 2 ? "bg-stripe" : ""}>
               <td className="tc break-all">{l.email}</td>
               <td className="tc">{l.name}</td>
-              <td className="tc">{l.role === "OWNER" ? "Owner" : l.role === "MANAGER" ? "Manager" : "Customer"}</td>
+              <td className="tc">{KIND[l.role] ?? l.role}</td>
               <td className="tc">
                 {l.role === "CUSTOMER" ? (
                   <a className="text-brand-600 underline" href={`/my?as=${encodeURIComponent(l.ownerName ?? "")}`} title="See exactly what this login sees">
@@ -73,13 +76,15 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
                   </a>
                 ) : l.role === "MANAGER" ? (
                   <span title="No billing, costs, sales or customer contact info">View only, no money</span>
+                ) : l.role === "OFFICE" ? (
+                  <span title="Sees everything. Changes billing and invoices, cow purchase / cost / sale, owner billing info and customer logins - not transfers, preg checks or imports">Everything; changes money and customer logins</span>
                 ) : (
                   "Everything"
                 )}
               </td>
               <td className="tc whitespace-nowrap">{l.lastLogin}</td>
               <td className="tc whitespace-nowrap">
-                {l.role !== "OWNER" && (
+                {l.role !== "OWNER" && (owner || l.role === "CUSTOMER") && (
                   <>
                     <button
                       className="mr-2 text-xs text-brand-600 hover:underline"
@@ -111,9 +116,10 @@ export function Logins({ logins, owners }: { logins: Login[]; owners: string[] }
         <span className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">Add a login</span>
         <label className="text-xs font-medium text-slate-600">
           Kind
-          <select className="field mt-0.5 w-32" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
+          <select className="field mt-0.5 w-44" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
             <option value="CUSTOMER">Customer</option>
-            <option value="MANAGER">Manager (view only, no money)</option>
+            {owner && <option value="MANAGER">Manager (view only, no money)</option>}
+            {owner && <option value="OFFICE">Office (billing, money, customer logins)</option>}
           </select>
         </label>
         {f.role === "CUSTOMER" && (

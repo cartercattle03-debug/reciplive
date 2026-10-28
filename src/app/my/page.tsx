@@ -27,7 +27,7 @@ const MATES: MateBy[] = ["mating", "sire", "donor"];
 export default async function MyCows({ searchParams }: { searchParams: SP }) {
   const m = await anyPage();
   const asOwner = typeof searchParams.as === "string" ? searchParams.as : "";
-  const preview = m.role === "OWNER" && !!asOwner;
+  const preview = (m.role === "OWNER" || m.role === "OFFICE") && !!asOwner;
   if (m.role !== "CUSTOMER" && !preview) redirect("/customer");
   const owner = preview ? asOwner : m.ownerName ?? "";
   const { calc: all, lists, today } = await loadRanch(m.organizationId, { owner: owner || "\u0000none" });
