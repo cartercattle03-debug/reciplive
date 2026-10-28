@@ -15,6 +15,7 @@ const map = {
   "react/jsx-runtime": require.resolve("/home/claude/.npm-global/lib/node_modules/react/jsx-runtime"),
   "react-dom/server": require.resolve("/home/claude/.npm-global/lib/node_modules/react-dom/server"),
   xlsx: path.join(HERE, "stub-link.js"),
+  "pdf-lib": require.resolve(path.join(process.env.RL_TC || "/tmp/rltc", "node_modules/pdf-lib")),
 };
 const orig = Module._resolveFilename;
 Module._resolveFilename = function (req, parent, ...rest) {

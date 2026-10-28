@@ -103,6 +103,11 @@ export function InvoiceEditor({ inv, lh, canEdit }: { inv: InvoiceView; lh: LH; 
             Download for QuickBooks
           </a>
         )}
+        {inv.status !== "Void" && (
+          <a className="btn edit-only" href={`/api/billing/sheet?id=${inv.id}`} title="The cows on this bill with their 75-day info - attach it to the invoice email QuickBooks sends">
+            Cow list PDF (for the email)
+          </a>
+        )}
         <button className="btn-quiet edit-only" onClick={() => window.print()}>
           Print / Save PDF
         </button>

@@ -96,6 +96,18 @@ async function show(name: string, p: string, props: any, must: string[] = [], me
     const ob = await show("office opens Billing", "(staff)/billing/page", { searchParams: {} }, ["data-office-edit", "Billing"], "office");
     if (/didn&#x27;t catch up|didn't catch up/.test(ob)) { fails++; console.log("FAIL office sees the status fix-up on Billing"); }
     await show("office opens an invoice, can change it", "(staff)/billing/[id]/page", { params: { id: inv!.id } }, ["data-office-edit", "INVOICE #1001", "Download for QuickBooks", "Add an adjustment"], "office");
+    {
+      // Cow list PDF for the QuickBooks email (Carter, 2026-10-28).
+      const sheet = require("../src/app/api/billing/sheet/route");
+      (global as any).SESSION = { user: { id: ou.id } };
+      const r = await sheet.GET(new Request(`http://x/api/billing/sheet?id=${inv!.id}`));
+      const buf = Buffer.from(await r.arrayBuffer());
+      require("fs").writeFileSync("/tmp/rltc/cowsheet.pdf", buf);
+      if (r.status !== 200 || buf.slice(0, 5).toString() !== "%PDF-") { fails++; console.log("FAIL cow list PDF", r.status, buf.slice(0, 80).toString()); } else console.log(`ok   office gets the cow list PDF (${Math.round(buf.length / 1024)} KB) ${r.headers.get("content-disposition")}`);
+      (global as any).SESSION = { user: { id: mu.id } };
+      const r2 = await sheet.GET(new Request(`http://x/api/billing/sheet?id=${inv!.id}`));
+      if (r2.status !== 403) { fails++; console.log("FAIL manager got the cow list PDF"); } else console.log("ok   manager can't get the cow list PDF");
+    }
     await show("office Lists has owner billing info", "(staff)/lists/page", { searchParams: {} }, ["Ranch Name", "Test Ranch LLC", "data-office-edit"], "office");
     const ml = await show("manager's Lists has no billing info", "(staff)/lists/page", { searchParams: {} }, ["Owners"], "mgr");
     if (/Ranch Name|Test Ranch LLC|test@example.com/.test(ml)) { fails++; console.log("FAIL manager sees owner billing info"); }

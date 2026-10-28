@@ -13,6 +13,7 @@
     "bcryptjs": "2.4.3",
     "next": "14.2.15",
     "next-auth": "4.24.8",
+    "pdf-lib": "1.17.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"

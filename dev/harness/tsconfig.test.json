@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020", "lib": ["dom", "esnext"], "skipLibCheck": true, "strict": false, "noEmit": false, "ignoreDeprecations": "6.0",
     "module": "commonjs", "moduleResolution": "node", "esModuleInterop": true, "outDir": "/tmp/rltc/out", "rootDir": "/home/claude/reciplive",
-    "baseUrl": "/home/claude/reciplive", "paths": { "@/*": ["src/*"], "@prisma/client": ["/tmp/rltc/node_modules/@prisma/client/index.d.ts"] },
+    "baseUrl": "/home/claude/reciplive", "paths": { "@/*": ["src/*"], "@prisma/client": ["/tmp/rltc/node_modules/@prisma/client/index.d.ts"], "pdf-lib": ["/tmp/rltc/node_modules/pdf-lib/cjs/index.d.ts"] },
     "typeRoots": ["/tmp/rltc/node_modules/@types"], "types": ["node"], "noEmitOnError": false
   },
   "files": ["/tmp/rltc/stubs.d.ts"],
