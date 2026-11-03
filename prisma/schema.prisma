@@ -46,6 +46,13 @@ model Organization {
   lhPhone       String?
   lhEmail       String?
   lhLogo        String?
+  /// RecipLive service for this ranch (Carter, 2026-11-03), set on the Admin page: TRIAL (testing, until trialEnds),
+  /// ACTIVE (paid - paidThrough is a note of the paid-up date) or PAUSED. A paused ranch, or a trial past its end, is
+  /// view only: every record is kept, nothing can be changed. The first ranch (Carter's own) is never paused.
+  status        String    @default("ACTIVE")
+  trialEnds     DateTime?
+  paidThrough   DateTime?
+  adminNote     String?
 
   memberships Membership[]
   batches     Batch[]
@@ -57,6 +64,7 @@ model Organization {
   events      CowEvent[]
   invoices    Invoice[]
   billHolds   BillHold[]
+  invites     RanchInvite[]
 }
 
 model User {
@@ -272,4 +280,17 @@ model BillHold {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, transferId])
+}
+
+/// The link a new ranch's owner uses to set their own password (Admin page, Carter 2026-11-03). Only the hash of the
+/// link's secret is kept; it works once, for 14 days.
+model RanchInvite {
+  id             String       @id @default(cuid())
+  organizationId String
+  email          String
+  tokenHash      String       @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }

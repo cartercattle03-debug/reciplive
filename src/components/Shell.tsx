@@ -9,7 +9,7 @@ import type { Member } from "@/lib/server/session";
 /** The page frame: logo, ranch name, Import / Account / Log out, then the tabs (same feel as HerdLive). */
 export function Shell({ member, children, customer = false, year }: { member: Member; children: React.ReactNode; customer?: boolean; year?: { year: number; years: number[] } }) {
   return (
-    <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" ? "manager" : member.role === "OFFICE" ? "office" : undefined}>
+    <div className="flex min-h-screen flex-col" data-view={member.role === "MANAGER" || member.locked ? "manager" : member.role === "OFFICE" ? "office" : undefined}>
       <header id="site-header" className="no-print z-30 bg-white md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 px-4 py-2">
           <Link href={customer ? "/my" : "/dashboard"} className="flex items-center">
@@ -29,6 +29,11 @@ export function Shell({ member, children, customer = false, year }: { member: Me
                 Import
               </Link>
             )}
+            {member.siteAdmin && !customer && (
+              <Link href="/admin" className="btn-quiet">
+                Admin
+              </Link>
+            )}
             <Link href="/account" className="btn-quiet">
               Account
             </Link>
@@ -37,6 +42,17 @@ export function Shell({ member, children, customer = false, year }: { member: Me
         </div>
         {!customer && <Nav owner={member.role === "OWNER" || member.role === "OFFICE"} />}
       </header>
+      {member.locked && (
+        // Paused, or a test past its end (Admin page): everything can be looked at, nothing changed (Carter, 2026-11-03).
+        <div className="no-print border-b border-red-200 bg-red-50 px-4 py-2 text-center text-sm font-semibold text-red-800">
+          RecipLive service for this ranch is paused - your records are all here to look at, but nothing can be changed until it&apos;s turned back on.
+        </div>
+      )}
+      {!member.locked && member.status === "TRIAL" && member.trialEnds && member.role === "OWNER" && (
+        <div className="no-print border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs font-semibold text-amber-900">
+          Testing RecipLive - through {member.trialEnds.toLocaleDateString("en-US", { timeZone: "America/Chicago" })}
+        </div>
+      )}
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">{children}</main>
       <footer className="no-print px-4 pb-4 text-center text-[11px] text-slate-400">© {new Date().getFullYear()} RecipLive</footer>
       <HeaderSize />

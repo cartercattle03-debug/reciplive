@@ -13,7 +13,22 @@ export type Member = {
   role: Role;
   /** A customer login sees only this owner's cows. */
   ownerName: string | null;
+  /** The ranch's service (Admin page): TRIAL, ACTIVE or PAUSED. */
+  status: string;
+  trialEnds: Date | null;
+  /** Paused, or a trial past its end: every login on the ranch can look, nobody can change anything. */
+  locked: boolean;
+  /** The owner of the first ranch (Carter's own) runs the Admin page: every ranch, its service, new ranches. */
+  siteAdmin: boolean;
 };
+
+/** The first ranch made - Carter's own. Its owner is the site admin and it is never paused. */
+async function firstRanchId(): Promise<string | null> {
+  return (await prisma.organization.findFirst({ orderBy: { createdAt: "asc" }, select: { id: true } }))?.id ?? null;
+}
+export function isLocked(o: { status: string; trialEnds: Date | null }, now = new Date()): boolean {
+  return o.status === "PAUSED" || (o.status === "TRIAL" && !!o.trialEnds && o.trialEnds.getTime() < now.getTime());
+}
 
 async function load(): Promise<Member | null> {
   const s = await getServerSession(authOptions);
@@ -29,6 +44,10 @@ async function load(): Promise<Member | null> {
     ranch: m.organization.name,
     role: (m.role as Role) || "OWNER",
     ownerName: m.ownerName,
+    status: m.organization.status,
+    trialEnds: m.organization.trialEnds,
+    locked: (await firstRanchId()) !== m.organizationId && isLocked(m.organization),
+    siteAdmin: m.role === "OWNER" && (await firstRanchId()) === m.organizationId,
   };
 }
 
@@ -69,6 +88,15 @@ export async function staffApi(_ownerOnly = false): Promise<Member> {
   if (!m) throw new HttpError(401, "Please log in again.");
   if (m.role === "OFFICE") throw new HttpError(403, "An Office login doesn't change transfers, preg checks or other cattle records - nothing was changed.");
   if (m.role !== "OWNER") throw new HttpError(403, "This login is view only - nothing was changed.");
+  if (m.locked) throw new HttpError(403, LOCKED);
+  return m;
+}
+const LOCKED = "This ranch's RecipLive service is paused - your records are all here to look at, but nothing can be changed until it's turned back on. Nothing was changed.";
+/** For the Admin page's saves: the site admin only. */
+export async function adminApi(): Promise<Member> {
+  const m = await load();
+  if (!m) throw new HttpError(401, "Please log in again.");
+  if (!m.siteAdmin) throw new HttpError(403, "Only the RecipLive admin can do that.");
   return m;
 }
 /**
@@ -79,6 +107,7 @@ export async function officeApi(): Promise<Member> {
   const m = await load();
   if (!m) throw new HttpError(401, "Please log in again.");
   if (m.role !== "OWNER" && m.role !== "OFFICE") throw new HttpError(403, "This login is view only - nothing was changed.");
+  if (m.locked) throw new HttpError(403, LOCKED);
   return m;
 }
 /** Owner or Office: sees money and customer contact info. */
