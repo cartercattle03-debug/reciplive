@@ -16,12 +16,15 @@ const when = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { timeZone: 
 export default async function Admin() {
   const m = await staffPage();
   if (!m.siteAdmin) redirect("/dashboard");
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const orgs = await prisma.organization.findMany({
     orderBy: { createdAt: "asc" },
     include: {
       memberships: { include: { user: { select: { email: true, name: true, lastLoginAt: true } } } },
       invites: { orderBy: { createdAt: "desc" }, take: 1 },
       _count: { select: { transfers: true, cows: true, invoices: true } },
+      paperReads: { where: { createdAt: { gte: monthStart } }, select: { cents: true } },
     },
   });
   const rows: RanchRow[] = orgs.map((o) => {
@@ -46,6 +49,8 @@ export default async function Admin() {
       transfers: o._count.transfers,
       cows: o._count.cows,
       invoices: o._count.invoices,
+      paper: o.paperReads.length,
+      paperCents: Math.round(o.paperReads.reduce((a, p) => a + p.cents, 0)),
     };
   });
   return (

@@ -22,6 +22,9 @@ export type RanchRow = {
   transfers: number;
   cows: number;
   invoices: number;
+  /** Paper pages read this month, and about what they cost (cents). */
+  paper: number;
+  paperCents: number;
 };
 
 const LABEL: Record<string, string> = { TRIAL: "Testing", ACTIVE: "Active", PAUSED: "Paused" };
@@ -174,6 +177,7 @@ function Row({ r }: { r: RanchRow }) {
         <td className="px-2 py-2 text-xs">{r.lastLogin || "-"}</td>
         <td className="px-2 py-2 text-xs">
           {r.transfers} transfers · {r.cows} cows · {r.invoices} invoices · {r.logins} {r.logins === 1 ? "login" : "logins"}
+          {r.paper > 0 && <div className="text-slate-500" title="Paper sheets read this month, and about what the reading cost">{r.paper} paper {r.paper === 1 ? "page" : "pages"} this month (about ${(r.paperCents / 100).toFixed(2)})</div>}
         </td>
         <td className="px-2 py-2">{!r.own && <input className="field w-44 py-1" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />}</td>
         <td className="px-2 py-2">

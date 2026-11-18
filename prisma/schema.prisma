@@ -65,6 +65,7 @@ model Organization {
   invoices    Invoice[]
   billHolds   BillHold[]
   invites     RanchInvite[]
+  paperReads  PaperRead[]
 }
 
 model User {
@@ -293,4 +294,19 @@ model RanchInvite {
   usedAt         DateTime?
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// One paper page read (photo or PDF of a transfer or preg check sheet - Carter, 2026-11-18). Kept for the monthly
+/// page count and the cost; the rows read are never saved here - they go to the screen for review.
+model PaperRead {
+  id             String       @id @default(cuid())
+  organizationId String
+  createdAt      DateTime     @default(now())
+  kind           String
+  title          String?
+  rows           Int          @default(0)
+  cents          Float        @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
 }

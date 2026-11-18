@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { ask, post, toast } from "./ui";
 import { EMBRYO_TYPES, showDate } from "@/lib/recip";
 import { dateFromLabel } from "@/lib/groupDate";
+import { PaperButton } from "./PaperButton";
+import { matingOf, type PaperPage } from "@/lib/paper";
 
 /** A new transfer starts Pending, as a Pass, or Culled (Carter, 2026-10-14). */
 const NEW_STATUSES = ["Pending", "Pass", "Culled"] as const;
@@ -11,8 +13,9 @@ const NEW_STATUSES = ["Pending", "Pass", "Culled"] as const;
 type Lists = { batches: string[]; owners: string[]; companies: string[]; grades: string[] };
 const NEW = "__new";
 
-type Line = { cowId: string; mating: string; owner: string; embryoType: string; grade: string; company: string; status: string; notes: string };
-const COLS: { k: keyof Line; label: string; w: string; list?: "owners" | "companies" | "grades"; pick?: readonly string[] }[] = [
+type Line = { cowId: string; mating: string; owner: string; embryoType: string; grade: string; company: string; status: string; notes: string; /** Boxes the paper reader wasn't sure of, with why - shaded until changed (Carter, 2026-11-18). */ unsure?: Partial<Record<string, string>> };
+type Field = Exclude<keyof Line, "unsure">;
+const COLS: { k: Field; label: string; w: string; list?: "owners" | "companies" | "grades"; pick?: readonly string[] }[] = [
   { k: "cowId", label: "Cow ID", w: "w-20" },
   { k: "mating", label: "Mating", w: "w-40" },
   { k: "owner", label: "Owner", w: "w-28", list: "owners" },
@@ -82,7 +85,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
   const filled = rows.filter(used);
 
   /** Arrow keys move between boxes like a sheet (Carter, 2026-10-16); a greyed-out box (a Pass line) is stepped over. */
-  const go = (i: number, k: keyof Line, dr: number, dc: number) => {
+  const go = (i: number, k: Field, dr: number, dc: number) => {
     let r = i;
     let c = COLS.findIndex((x) => x.k === k);
     for (let n = 0; n < 40; n++) {
@@ -100,13 +103,13 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
   };
   // Highlight a run of boxes down a column (drag, or Shift + up / down arrow), then paste or use the Fill bar to put the
   // same thing in all of them (Carter, 2026-10-16: fill like cells in a new batch before it's added).
-  const [gsel, setGsel] = useState<{ k: keyof Line; r1: number; r2: number } | null>(null);
+  const [gsel, setGsel] = useState<{ k: Field; r1: number; r2: number } | null>(null);
   const [gfill, setGfill] = useState("");
-  const gdrag = useRef<{ k: keyof Line; r0: number; moved?: boolean } | null>(null);
+  const gdrag = useRef<{ k: Field; r0: number; moved?: boolean } | null>(null);
   const many = !!gsel && gsel.r2 > gsel.r1;
   const gEnd = useRef<{ anchor: number; to: number } | null>(null);
   const [dragOn, setDragOn] = useState(false);
-  const locked = (r: Line, k: keyof Line) => r.status === "Pass" && k !== "cowId" && k !== "notes" && k !== "status";
+  const locked = (r: Line, k: Field) => r.status === "Pass" && k !== "cowId" && k !== "notes" && k !== "status";
   const fillRun = (vals: string[]) => {
     if (!gsel) return;
     const col = COLS.find((c) => c.k === gsel.k)!;
@@ -210,7 +213,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
       document.removeEventListener("paste", paste);
     };
   }, []);
-  const arrows = (i: number, k: keyof Line) => (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const arrows = (i: number, k: Field) => (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (e.key === "Escape") return setGsel(null);
     if (e.shiftKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
       // The box with the keyboard stays the anchor; each press moves the far end of the run up or down.
@@ -240,8 +243,64 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
     else if (isInput && e.key === "ArrowUp") (e.preventDefault(), go(i, k, -1, 0));
     else if (isInput && e.key === "ArrowDown") (e.preventDefault(), go(i, k, 1, 0));
   };
-  const set = (i: number, k: keyof Line, v: string) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
-  const paste = (i: number, k: keyof Line, e: React.ClipboardEvent<HTMLInputElement>) => {
+  const set = (i: number, k: Field, v: string) =>
+    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v, ...(r.unsure?.[k] !== undefined ? { unsure: { ...r.unsure, [k]: undefined } } : {}) } : r)));
+  // Read paper sheet (Carter, 2026-11-18): the lines read go under the ones already typed; boxes the reader wasn't sure of
+  // are shaded amber with its reason on hover. Nothing is added until the Add button, as always.
+  const [paperNote, setPaperNote] = useState("");
+  const fromPaper = (pages: PaperPage[]) => {
+    const pick = (v: string, list: string[]) => list.find((x) => x.toLowerCase() === v.trim().toLowerCase()) ?? v.trim();
+    // Fresh / Frozen only when the sheet says it plainly (Frozen, Frz, FZ / Fresh); a lone "F" is left blank to pick.
+    const kindOf = (v: string) => {
+      const t = v.trim().toLowerCase();
+      return /^(fz|frz|froz)/.test(t) ? "Frozen" : /^(fresh|fsh|frsh)$/.test(t) ? "Fresh" : "";
+    };
+    const statusOf = (v: string) => (/pass|no\s*transfer|nt\b/i.test(v) ? "Pass" : /cull/i.test(v) ? "Culled" : "Pending");
+    const read: Line[] = [];
+    const marks: string[] = [];
+    for (const p of pages) {
+      for (const r of p.rows) {
+        if (r.struck || !r.cowId) continue;
+        const unsure: Record<string, string> = {};
+        for (const f of r.unsure) {
+          const k = f === "sire" || f === "donor" ? "mating" : f;
+          if (COLS.some((c) => c.k === k)) unsure[k] = r.why || "The reader wasn't sure of this one - check it against the paper.";
+        }
+        const status = statusOf(r.status);
+        if (r.embryoType && !kindOf(r.embryoType) && statusOf(r.status) !== "Pass") unsure.embryoType = `The sheet says "${r.embryoType}" - pick Fresh or Frozen.`;
+        read.push({
+          cowId: r.cowId,
+          mating: status === "Pass" ? "" : matingOf(r),
+          owner: status === "Pass" ? "" : pick(r.owner || p.header.owner, lists.owners),
+          embryoType: status === "Pass" ? "" : kindOf(r.embryoType),
+          grade: status === "Pass" ? "" : pick(r.grade, lists.grades),
+          company: status === "Pass" ? "" : pick(r.company || p.header.company, lists.companies),
+          status,
+          notes: r.notes,
+          ...(Object.keys(unsure).length ? { unsure } : {}),
+        });
+      }
+      for (const l of p.lists) if (/pass|no\s*transfer/i.test(l.label)) for (const id of l.ids) read.push({ ...blankLine(), cowId: id, status: "Pass" });
+      // The group from the top of the sheet, when it is one on Lists or none is picked yet.
+      const g = p.header.group.trim();
+      if (g) {
+        const hit = lists.batches.find((b) => b.toLowerCase() === g.toLowerCase());
+        if (hit) setPickB(hit);
+        else if (!filled.length) (setPickB(NEW), setNewLabel(g));
+      }
+      if (p.header.transferDate) marks.push(`Transfer date on the sheet: ${p.header.transferDate}`);
+      if (p.remarks) marks.push(p.remarks);
+    }
+    if (!read.length) return toast("No cow lines were read off that sheet.", true);
+    setRows((rs) => {
+      const out = [...rs.filter(used), ...read];
+      while (out.length < 10 || out.length % 10) out.push(blankLine());
+      return out;
+    });
+    const shaky = read.filter((l) => l.unsure).length;
+    setPaperNote(`${read.length} line${read.length === 1 ? "" : "s"} read off the paper and put below - check them against the sheet before Add.${shaky ? ` ${shaky} have amber boxes the reader wasn't sure of (point at one for why).` : ""}${marks.length ? ` ${marks.join(" ")}` : ""}`);
+  };
+  const paste = (i: number, k: Field, e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData("text");
     if (!/[\n\t]/.test(text.trim())) return; // a single value pastes the normal way
     e.preventDefault();
@@ -262,7 +321,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
     toast(`Pasted ${grid.length} line${grid.length === 1 ? "" : "s"}.`);
   };
   /** Copies the first line's value down every used line below that left it blank. */
-  const copyDown = (k: keyof Line) => {
+  const copyDown = (k: Field) => {
     const v = rows.find((r) => r[k].trim())?.[k];
     if (!v) return toast("Type it on the first line, then copy it down.", true);
     setRows((rs) => rs.map((r) => (used(r) && !r[k].trim() ? { ...r, [k]: v } : r)));
@@ -281,10 +340,11 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
       const r = await post("/api/transfers", {
         action: "add",
         group: { label: batch, transferDate: tDate },
-        rows: filled.map((l) => (l.status === "Pass" ? { batch, cowId: l.cowId, status: "Pass", notes: l.notes } : { batch, ...l })),
+        rows: filled.map(({ unsure: _u, ...l }) => (l.status === "Pass" ? { batch, cowId: l.cowId, status: "Pass", notes: l.notes } : { batch, ...l })),
       });
       toast(`${r.added} transfers added to ${batch}.`);
       setRows(lines(10));
+      setPaperNote("");
       setBad([]);
       if (isNew) {
         setPickB(batch);
@@ -403,7 +463,8 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                         // A typed box with its choices offered (not a pop-up list), so it highlights, fills and pastes like
                         // the rest (Carter, 2026-10-16). "fr" -> Fresh / Frozen as you type; anything else is taken back off.
                         <input
-                          className={"field px-1 py-1 " + c.w}
+                          className={"field px-1 py-1 " + c.w + (r.unsure?.[c.k] ? " border-amber-500 bg-amber-100" : "")}
+                          title={r.unsure?.[c.k] ?? undefined}
                           value={r[c.k]}
                           list={`dl-pick-${c.k}`}
                           disabled={pass && c.k !== "status"}
@@ -425,7 +486,8 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                         />
                       ) : (
                         <input
-                          className={"field px-1 py-1 " + c.w + (bad.includes(i) && c.k === "cowId" ? " border-red-500" : "")}
+                          className={"field px-1 py-1 " + c.w + (bad.includes(i) && c.k === "cowId" ? " border-red-500" : "") + (r.unsure?.[c.k] ? " border-amber-500 bg-amber-100" : "")}
+                          title={r.unsure?.[c.k] ?? undefined}
                           value={r[c.k]}
                           list={c.list ? `dl-${c.list}` : undefined}
                           disabled={pass && c.k !== "cowId" && c.k !== "notes"}
@@ -456,6 +518,14 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
           </tbody>
         </table>
       </div>
+      {paperNote && (
+        <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {paperNote}{" "}
+          <button type="button" className="font-semibold underline" onClick={() => setPaperNote("")}>
+            OK
+          </button>
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button type="button" className="btn-quiet" onClick={() => setRows((rs) => [...rs, ...lines(10)])}>
           + 10 more lines
@@ -468,6 +538,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
         >
           Clear
         </button>
+        <PaperButton kind="transfer" onRead={fromPaper} />
         <span className="ml-auto text-xs text-slate-500">{filled.length} line{filled.length === 1 ? "" : "s"} filled</span>
         <button type="button" className="btn-go" disabled={busy || !filled.length || !batch} onClick={save}>
           {busy ? "Adding..." : `Add ${filled.length || ""} transfer${filled.length === 1 ? "" : "s"}`}

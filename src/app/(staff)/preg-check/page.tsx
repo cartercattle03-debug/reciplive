@@ -1,5 +1,6 @@
 import { PregButtons, PregSettings } from "@/components/PregControls";
 import { AddPregCow, type KnownCow } from "@/components/AddPregCow";
+import { PregPaper } from "@/components/PregPaper";
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, cowCell, dateCell, numCell } from "@/lib/cells";
@@ -79,6 +80,9 @@ export default async function PregCheck() {
         title="Preg Check"
         sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off) - a cow already Probable gets only Safe or Open. Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it. + Add cow looks her up as you type her Cow ID: already on the sheet, you can put her result in right there; otherwise her latest info fills in."
       >
+        <span className="edit-only">
+          <PregPaper cows={known} />
+        </span>
         <PregButtons typed={typedAll.length} offList={typedAll.filter((c) => !onList.has(c.id)).length} />
       </PageHeader>
       <PregSettings s={{ pregDate: org?.pregDate ?? "", pregBatch: org?.pregBatch ?? "", pregMinAge: org?.pregMinAge?.toString() ?? "", pregMaxAge: org?.pregMaxAge?.toString() ?? "" }} batches={lists.batches.map((b) => b.label)} />
