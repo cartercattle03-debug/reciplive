@@ -29,6 +29,15 @@ export function Shell({ member, children, customer = false, year }: { member: Me
                 Import
               </Link>
             )}
+            {!customer && (member.role === "OWNER" || member.role === "OFFICE") && (
+              // Backup (Carter, 2026-11-19): every record as one Excel file - one a month kept somewhere safe.
+              <a href="/api/backup" className="btn-go" download title="Every record on RecipLive as one Excel file - download one a month and keep it somewhere safe">
+                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 15.5h12" />
+                </svg>
+                Backup
+              </a>
+            )}
             {member.siteAdmin && !customer && (
               <Link href="/admin" className="btn-quiet">
                 Admin

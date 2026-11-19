@@ -112,6 +112,13 @@ export async function officeApi(): Promise<Member> {
 }
 /** Owner or Office: sees money and customer contact info. */
 export const seesMoney = (m: { role: string }) => m.role === "OWNER" || m.role === "OFFICE";
+/** The Backup download (Carter, 2026-11-19): the owner or an Office login - a paused ranch too, it's their records. */
+export async function backupApi(): Promise<Member> {
+  const m = await load();
+  if (!m) throw new HttpError(401, "Please log in again.");
+  if (!seesMoney(m)) throw new HttpError(403, "Only the owner or office login can download the backup.");
+  return m;
+}
 /** True for a login that can only look (Manager). */
 export const viewOnly = (m: Member) => m.role !== "OWNER";
 
