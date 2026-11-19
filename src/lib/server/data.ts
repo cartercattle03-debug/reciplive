@@ -39,6 +39,7 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
       cowId: r.cowId,
       mating: r.mating,
       owner: r.owner,
+      tagColor: r.tagColor,
       embryoType: r.embryoType,
       grade: r.grade,
       company: r.company,

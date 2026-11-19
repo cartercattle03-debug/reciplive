@@ -130,6 +130,8 @@ model Transfer {
   cowId          String
   mating         String       @default("")
   owner          String       @default("")
+  /// The recip's ear tag color (Carter, 2026-11-19) - typed as written, any color.
+  tagColor       String       @default("")
   embryoType     String       @default("")
   grade          String       @default("")
   company        String       @default("")

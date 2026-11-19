@@ -1,6 +1,6 @@
 /** What the reader copies off a paper transfer or preg check sheet (Carter, 2026-11-18). Shared by server and screen. */
 export type PaperKind = "transfer" | "preg";
-export const PAPER_FIELDS = ["cowId", "group", "mating", "sire", "donor", "owner", "company", "embryoType", "grade", "status", "result", "checkDate", "notes"] as const;
+export const PAPER_FIELDS = ["cowId", "group", "mating", "sire", "donor", "owner", "tagColor", "company", "embryoType", "grade", "status", "result", "checkDate", "notes"] as const;
 export type PaperField = (typeof PAPER_FIELDS)[number];
 export type PaperRow = Record<PaperField, string> & { unsure: PaperField[]; why: string; struck: boolean };
 export type PaperPage = {

@@ -43,6 +43,8 @@ export type Transfer = {
   cowId: string;
   mating: string;
   owner: string;
+  /** Ear tag color (Carter, 2026-11-19). */
+  tagColor?: string;
   embryoType: string;
   grade: string;
   company: string;

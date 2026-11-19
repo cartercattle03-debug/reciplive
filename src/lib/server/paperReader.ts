@@ -17,6 +17,7 @@ const FIELD_HELP: Record<PaperField, string> = {
   sire: "embryo sire when it has its own column",
   donor: "embryo donor (dam) when it has its own column",
   owner: "embryo / pregnancy owner, customer, client",
+  tagColor: "the recip's ear tag color as written (Yellow, Y, Orange, Grn...)",
   company: "embryo company / ET company / lab",
   embryoType: "Fresh or Frozen (F/FZ/Frz = Frozen, Fr/Fresh = Fresh) as written",
   grade: "embryo grade or stage/grade as written (1, 2, 1-7, 4/1) - keep it as text, never a date",

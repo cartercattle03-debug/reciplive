@@ -13,19 +13,20 @@ const NEW_STATUSES = ["Pending", "Pass", "Culled"] as const;
 type Lists = { batches: string[]; owners: string[]; companies: string[]; grades: string[] };
 const NEW = "__new";
 
-type Line = { cowId: string; mating: string; owner: string; embryoType: string; grade: string; company: string; status: string; notes: string; /** Boxes the paper reader wasn't sure of, with why - shaded until changed (Carter, 2026-11-18). */ unsure?: Partial<Record<string, string>> };
+type Line = { cowId: string; mating: string; owner: string; tagColor: string; embryoType: string; grade: string; company: string; status: string; notes: string; /** Boxes the paper reader wasn't sure of, with why - shaded until changed (Carter, 2026-11-18). */ unsure?: Partial<Record<string, string>> };
 type Field = Exclude<keyof Line, "unsure">;
 const COLS: { k: Field; label: string; w: string; list?: "owners" | "companies" | "grades"; pick?: readonly string[] }[] = [
   { k: "cowId", label: "Cow ID", w: "w-20" },
   { k: "mating", label: "Mating", w: "w-40" },
   { k: "owner", label: "Owner", w: "w-28", list: "owners" },
+  { k: "tagColor", label: "Tag Color", w: "w-20" },
   { k: "embryoType", label: "Embryo Type", w: "w-24", pick: EMBRYO_TYPES },
   { k: "grade", label: "Grade", w: "w-16", list: "grades" },
   { k: "company", label: "Company", w: "w-24", list: "companies" },
   { k: "status", label: "Status", w: "w-28", pick: NEW_STATUSES },
   { k: "notes", label: "Notes", w: "w-36" },
 ];
-const blankLine = (): Line => ({ cowId: "", mating: "", owner: "", embryoType: "", grade: "", company: "", status: "Pending", notes: "" });
+const blankLine = (): Line => ({ cowId: "", mating: "", owner: "", tagColor: "", embryoType: "", grade: "", company: "", status: "Pending", notes: "" });
 const lines = (n: number) => Array.from({ length: n }, blankLine);
 /** A line is used once anything but its Status is typed. */
 const used = (l: Line) => COLS.some((c) => c.k !== "status" && l[c.k].trim());
@@ -56,9 +57,11 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
       const raw = localStorage.getItem(KEEP);
       if (raw) {
         const k = JSON.parse(raw) as { rows?: Line[]; pickB?: string; newLabel?: string; typedDate?: { for: string; d: string } | null };
-        const kept = (k.rows ?? []).filter(used);
+        // Lines kept before a column was added (Tag Color, 2026-11-19) get the new box blank.
+        const all = (k.rows ?? []).map((r) => ({ ...blankLine(), ...r }));
+        const kept = all.filter(used);
         if (kept.length) {
-          const out = [...(k.rows ?? [])];
+          const out = [...all];
           while (out.length < 10 || out.length % 10) out.push(blankLine());
           setRows(out);
           if (k.pickB && (k.pickB === NEW || lists.batches.includes(k.pickB))) setPickB(k.pickB);
@@ -272,6 +275,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
           cowId: r.cowId,
           mating: status === "Pass" ? "" : matingOf(r),
           owner: status === "Pass" ? "" : pick(r.owner || p.header.owner, lists.owners),
+          tagColor: r.tagColor,
           embryoType: status === "Pass" ? "" : kindOf(r.embryoType),
           grade: status === "Pass" ? "" : pick(r.grade, lists.grades),
           company: status === "Pass" ? "" : pick(r.company || p.header.company, lists.companies),
@@ -340,7 +344,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
       const r = await post("/api/transfers", {
         action: "add",
         group: { label: batch, transferDate: tDate },
-        rows: filled.map(({ unsure: _u, ...l }) => (l.status === "Pass" ? { batch, cowId: l.cowId, status: "Pass", notes: l.notes } : { batch, ...l })),
+        rows: filled.map(({ unsure: _u, ...l }) => (l.status === "Pass" ? { batch, cowId: l.cowId, tagColor: l.tagColor, status: "Pass", notes: l.notes } : { batch, ...l })),
       });
       toast(`${r.added} transfers added to ${batch}.`);
       setRows(lines(10));
@@ -490,7 +494,7 @@ export function AddTransfer({ lists, start, dates, year }: { lists: Lists; /** T
                           title={r.unsure?.[c.k] ?? undefined}
                           value={r[c.k]}
                           list={c.list ? `dl-${c.list}` : undefined}
-                          disabled={pass && c.k !== "cowId" && c.k !== "notes"}
+                          disabled={pass && c.k !== "cowId" && c.k !== "notes" && c.k !== "tagColor"}
                           onChange={(e) => set(i, c.k, e.target.value)}
                           onPaste={(e) => paste(i, c.k, e)}
                           onKeyDown={(e) => {

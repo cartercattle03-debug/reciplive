@@ -7,7 +7,7 @@ import { loadRanch } from "./data";
 import { latestRows } from "@/lib/recip";
 import { statusCatchups } from "@/lib/reconcile";
 
-export const TRANSFER_FIELDS = ["batch", "cowId", "mating", "owner", "embryoType", "grade", "company", "status", "deliveryStatus", "deliveryDate", "dueOverride", "notes"] as const;
+export const TRANSFER_FIELDS = ["batch", "cowId", "mating", "owner", "tagColor", "embryoType", "grade", "company", "status", "deliveryStatus", "deliveryDate", "dueOverride", "notes"] as const;
 export type TransferField = (typeof TRANSFER_FIELDS)[number];
 const LIST_KIND: Partial<Record<TransferField, string>> = { owner: "OWNER", company: "COMPANY", grade: "GRADE" };
 
