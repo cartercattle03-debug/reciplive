@@ -17,6 +17,7 @@ export default async function Day75() {
     cells: [
       batchCell(c),
       cowCell(c.cowId),
+      { t: c.tagColor ?? "", edit: { api: "transfers", id: c.id, field: "tagColor", kind: "text", value: c.tagColor ?? "" } },
       { t: c.mating },
       { t: c.owner },
       dateCell(c.dueDate),
@@ -37,7 +38,7 @@ export default async function Day75() {
           <span>Undelivered</span>
         </div>
       </div>
-      <Table search cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Mating" }, { label: "Owner" }, { label: "Due Date" }, { label: "Delivery Status" }, { label: "Delivery Date" }]} rows={rows} empty="No Safe cows yet." />
+      <Table search cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Tag Color" }, { label: "Mating" }, { label: "Owner" }, { label: "Due Date" }, { label: "Delivery Status" }, { label: "Delivery Date" }]} rows={rows} empty="No Safe cows yet." />
     </div>
   );
 }

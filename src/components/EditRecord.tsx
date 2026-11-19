@@ -5,13 +5,14 @@ import { post, toast } from "./ui";
 import { EMBRYO_TYPES, STATUSES } from "@/lib/recip";
 
 export type EditLists = { batches: string[]; owners: string[]; companies: string[]; grades: string[] };
-export type RecordValues = { id: string; batch: string; cowId: string; mating: string; owner: string; embryoType: string; grade: string; company: string; status: string; notes: string };
+export type RecordValues = { id: string; batch: string; cowId: string; mating: string; owner: string; tagColor: string; embryoType: string; grade: string; company: string; status: string; notes: string };
 
 const FIELDS: { k: keyof RecordValues; label: string; pick?: "batches" | "type" | "status"; list?: "owners" | "companies" | "grades" }[] = [
   { k: "batch", label: "Group", pick: "batches" },
   { k: "cowId", label: "Cow ID" },
   { k: "mating", label: "Mating" },
   { k: "owner", label: "Owner", list: "owners" },
+  { k: "tagColor", label: "Tag Color" },
   { k: "embryoType", label: "Embryo Type", pick: "type" },
   { k: "grade", label: "Grade", list: "grades" },
   { k: "company", label: "Company", list: "companies" },
