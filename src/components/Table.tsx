@@ -86,8 +86,18 @@ function DeleteButton({ id, what, off }: { id: string; what: string; off?: boole
   );
 }
 
+/** One page refresh after a run of taps (1.2 s quiet), instead of a full reload for every tap. */
+let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+function laterRefresh(router: { refresh: () => void }) {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => router.refresh(), 1200);
+}
+
 function EditCell({ e, shown }: { e: Edit; shown: string }) {
   const router = useRouter();
+  const chain = useRef<Promise<void>>(Promise.resolve());
+  // Taps still saving: a page refresh that lands meanwhile carries the older value, so it doesn't undo the lit button.
+  const pending = useRef(0);
   const [val, setVal] = useState(e.value);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -103,7 +113,7 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
   }, [editing]);
   // A fresh value from the server (after a save here or anywhere) shows unless this cell is being typed in.
   useEffect(() => {
-    if (!editing) setVal(e.value);
+    if (!editing && !pending.current) setVal(e.value);
   }, [e.value, editing]);
   const commit = async (v: string) => {
     if (v === e.value) {
@@ -123,6 +133,21 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
     }
   };
   if (e.kind === "buttons") {
+    // Preg Check taps (Carter, 2026-11-23: "a big lag"): the button lights at once and is never locked; the saves go in
+    // order behind it, and the page refreshes once the taps stop - not after each one.
+    const tap = (next: string) => {
+      setVal(next);
+      pending.current++;
+      chain.current = chain.current.then(async () => {
+        try {
+          await save(e, next);
+        } catch (err) {
+          toast((err as Error).message, true);
+        }
+        pending.current--;
+        laterRefresh(router);
+      });
+    };
     return (
       <span className="pick-btns inline-flex gap-1">
         {(e.options ?? []).map((o) => {
@@ -131,14 +156,9 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
             <button
               key={o}
               type="button"
-              disabled={busy}
               aria-pressed={on}
               className={"pick-btn pb-" + o + (on ? " on" : "")}
-              onClick={() => {
-                const next = on ? "" : o;
-                setVal(next);
-                commit(next);
-              }}
+              onClick={() => tap(on ? "" : o)}
             >
               {o}
             </button>
