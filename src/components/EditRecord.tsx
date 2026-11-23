@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { post, toast } from "./ui";
+import { ask, post, toast } from "./ui";
 import { EMBRYO_TYPES, STATUSES } from "@/lib/recip";
 
 export type EditLists = { batches: string[]; owners: string[]; companies: string[]; grades: string[] };
@@ -56,7 +56,7 @@ export function EditRecord({ v, lists }: { v: RecordValues; lists: EditLists }) 
           }
         }}
       >
-        <h2 className="mb-1 text-base font-semibold">Cow {v.cowId} - her latest record</h2>
+        <h2 className="mb-1 text-base font-semibold">Cow {v.cowId}{v.batch ? ` - group ${v.batch}` : ""}</h2>
         <p className="mb-3 text-xs text-slate-500">Changing Status here (to Pending after a new transfer is planned, or Culled) moves her off Open Inventory.</p>
         <div className="grid grid-cols-2 gap-3">
           {FIELDS.map((d) => (
@@ -85,6 +85,28 @@ export function EditRecord({ v, lists }: { v: RecordValues; lists: EditLists }) 
           ))}
         </div>
         <div className="mt-4 flex justify-end gap-2">
+          {/* A record put in twice (Carter, 2026-11-23: cow 18) comes off here - never one with a preg check on it. */}
+          <button
+            type="button"
+            disabled={busy}
+            className="mr-auto rounded-full border border-red-600 px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-50"
+            onClick={async () => {
+              if (!(await ask(`Delete this record for cow ${v.cowId}${v.batch ? ` (group ${v.batch}, ${v.status || "blank"})` : ""}?\n\nUse this for a record put in twice. Her other records stay. A copy is kept - Account > Undo can bring it back.`, "Delete"))) return;
+              setBusy(true);
+              try {
+                await post("/api/transfers", { action: "delete", id: v.id });
+                toast(`Record deleted for cow ${v.cowId}.`);
+                setOpen(false);
+                router.refresh();
+              } catch (x) {
+                toast((x as Error).message, true);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Delete record
+          </button>
           <button type="button" className="btn-quiet" onClick={() => setOpen(false)}>
             Cancel
           </button>

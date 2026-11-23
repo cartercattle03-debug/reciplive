@@ -123,6 +123,7 @@ export default async function PregCheck() {
         </div>
       </div>
       <Table
+        search
         cols={[{ label: "Group" }, { label: "Cow ID" }, { label: "Tag Color" }, { label: "Days Bred", title: "Embryo age: days since transfer + 7" }, { label: "Result" }, { label: "Status", title: "Shows the Result as soon as it's tapped (point at it to see what she was); her record takes it at Confirm & Archive" }, { label: "Check Date", title: "Fills in today when a Result is picked; clears if the Result is taken back off" }, { label: "Mating" }, { label: "Due Date", title: "Click to change - Days Bred follows it" }, { label: "Notes" }]}
         rows={rows}
         empty="No cows due with this Group / age range."

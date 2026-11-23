@@ -179,6 +179,9 @@ export async function addTransfers(orgId: string, rows: Record<string, unknown>[
 export async function deleteTransfer(orgId: string, id: string) {
   const row = await prisma.transfer.findFirst({ where: { id, organizationId: orgId } });
   if (!row) return;
+  // A record with a preg check on it is never deleted (Carter, 2026-11-23) - the check is her history. Delete the other one.
+  const checked = await prisma.pregArchive.count({ where: { organizationId: orgId, transferId: id } });
+  if (checked) throw new HttpError(400, `Cow ${row.cowId}'s record in ${row.batch || "no group"} has a preg check on it (${row.status || "blank"}) - it can't be deleted. If she's in twice, delete the one with no check.`);
   await withSnapshot(orgId, `Deleted cow ${row.cowId} (${row.batch || "no group"})`, () => prisma.transfer.delete({ where: { id } }));
 }
 

@@ -87,3 +87,4 @@
 - 2026-11-23: Preg Check - no Safe button at a first check under 75 days (Carter: a sheet of early cows can only be Open or Probable). A Safe typed before stays tappable off.
 - 2026-11-23: A cow left Probable after an unsure 75-day check and put in with a later group: Check her with this group (+ Add cow, Cow Lookup) puts her own record on that sheet (Transfer.checkWith) - no new transfer. Cow Lookup can now edit her records and put in her result.
 - 2026-11-23: Preg Check result taps no longer wait (Carter: "a big lag"): the button lights at once and is never locked, saves go in order behind it, one page refresh 1.2 s after the taps stop.
+- 2026-11-23: Edit box gets Delete record (a record put in twice - cow 18); a record with a preg check on it is never deleted. Preg Check sheet gets the Find box.
