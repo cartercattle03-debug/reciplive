@@ -57,8 +57,8 @@ export async function backupWorkbook(organizationId: string): Promise<{ file: Bu
   XLSX.utils.book_append_sheet(
     wb,
     sheet(
-      ["Group", "Transfer Date", "Cow ID", "Mating", "Owner", "Tag Color", "Embryo Type", "Grade", "Company", "Status", "Delivery Status", "Delivery Date", "Due Date (typed)", "Notes", "Preg result typed (not confirmed)", "Its check date", "Entered"],
-      ordered.map((t) => [t.batch, group.get(t.batch)?.transferDate ?? "", t.cowId, t.mating, t.owner, t.tagColor, t.embryoType, t.grade, t.company, t.status, t.deliveryStatus, t.deliveryDate, t.dueOverride, t.notes, t.pregDraft, t.pregDraftDate, t.createdAt.toISOString().slice(0, 10)]),
+      ["Group", "Transfer Date", "Cow ID", "Mating", "Owner", "Tag Color", "Embryo Type", "Grade", "Company", "Status", "Delivery Status", "Delivery Date", "Due Date (typed)", "Notes", "Preg result typed (not confirmed)", "Its check date", "Checked with group", "Entered"],
+      ordered.map((t) => [t.batch, group.get(t.batch)?.transferDate ?? "", t.cowId, t.mating, t.owner, t.tagColor, t.embryoType, t.grade, t.company, t.status, t.deliveryStatus, t.deliveryDate, t.dueOverride, t.notes, t.pregDraft, t.pregDraftDate, t.checkWith, t.createdAt.toISOString().slice(0, 10)]),
     ),
     "Transfers",
   );

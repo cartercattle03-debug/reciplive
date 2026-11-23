@@ -50,6 +50,7 @@ export async function loadRanch(orgId: string, opts: { owner?: string | null } =
       notes: r.notes,
       pregDraft: r.pregDraft,
       pregDraftDate: r.pregDraftDate,
+      checkWith: r.checkWith,
     };
   });
   const archive: ArchiveRow[] = archiveRows.map((a) => ({ checkDate: a.checkDate, batch: a.batch, cowId: a.cowId, mating: a.mating, owner: a.owner, result: a.result }));

@@ -18,6 +18,10 @@ export type KnownCow = {
   company: string;
   pregDraft: string | null;
   lastCheck: { date: string; result: string } | null;
+  /** Embryo age today - under 75 no Safe button at a first check. */
+  embryoAge: number | null;
+  /** The group she's being checked with, if not her own (Carter, 2026-11-23). */
+  checkWith: string;
   /** Her latest record is still waiting on a check (Pending / Probable / blank) - she's already on the sheet. */
   waiting: boolean;
   /** ...and she shows on the list as it's filtered now. */
@@ -38,7 +42,7 @@ const BTN: Record<string, string> = {
  *  - Not on record: a Cow ID alone is enough.
  * The group always starts blank - nothing from the page is filled in.
  */
-export function AddPregCow({ lists, cows }: { lists: Lists; cows: Record<string, KnownCow> }) {
+export function AddPregCow({ lists, cows, group = "", startId = "", label = "+ Add cow" }: { lists: Lists; cows: Record<string, KnownCow>; group?: string; startId?: string; label?: string }) {
   const router = useRouter();
   const blank = { batch: "", cowId: "", mating: "", owner: "", embryoType: "", grade: "", company: "", dueOverride: "", notes: "" };
   const [open, setOpen] = useState(false);
@@ -48,11 +52,30 @@ export function AddPregCow({ lists, cows }: { lists: Lists; cows: Record<string,
   // Exact Cow ID (any case), or 54 for 054 when only one cow fits. A partial match never fills anything in.
   const match = findCowId(Object.keys(cows), f.cowId).id;
   const her = match ? cows[match] : undefined;
+  const typeIdFrom = (v: string) => {
+    const m = findCowId(Object.keys(cows), v).id;
+    const k = m ? cows[m] : undefined;
+    setF(k ? { ...blank, cowId: v, mating: k.mating, owner: k.owner, embryoType: k.embryoType, grade: k.grade, company: k.company } : { ...blank, cowId: v });
+  };
   const typeId = (v: string) => {
     const m = findCowId(Object.keys(cows), v).id;
     const k = m ? cows[m] : undefined;
     // Her most recent info fills in when she's found; it clears again if the Cow ID changes to another cow.
     setF(k ? { ...f, cowId: v, mating: k.mating, owner: k.owner, embryoType: k.embryoType, grade: k.grade, company: k.company } : { ...blank, cowId: v, notes: f.notes, dueOverride: f.dueOverride });
+  };
+  // Put a cow waiting in another group on this group's sheet (Carter, 2026-11-23) - her own record, no new transfer.
+  const checkWith = async (g: string) => {
+    if (!her) return;
+    setBusy(true);
+    try {
+      await post("/api/preg", { action: "checkWith", id: her.id, group: g });
+      toast(g ? `Cow ${match} is on the group ${g} sheet. Put her result in there, or leave it blank to keep her ${her.status || "as she is"}.` : `Cow ${match} is back with her own group${her.batch ? ` ${her.batch}` : ""}.`);
+      router.refresh();
+    } catch (x) {
+      toast((x as Error).message, true);
+    } finally {
+      setBusy(false);
+    }
   };
   const pick = async (result: string) => {
     if (!her) return;
@@ -70,8 +93,8 @@ export function AddPregCow({ lists, cows }: { lists: Lists; cows: Record<string,
 
   if (!open)
     return (
-      <button className="btn edit-only" onClick={() => (setF(blank), setOpen(true))}>
-        + Add cow
+      <button className="btn edit-only" onClick={() => (startId ? typeIdFrom(startId) : setF(blank), setOpen(true))}>
+        {label}
       </button>
     );
   const box = (k: keyof typeof f, label: string, list?: string[], type = "text", wide = false) => (
@@ -140,10 +163,24 @@ export function AddPregCow({ lists, cows }: { lists: Lists; cows: Record<string,
             {her.waiting && (
               <>
                 <p className="mt-1 font-semibold text-amber-900">
-                  She&apos;s already on the sheet{her.batch ? ` in group ${her.batch}` : ""}, waiting on her check{her.onList ? " - on the list below." : " (not on the list showing now - different Group or ages)."} Put her result in here:
+                  She&apos;s already on the sheet{her.batch ? ` in group ${her.batch}` : ""}
+                  {her.checkWith ? ` (checked with ${her.checkWith})` : ""}, waiting on her check{her.onList ? " - on the list below." : " (not on the list showing now - different Group or ages)."} Put her result in here:
                 </p>
+                {group && !her.onList && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button type="button" disabled={busy} onClick={() => checkWith(group)} className="btn-go">
+                      Check her with group {group}
+                    </button>
+                    <span className="text-xs text-slate-600">Puts her on this sheet - no new record. No result = she stays {her.status || "as she is"}.</span>
+                  </div>
+                )}
+                {her.checkWith && (
+                  <button type="button" disabled={busy} onClick={() => checkWith("")} className="btn-quiet mt-2 text-xs">
+                    Back to her own group{her.batch ? ` (${her.batch})` : ""}
+                  </button>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {resultsFor(her.status, her.pregDraft).map((r) => (
+                  {resultsFor(her.status, her.pregDraft, her.embryoAge).map((r) => (
                     <button
                       key={r}
                       type="button"

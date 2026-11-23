@@ -145,6 +145,9 @@ model Transfer {
   pregDraft      String?
   /// The check date for that typed result: today when the result is picked, cleared when the result is taken back off.
   pregDraftDate  String?
+  /// Checked with another group (Carter, 2026-11-23): a cow still waiting on her check, put in with this group's sheet -
+  /// she shows when that group is picked, whatever her age. Cleared when her result is confirmed.
+  checkWith      String       @default("")
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

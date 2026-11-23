@@ -14,10 +14,15 @@ export const STATUSES = ["Pending", "Probable", "Safe", "Open", "Pass", "Culled"
 export const PREG_RESULTS = ["Probable", "Safe", "Open"] as const;
 /** The results a cow can get at the chute: one already checked Probable can only come back Safe or Open (Carter, 2026-10-14).
  *  A Probable typed for her before this rule still shows, so it can be tapped back off. */
-export function resultsFor(status: string, draft?: string | null): string[] {
-  if (status !== "Probable") return [...PREG_RESULTS];
-  return draft === "Probable" ? [...PREG_RESULTS] : ["Safe", "Open"];
+export function resultsFor(status: string, draft?: string | null, embryoAge?: number | null): string[] {
+  if (status === "Probable") return draft === "Probable" ? [...PREG_RESULTS] : ["Safe", "Open"];
+  // No Safe button on a first check while she's too young to be called Safe (Carter, 2026-11-23) - under 75 days.
+  // A Safe typed before this rule still shows, so it can be tapped back off. Age unknown = every button.
+  if (embryoAge != null && embryoAge < SAFE_AGE && draft !== "Safe") return ["Probable", "Open"];
+  return [...PREG_RESULTS];
 }
+/** The youngest a cow can be called Safe: the 75-day check (embryo age, days since transfer + 7). */
+export const SAFE_AGE = 75;
 /**
  * The status a record shows as on every list and report (Carter, 2026-10-14): a culled cow reads as what her transfer came
  * to - Open, mostly - so a customer never sees "Culled" against their cows. She is still stored as Culled, and the Master
@@ -55,6 +60,8 @@ export type Transfer = {
   /** A preg check result typed on the Preg Check page, not yet confirmed. */
   pregDraft?: string | null;
   pregDraftDate?: string | null;
+  /** Put in with another group's preg check sheet (Carter, 2026-11-23). */
+  checkWith?: string;
   /** A Due Date typed in by hand; Days Bred is worked back from it. */
   dueOverride?: string | null;
 };
@@ -337,14 +344,17 @@ export function matrix(calc: Calc[], rowBy: BreakdownBy, rowValues: string[], co
 
 export type PregFilter = { batch?: string | null; minAge?: number | null; maxAge?: number | null };
 
+const withGroup = (c: Calc, f: PregFilter) => !!f.batch && !!c.checkWith && same(c.checkWith, f.batch);
+
 /** Preg Check list: her latest record, not yet Safe/Open (blank, Pending or Probable), inside the Group or embryo-age window. */
 export function pregCheckList(calc: Calc[], f: PregFilter): Calc[] {
   return latestRows(calc)
     .filter((c) => !c.status || c.status === "Pending" || c.status === "Probable")
     // A cow added with no group has no group or age to filter on - she always shows until she's checked.
-    .filter((c) => !c.batch || !f.batch || same(c.batch, f.batch))
-    .filter((c) => !c.batch || f.minAge == null || (c.embryoAge !== null && c.embryoAge >= f.minAge))
-    .filter((c) => !c.batch || f.maxAge == null || (c.embryoAge !== null && c.embryoAge <= f.maxAge))
+    // A cow put in with another group's check (Carter, 2026-11-23) shows with that group, whatever her age.
+    .filter((c) => !c.batch || !f.batch || same(c.batch, f.batch) || (!!c.checkWith && same(c.checkWith, f.batch)))
+    .filter((c) => !c.batch || withGroup(c, f) || f.minAge == null || (c.embryoAge !== null && c.embryoAge >= f.minAge))
+    .filter((c) => !c.batch || withGroup(c, f) || f.maxAge == null || (c.embryoAge !== null && c.embryoAge <= f.maxAge))
     .sort((a, b) => compareFamily(a.cowId, b.cowId));
 }
 

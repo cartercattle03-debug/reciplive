@@ -1,13 +1,15 @@
 import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { batchCell, dateCell, numCell } from "@/lib/cells";
-import { cowHistory, shownStatus } from "@/lib/recip";
+import { cowHistory, pregCheckList, shownStatus } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
 import { seesMoney, staffPage } from "@/lib/server/session";
 import { money } from "@/lib/cells";
 import { ArchiveTable } from "@/components/ArchiveTable";
 import { cowArchive } from "@/lib/cowArchive";
 import { recipRatings, starText } from "@/lib/rating";
+import { AddPregCow, type KnownCow } from "@/components/AddPregCow";
+import { prisma } from "@/lib/prisma";
 
 export default async function CowLookup({ searchParams }: { searchParams: { cow?: string } }) {
   const m = await staffPage();
@@ -22,9 +24,20 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
   const last = h[h.length - 1];
   const rating = last ? recipRatings(calc).get(last.cowId) : undefined;
   const extra = id ? cows.get(h[0]?.cowId ?? id) : undefined;
+  // Edit any of her records, and her preg check right here (Carter, 2026-11-23: a cow at the chute not on the sheet).
+  const canEdit = m.role === "OWNER" && !m.locked;
+  const editLists = { batches: R.lists.batches.map((b) => b.label), owners: R.lists.owners, companies: R.lists.companies, grades: R.lists.grades };
+  const org = canEdit && last ? await prisma.organization.findUnique({ where: { id: m.organizationId }, select: { pregBatch: true, pregMinAge: true, pregMaxAge: true } }) : null;
+  const lastCheck = last?.checks[last.checks.length - 1];
+  const known: Record<string, KnownCow> = {};
+  if (last && last.latest) {
+    const waiting = !last.status || last.status === "Pending" || last.status === "Probable" || last.status === "Not Recorded";
+    const onList = waiting && !!org && pregCheckList([last], { batch: org.pregBatch, minAge: org.pregMinAge, maxAge: org.pregMaxAge }).length > 0;
+    known[last.cowId] = { id: last.id, batch: last.batch, status: last.status, mating: last.mating, owner: last.owner, embryoType: last.embryoType, grade: last.grade, company: last.company, pregDraft: last.pregDraft ?? null, lastCheck: lastCheck ? { date: lastCheck.checkDate, result: lastCheck.result } : null, embryoAge: last.embryoAge, checkWith: last.checkWith ?? "", waiting, onList };
+  }
   const rows: Row[] = h.map((c) => ({
     key: c.id,
-    cells: [numCell(c.attemptNo), batchCell(c), { t: c.mating }, { t: c.owner }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.transferDate), { t: c.deliveryStatus }, { t: c.notes }],
+    cells: [canEdit ? { t: "", editRow: { id: c.id, batch: c.batch, cowId: c.cowId, mating: c.mating, owner: c.owner, tagColor: c.tagColor ?? "", embryoType: c.embryoType, grade: c.grade, company: c.company, status: c.status, notes: c.notes } } : { t: "" }, numCell(c.attemptNo), batchCell(c), { t: c.mating }, { t: c.owner }, { t: c.embryoType }, { t: c.grade }, { t: c.company }, { t: shownStatus(c), cls: c.status ? `st-${shownStatus(c)}` : "" }, dateCell(c.transferDate), { t: c.deliveryStatus }, { t: c.notes }],
   }));
   return (
     <div>
@@ -79,8 +92,17 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
               <p className="mt-2 text-xs text-slate-500">Her odds on the next transfer, from her own results weighed by how good each embryo was. 5 = as good as a fresh recip; 2½ and under (about 1 in 6 or worse) = cull candidate. Passes don&apos;t count; a lost Probable counts as an Open unless loss was common that day.</p>
             </div>
           )}
+          {canEdit && last.latest && (
+            <div className="card mb-4 flex flex-wrap items-center gap-3 border-l-4 border-brand-600 p-3 text-sm">
+              <span className="font-semibold text-slate-700">Preg check</span>
+              <span className="text-slate-600">
+                {last.pregDraft ? `Result typed: ${last.pregDraft} - confirmed with the rest at Confirm & Archive.` : known[last.cowId]?.onList ? "She's on today's Preg Check sheet." : known[last.cowId]?.waiting ? `Waiting on her check in group ${last.batch || "(none)"} - not on the sheet showing now.` : `Not waiting on a check (${shownStatus(last) || "blank"}).`}
+              </span>
+              <AddPregCow lists={editLists} cows={known} group={org?.pregBatch ?? ""} startId={last.cowId} label={known[last.cowId]?.waiting ? "Put in her result / check her with this group" : "Add her to the preg check sheet"} />
+            </div>
+          )}
           <h2 className="mb-1.5 text-sm font-semibold text-brand-700">Transfers</h2>
-          <Table cols={[{ label: "Attempt #" }, { label: "Batch" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Transfer Date" }, { label: "Delivery Status" }, { label: "Notes" }]} rows={rows} maxHeight={false} />
+          <Table lists={editLists} cols={[{ label: "", noSort: true }, { label: "Attempt #" }, { label: "Batch" }, { label: "Mating" }, { label: "Owner" }, { label: "Embryo Type" }, { label: "Grade" }, { label: "Company" }, { label: "Status" }, { label: "Transfer Date" }, { label: "Delivery Status" }, { label: "Notes" }]} rows={rows} maxHeight={false} />
           <h2 className="mb-1.5 mt-6 text-sm font-semibold text-brand-700">Her full archive, in order</h2>
           <ArchiveTable steps={cowArchive(calc, archive, cows, events, last.cowId)} showCow={false} showMoney={owner} />
         </>

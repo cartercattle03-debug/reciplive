@@ -38,8 +38,8 @@ export function PregPaper({ cows }: { cows: Record<string, KnownCow> }) {
         else if (!cow.waiting) why = `Not waiting on a check (her latest record is ${cow.status || "blank"})`;
         else if (!r.result) why = "No result written";
         else if (!res) why = `Can't tell what "${r.result}" means - tap it on the sheet`;
-        else if (!resultsFor(cow.status, cow.pregDraft).includes(res)) why = `${res} isn't a choice for her now (she's ${cow.status})`;
-        out.push({ cowId: hit ?? r.cowId, written: r.result, id: cow && cow.waiting && res && resultsFor(cow.status, cow.pregDraft).includes(res) ? cow.id : undefined, result: res || undefined, why, unsure });
+        else if (!resultsFor(cow.status, cow.pregDraft, cow.embryoAge).includes(res)) why = `${res} isn't a choice for her now (she's ${cow.status || "blank"}${cow.embryoAge != null ? `, ${cow.embryoAge} days` : ""})`;
+        out.push({ cowId: hit ?? r.cowId, written: r.result, id: cow && cow.waiting && res && resultsFor(cow.status, cow.pregDraft, cow.embryoAge).includes(res) ? cow.id : undefined, result: res || undefined, why, unsure });
       }
     setNote(pages.map((p) => [p.header.checkDate && `Check date on the sheet: ${p.header.checkDate}.`, p.remarks].filter(Boolean).join(" ")).filter(Boolean).join(" "));
     setLines(out);

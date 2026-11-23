@@ -215,6 +215,19 @@ export async function setPregDraft(orgId: string, id: string, result: unknown) {
   if (!n.count) throw new HttpError(404, "That record is gone - refresh the page.");
 }
 
+/**
+ * Check her with another group (Carter, 2026-11-23): a cow still waiting on her check (a Probable the tech wasn't sure of at
+ * 75 days, say) put on that group's sheet. Her record stays as it is - only where she's checked changes. "" takes her back.
+ */
+export async function setCheckWith(orgId: string, id: string, group: unknown) {
+  const g = clean(group);
+  const row = await prisma.transfer.findFirst({ where: { id, organizationId: orgId } });
+  if (!row) throw new HttpError(404, "That record is gone - refresh the page.");
+  if (row.status && !["Pending", "Probable", "Not Recorded"].includes(row.status)) throw new HttpError(400, `Cow ${row.cowId} isn't waiting on a check (she's ${row.status}) - + Add cow puts her on as a new record.`);
+  await prisma.transfer.update({ where: { id }, data: { checkWith: g.toLowerCase() === row.batch.toLowerCase() ? "" : g } });
+  return { cowId: row.cowId };
+}
+
 /** A different check date for one typed result (checked yesterday, typed in today). */
 export async function setPregDraftDate(orgId: string, id: string, date: unknown) {
   const d = clean(date);
@@ -236,7 +249,7 @@ export async function confirmPregCheck(orgId: string) {
   const dates = [...new Set(todo.map((r) => dateOf(r)!))].sort();
   return withSnapshot(orgId, `Preg check ${dates.length === 1 ? dates[0] : `${dates[0]} to ${dates[dates.length - 1]}`} (${todo.length} result${todo.length === 1 ? "" : "s"})`, async () => {
     for (const r of todo) {
-      await prisma.transfer.update({ where: { id: r.id }, data: { status: r.pregDraft!, pregDraft: null, pregDraftDate: null } });
+      await prisma.transfer.update({ where: { id: r.id }, data: { status: r.pregDraft!, pregDraft: null, pregDraftDate: null, checkWith: "" } });
       await prisma.pregArchive.create({
         data: { organizationId: orgId, checkDate: dateOf(r)!, batch: r.batch, cowId: r.cowId, mating: r.mating, owner: r.owner, result: r.pregDraft!, priorStatus: r.status, transferId: r.id },
       });
@@ -539,10 +552,12 @@ export async function addPregCow(orgId: string, r: Record<string, unknown>) {
   if (!cowId) throw new HttpError(400, "Enter her Cow ID.");
   // The group is optional (Carter, 2026-10-16): a cow can go on by Cow ID alone.
   const { calc } = await loadRanch(orgId);
-  const waiting = (c: (typeof calc)[number]) => c.latest && (!c.status || c.status === "Pending" || c.status === "Probable");
+  const waiting = (c: (typeof calc)[number]) => c.latest && (!c.status || c.status === "Pending" || c.status === "Probable" || c.status === "Not Recorded");
   const sameCow = (c: (typeof calc)[number]) => c.cowId.toLowerCase() === cowId.toLowerCase() || (/^\d+$/.test(cowId) && /^\d+$/.test(c.cowId) && c.cowId.replace(/^0+/, "") === cowId.replace(/^0+/, ""));
-  const twin = calc.find((c) => waiting(c) && sameCow(c) && (!batch || !c.batch || c.batch.toLowerCase() === batch.toLowerCase()));
-  if (twin) throw new HttpError(400, `Cow ${twin.cowId} is already on the sheet${twin.batch ? ` in group ${twin.batch}` : " (no group)"} - she's waiting on her check. Type her Cow ID in + Add cow to put her result in.`);
+  // Still waiting on a check in any group (Carter, 2026-11-23): never a second, made-up transfer for her - she's checked
+  // with this group on her own record instead (Check her with this group).
+  const twin = calc.find((c) => waiting(c) && sameCow(c));
+  if (twin) throw new HttpError(400, `Cow ${twin.cowId} is still waiting on her check${twin.batch ? ` in group ${twin.batch}` : " (no group)"} - type her Cow ID in + Add cow and use Check her with this group, or put her result in there.`);
   return addTransfers(orgId, [{ batch, cowId, mating: r.mating, owner: r.owner, embryoType: r.embryoType, grade: r.grade, company: r.company, dueOverride: r.dueOverride, notes: r.notes, status: "Pending" }]);
 }
 

@@ -32,7 +32,9 @@ export default async function PregCheck() {
         company: c.company,
         pregDraft: c.pregDraft ?? null,
         lastCheck: last ? { date: last.checkDate, result: last.result } : null,
-        waiting: !c.status || c.status === "Pending" || c.status === "Probable",
+        embryoAge: c.embryoAge,
+        checkWith: c.checkWith ?? "",
+        waiting: !c.status || c.status === "Pending" || c.status === "Probable" || c.status === "Not Recorded",
         onList: listed.has(c.id),
       };
     }
@@ -48,7 +50,8 @@ export default async function PregCheck() {
     return { title, cows: cows.length, checked: results.length, pcts: picks.map((r) => [r, pct(r)] as const), open: n("Open") };
   };
   const tallies = [
-    ...(first.length || !second.length ? [tally(first, second.length ? "First check" : "", ["Probable", "Safe", "Open"])] : []),
+    // No % Safe when no cow at her first check is old enough to be called Safe (Carter, 2026-11-23).
+    ...(first.length || !second.length ? [tally(first, second.length ? "First check" : "", first.some((c) => resultsFor(c.status, c.pregDraft, c.embryoAge).includes("Safe")) ? ["Probable", "Safe", "Open"] : ["Probable", "Open"])] : []),
     ...(second.length ? [tally(second, first.length ? "75-day check" : "", ["Safe", "Open"])] : []),
   ];
   const TONE: Record<string, string> = { Probable: "border-amber-300 bg-amber-100 text-amber-900", Safe: "border-emerald-300 bg-emerald-100 text-emerald-900", Open: "border-red-300 bg-red-100 text-red-900" };
@@ -59,12 +62,13 @@ export default async function PregCheck() {
   const rows: Row[] = list.map((c) => ({
     key: c.id,
     cells: [
-      batchCell(c),
+      // A cow checked with this group shows her own group, and who she's in with (Carter, 2026-11-23).
+      c.checkWith && c.checkWith.toLowerCase() !== c.batch.toLowerCase() ? { ...batchCell(c), t: `${c.batch} (with ${c.checkWith})`, title: `Her record is in group ${c.batch}; she's being checked with ${c.checkWith}` } : batchCell(c),
       { ...cowCell(c.cowId), title: `${c.mating}${c.owner ? ` · ${c.owner}` : ""}` },
       { t: c.tagColor ?? "", cls: "noshade", edit: { api: "transfers", id: c.id, field: "tagColor", kind: "text", value: c.tagColor ?? "" } },
       { ...numCell(c.embryoAge), cls: strike(c) },
       // A cow already checked Probable can only come back Safe or Open (Carter, 2026-10-14) - no Probable button for her.
-      { t: c.pregDraft ?? "", s: c.pregDraft ?? "", cls: "noshade", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: resultsFor(c.status, c.pregDraft), value: c.pregDraft ?? "" } },
+      { t: c.pregDraft ?? "", s: c.pregDraft ?? "", cls: "noshade", edit: { api: "preg", id: c.id, field: "result", kind: "buttons", options: resultsFor(c.status, c.pregDraft, c.embryoAge), value: c.pregDraft ?? "" } },
       // Status follows the Result the moment it's tapped (Carter, 2026-10-16); her record takes it at Confirm & Archive.
       c.pregDraft
         ? { t: c.pregDraft, s: c.pregDraft, cls: `st-${c.pregDraft}`, title: `Was ${c.status || "blank"} - goes on her record at Confirm & Archive` }
@@ -79,7 +83,7 @@ export default async function PregCheck() {
     <div>
       <PageHeader
         title="Preg Check"
-        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off) - a cow already Probable gets only Safe or Open. Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it. + Add cow looks her up as you type her Cow ID: already on the sheet, you can put her result in right there; otherwise her latest info fills in."
+        sub="Every cow still needing a check: her latest record is Pending, Probable or blank. Type results as you go - nothing changes on the records until Confirm & Archive. A result stays with its cow even if you change the Group or ages. Tap Probable, Safe or Open for each cow (tap it again to take it back off) - a cow already Probable gets only Safe or Open, and a cow under 75 days at her first check gets no Safe button. Picking a Result fills in today as its Check Date (tap the date to change it); taking the Result back off clears it. + Add cow looks her up as you type her Cow ID: already on the sheet, you can put her result in right there; still waiting in another group (a Probable you're rechecking), Check her with this group puts her on this sheet without a new record; otherwise her latest info fills in."
       >
         <span className="edit-only">
           <PregPaper cows={known} />
@@ -115,7 +119,7 @@ export default async function PregCheck() {
           ))}
         </div>
         <div className="mb-3">
-          <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} cows={known} />
+          <AddPregCow lists={{ batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades }} cows={known} group={org?.pregBatch ?? ""} />
         </div>
       </div>
       <Table
