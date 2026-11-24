@@ -275,3 +275,6 @@ td.cell-sel {
   background-color: #e0f2fe !important;
   box-shadow: inset 0 0 0 2px #0369a1;
 }
+
+/* Open Inventory: a cull candidate as a red oval, tap for her Cow Lookup (Carter, 2026-11-23). */
+td.cull-pill a { display: inline-block; border-radius: 9999px; background: #fee2e2; color: #991b1b; padding: 0.1rem 0.7rem; font-weight: 700; font-size: 0.8rem; }

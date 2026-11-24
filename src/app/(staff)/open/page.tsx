@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/Shell";
 import { Table, type Row } from "@/components/Table";
 import { cowCell, dateCell, numCell } from "@/lib/cells";
 import { historyNote } from "@/lib/history";
-import { CULL_AT, recipRatings, starText } from "@/lib/rating";
+import { recipRatings } from "@/lib/rating";
 import { OPEN_SORTS, openCull, openList } from "@/lib/openList";
 import type { OpenSort } from "@/lib/recip";
 import { loadRanch } from "@/lib/server/data";
@@ -30,14 +30,11 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
         { t: "", pick: e.cowId },
         { ...cowCell(e.cowId), title: historyNote(calc, e.cowId) },
         (() => {
+          // No stars on the list (Carter, 2026-11-23: hard to read with 3-5 tries a season) - only a cull candidate is
+          // marked, plain to see, and a tap opens her Cow Lookup with the reasons to decide.
           const r = ratings.get(e.cowId);
-          if (!r || !r.tries) return { t: "New", s: 99, cls: "text-xs text-slate-500", title: "No finished transfers yet - rates as a fresh recip" };
-          return {
-            t: `${starText(r.stars)} ${r.stars}`,
-            s: r.score,
-            cls: "whitespace-nowrap " + (r.cull ? "font-semibold text-red-700" : "font-semibold text-amber-600"),
-            title: (r.cull ? "Cull candidate\n" : "") + r.steps.map((x) => `${x.batch}: ${x.text}`).join("\n"),
-          };
+          if (!r || !r.tries || !r.cull) return { t: "", s: r?.tries ? r.score : 99 };
+          return { t: "Cull candidate", s: r.score, href: `/lookup?cow=${encodeURIComponent(e.cowId)}`, cls: "cull-pill whitespace-nowrap", title: r.steps.map((x) => `${x.batch}: ${x.text}`).join("\n") };
         })(),
         { t: e.added ? (c ? `Added back (after ${c.status})` : "New - no transfer yet") : e.repeatFlag, cls: e.repeatFlag === "NEVER SETTLED" ? "text-red-700 font-semibold" : e.added ? "text-brand-700" : "" },
         numCell(e.totalAttempts),
@@ -57,7 +54,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
     <div>
       <PageHeader
         title={`Open Inventory - ${year}`}
-        sub={`Every cow open in ${year}, ready for her next attempt: checked Open in ${year} (a Nov / Dec transfer checked Open in January lands in the new year), a Pass, or added here. She drops off when a new transfer goes in for her. Tick cows to cull them or move them to ${year + 1}'s opens; the red ✕ takes a gone cow off the list. Yellow = passed over twice or more. Rating = her odds on the next transfer, 5 = as good as a fresh recip; red (${CULL_AT} and under, about 1 in 6 or worse) = cull candidate - point at it for the reasons.`}
+        sub={`Every cow open in ${year}, ready for her next attempt: checked Open in ${year} (a Nov / Dec transfer checked Open in January lands in the new year), a Pass, or added here. She drops off when a new transfer goes in for her. Tick cows to cull them or move them to ${year + 1}'s opens; the red ✕ takes a gone cow off the list. Yellow = passed over twice or more. Cull candidate = her own results say about 1 in 6 or worse on the next transfer - tap it to see why and decide.`}
       >
         {m.role === "OWNER" && <AddOpenCows year={year} />}
       </PageHeader>
@@ -76,7 +73,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
           { label: "", noSort: true },
           { label: "Tick", noSort: true, title: "Tick cows, then Cull checked or Move to next year" },
           { label: "Cow ID" },
-          { label: "Rating", title: "Recip Rating 1-5: her odds on the next transfer from her own results, weighed by how good each embryo was. Red = cull candidate. Point at it for the reasons." },
+          { label: "Cull?", title: "Cull candidate: her own results, weighed by how good each embryo was, give her about 1 in 6 or worse on the next transfer. Tap it for her Cow Lookup and the reasons." },
           { label: "Repeat Flag" },
           { label: "Total Attempts" },
           { label: "Fresh Received" },

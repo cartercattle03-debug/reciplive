@@ -88,3 +88,4 @@
 - 2026-11-23: A cow left Probable after an unsure 75-day check and put in with a later group: Check her with this group (+ Add cow, Cow Lookup) puts her own record on that sheet (Transfer.checkWith) - no new transfer. Cow Lookup can now edit her records and put in her result.
 - 2026-11-23: Preg Check result taps no longer wait (Carter: "a big lag"): the button lights at once and is never locked, saves go in order behind it, one page refresh 1.2 s after the taps stop.
 - 2026-11-23: Edit box gets Delete record (a record put in twice - cow 18); a record with a preg check on it is never deleted. Preg Check sheet gets the Find box.
+- 2026-11-23: Recip Rating stars off the screen (Carter: hard to read with 3-5 tries a season). Open Inventory's Cull? column shows only a red Cull candidate oval that opens her Cow Lookup; Cow Lookup shows Cull candidate / Not a cull candidate and the reasons.

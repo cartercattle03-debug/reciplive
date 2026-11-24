@@ -7,7 +7,7 @@ import { seesMoney, staffPage } from "@/lib/server/session";
 import { money } from "@/lib/cells";
 import { ArchiveTable } from "@/components/ArchiveTable";
 import { cowArchive } from "@/lib/cowArchive";
-import { recipRatings, starText } from "@/lib/rating";
+import { recipRatings } from "@/lib/rating";
 import { AddPregCow, type KnownCow } from "@/components/AddPregCow";
 import { prisma } from "@/lib/prisma";
 
@@ -68,14 +68,14 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
           {rating && (
             <div className={"card mb-4 border-l-4 p-3 " + (rating.cull ? "border-red-600" : "border-rust")}>
               <div className="flex flex-wrap items-baseline gap-3">
-                <span className="text-sm font-semibold text-slate-600">Recip Rating</span>
+                <span className="text-sm font-semibold text-slate-600">Cull check</span>
                 {rating.tries ? (
-                  <>
-                    <span className={"text-xl font-bold " + (rating.cull ? "text-red-700" : "text-amber-600")}>
-                      {starText(rating.stars)} {rating.stars}
-                    </span>
-                    {rating.cull && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-800">Cull candidate</span>}
-                  </>
+                  // No stars (Carter, 2026-11-23) - cull candidate or not, with her reasons below.
+                  rating.cull ? (
+                    <span className="rounded-full bg-red-100 px-3 py-0.5 text-sm font-bold text-red-800">Cull candidate</span>
+                  ) : (
+                    <span className="rounded-full bg-emerald-50 px-3 py-0.5 text-sm font-semibold text-emerald-800">Not a cull candidate</span>
+                  )
                 ) : (
                   <span className="text-sm text-slate-500">New - no finished transfers yet, rates as a fresh recip</span>
                 )}
@@ -89,7 +89,7 @@ export default async function CowLookup({ searchParams }: { searchParams: { cow?
                   ))}
                 </ol>
               )}
-              <p className="mt-2 text-xs text-slate-500">Her odds on the next transfer, from her own results weighed by how good each embryo was. 5 = as good as a fresh recip; 2½ and under (about 1 in 6 or worse) = cull candidate. Passes don&apos;t count; a lost Probable counts as an Open unless loss was common that day.</p>
+              <p className="mt-2 text-xs text-slate-500">From her own results, weighed by how good each embryo was: about 1 in 6 or worse on the next transfer = cull candidate. Passes don&apos;t count; a lost Probable counts as an Open unless loss was common that day.</p>
             </div>
           )}
           {canEdit && last.latest && (
