@@ -88,9 +88,9 @@ function DeleteButton({ id, what, off }: { id: string; what: string; off?: boole
 
 /** One page refresh after a run of taps (1.2 s quiet), instead of a full reload for every tap. */
 let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-function laterRefresh(router: { refresh: () => void }) {
+function laterRefresh(router: { refresh: () => void }, wait = 1200) {
   clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(() => router.refresh(), 1200);
+  refreshTimer = setTimeout(() => router.refresh(), wait);
 }
 
 function EditCell({ e, shown }: { e: Edit; shown: string }) {
@@ -124,7 +124,8 @@ function EditCell({ e, shown }: { e: Edit; shown: string }) {
     try {
       await save(e, v);
       setEditing(false);
-      router.refresh();
+      // Typing down a column: one page refresh after the last save, not one per cell (Carter, 2026-11-24: speed).
+      laterRefresh(router, 700);
     } catch (err) {
       toast((err as Error).message, true);
       setVal(e.value);
@@ -405,7 +406,10 @@ export function Table({
       window.removeEventListener("mouseup", up);
     };
   }, []);
-  const shown = useMemo(() => {
+  // A long list draws its first 300 rows, then Show all (Carter, 2026-11-24: speed on the iPad). Find and sort still
+  // cover every row; ticks, copy / paste and arrows only ever touch rows that are drawn.
+  const [limit, setLimit] = useState(300);
+  const allShown = useMemo(() => {
     let out = rows;
     if (q.trim()) {
       const n = q.trim().toLowerCase();
@@ -424,6 +428,7 @@ export function Table({
     }
     return out;
   }, [rows, sort, q]);
+  const shown = useMemo(() => allShown.slice(0, limit), [allShown, limit]);
   // A new sort / search / page of rows moves the cells under the selection - start fresh.
   useEffect(() => {
     setSel(null);
@@ -521,7 +526,7 @@ export function Table({
       {(search || picks) && (
         <div className="no-print mb-2 flex flex-wrap items-center gap-2">
           {search && <input className="field max-w-xs" placeholder="Find in this list..." value={q} onChange={(e) => setQ(e.target.value)} />}
-          {q && <span className="text-xs text-slate-500">{shown.length} of {rows.length}</span>}
+          {q && <span className="text-xs text-slate-500">{allShown.length} of {rows.length}</span>}
           {picks && picked.length > 0 && (
             <span className="edit-only ml-auto flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500">{picked.length} ticked</span>
@@ -674,6 +679,14 @@ export function Table({
           </tbody>
         </table>
       </div>
+      {allShown.length > shown.length && (
+        <div className="mt-2 flex items-center gap-3 text-sm text-slate-600">
+          Showing {shown.length} of {allShown.length}.
+          <button type="button" className="btn-quiet" onClick={() => setLimit(Infinity)}>
+            Show all {allShown.length}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

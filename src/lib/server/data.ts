@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { calculate, ranchToday, type ArchiveRow, type Calc, type CowExtra, type Transfer } from "@/lib/recip";
 import type { CowEventRow } from "@/lib/cowArchive";
@@ -9,14 +10,15 @@ export type Lists = {
   grades: string[];
 };
 
-export async function loadLists(orgId: string): Promise<Lists> {
+// Shared by the layout and the page within one page load (Carter, 2026-11-24: speed).
+export const loadLists: (orgId: string) => Promise<Lists> = cache(async (orgId: string): Promise<Lists> => {
   const [batches, items] = await Promise.all([
     prisma.batch.findMany({ where: { organizationId: orgId }, orderBy: { order: "asc" } }),
     prisma.listItem.findMany({ where: { organizationId: orgId }, orderBy: { order: "asc" } }),
   ]);
   const of = (k: string) => items.filter((i) => i.kind === k).map((i) => i.value);
   return { batches: batches.map((b) => ({ id: b.id, label: b.label, transferDate: b.transferDate, order: b.order })), owners: of("OWNER"), companies: of("COMPANY"), grades: of("GRADE") };
-}
+});
 
 /** Everything a page needs: the transfer list worked out live, the lists, the archive and the Master Sheet entries. */
 export async function loadRanch(orgId: string, opts: { owner?: string | null } = {}) {

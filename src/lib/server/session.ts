@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -23,18 +24,23 @@ export type Member = {
 };
 
 /** The first ranch made - Carter's own. Its owner is the site admin and it is never paused. */
-async function firstRanchId(): Promise<string | null> {
+// Once per page load (Carter, 2026-11-24: speed) - the layout and the page both ask; cache() shares the answer.
+const firstRanchId: () => Promise<string | null> = cache(async (): Promise<string | null> => {
   return (await prisma.organization.findFirst({ orderBy: { createdAt: "asc" }, select: { id: true } }))?.id ?? null;
-}
+});
 export function isLocked(o: { status: string; trialEnds: Date | null }, now = new Date()): boolean {
   return o.status === "PAUSED" || (o.status === "TRIAL" && !!o.trialEnds && o.trialEnds.getTime() < now.getTime());
 }
 
-async function load(): Promise<Member | null> {
+// One sign-in check per page load, shared by the layout and the page; the two lookups go together, not one after the other.
+const load: () => Promise<Member | null> = cache(async (): Promise<Member | null> => {
   const s = await getServerSession(authOptions);
   const id = (s?.user as { id?: string } | undefined)?.id;
   if (!id) return null;
-  const m = await prisma.membership.findFirst({ where: { userId: id }, include: { user: true, organization: true }, orderBy: { createdAt: "asc" } });
+  const [m, first] = await Promise.all([
+    prisma.membership.findFirst({ where: { userId: id }, include: { user: true, organization: true }, orderBy: { createdAt: "asc" } }),
+    firstRanchId(),
+  ]);
   if (!m) return null;
   return {
     userId: id,
@@ -46,10 +52,10 @@ async function load(): Promise<Member | null> {
     ownerName: m.ownerName,
     status: m.organization.status,
     trialEnds: m.organization.trialEnds,
-    locked: (await firstRanchId()) !== m.organizationId && isLocked(m.organization),
-    siteAdmin: m.role === "OWNER" && (await firstRanchId()) === m.organizationId,
+    locked: first !== m.organizationId && isLocked(m.organization),
+    siteAdmin: m.role === "OWNER" && first === m.organizationId,
   };
-}
+});
 
 /** For a page: the logged-in ranch hand (owner / manager). A customer goes to their own page; nobody logged in goes to Login. */
 export async function staffPage(): Promise<Member> {
