@@ -20,6 +20,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
   const list = openList(calc, cows, year, thisYear(), sort);
   // Recip Rating from her whole history, every year (Carter, 2026-10-15).
   const ratings = recipRatings(calc);
+  const cullCount = list.filter((e) => ratings.get(e.cowId)?.cull && ratings.get(e.cowId)?.tries).length;
   const rows: Row[] = list.map((e) => {
     const c = e.rec;
     return {
@@ -60,8 +61,18 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
       </PageHeader>
       <FilterForm>
         <Pick name="sort" label="Sort By" value={sort} options={[...OPEN_SORTS]} all={null} />
-        <span className="pb-2 text-xs text-slate-500">{list.length} cows listed</span>
       </FilterForm>
+      {/* The totals in one box, easy to find (Carter, 2026-11-23). */}
+      <div className="card mb-4 inline-flex flex-wrap items-stretch gap-0 overflow-hidden p-0">
+        <div className="px-6 py-3 text-center">
+          <div className="text-3xl font-bold text-brand-700">{list.length}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Open cows</div>
+        </div>
+        <div className="border-l border-slate-300 bg-red-50 px-6 py-3 text-center">
+          <div className="text-3xl font-bold text-red-700">{cullCount}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-red-800">Cull candidates</div>
+        </div>
+      </div>
       <Table
         search
         lists={editLists}
