@@ -4,7 +4,7 @@ import { familyKey, showDate, showRate, type Calc } from "./recip";
 /** Shared cell builders, so every page shows a Cow ID, a status or a date the same way. */
 export const cowCell = (id: string): Cell => {
   const k = familyKey(id);
-  return { t: id, s: k[0] ? `1|${k[1]}|${String(k[2]).padStart(3, "0")}|${String(k[3]).padStart(15, "0")}` : `0|${k[4]}`, href: `/lookup?cow=${encodeURIComponent(id)}` };
+  return { t: id, s: k[0] ? `1|${k[1]}|${String(k[2]).padStart(3, "0")}|${String(k[3]).padStart(15, "0")}|${k[4]}` : `0|${k[4]}`, href: `/lookup?cow=${encodeURIComponent(id)}` };
 };
 export const statusCell = (s: string): Cell => ({ t: s, cls: s ? `st-${s.replace(/\s/g, "")}` : "" });
 export const dateCell = (d: string | null): Cell => ({ t: showDate(d), s: d ?? "" });

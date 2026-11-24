@@ -132,12 +132,16 @@ export function showRate(r: number | null): string {
 }
 
 /**
- * Cow ID "family" order, as the workbook sorted them: all-number IDs by first digit, then length,
- * then value (so 102, 159, 1085, 1314, 2028 ...). IDs with letters or a dash (F14, 968H, 348-1) come first, in natural order.
+ * Cow ID order - HerdLive's Herd ID order (Carter, 2026-11-24):
+ *  1. IDs that start with a letter, alphabetical: F14, HL13, J51.
+ *  2. IDs that start with a number, grouped by their first digit (0, then 1, then 2 ...).
+ *  3. Within a group, shorter numbers first, then by value: 001, 054, 0017 | 102, 159, 1085, 1314.
+ * A suffix rides along with its number (968H sits with 968, 348-1 with 348).
  */
 export function familyKey(id: string): [number, number, number, number, string] {
   const s = String(id ?? "").trim();
-  if (/^\d+$/.test(s)) return [1, +s[0], s.length, Number(s), s];
+  const d = s.match(/^\d+/)?.[0];
+  if (d) return [1, +d[0], d.length, Number(d), s.toLowerCase()];
   return [0, 0, 0, 0, s.toLowerCase()];
 }
 export function compareFamily(a: string, b: string): number {

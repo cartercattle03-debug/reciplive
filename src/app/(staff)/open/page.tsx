@@ -16,7 +16,7 @@ export default async function OpenInventory({ searchParams }: { searchParams: { 
   const { calc, lists, cows } = await loadRanch(m.organizationId);
   const year = pickedYear();
   const editLists = { batches: lists.batches.map((b) => b.label), owners: lists.owners, companies: lists.companies, grades: lists.grades };
-  const sort = (OPEN_SORTS as readonly string[]).includes(searchParams.sort ?? "") ? (searchParams.sort as OpenSort) : "Date Checked Open";
+  const sort = (OPEN_SORTS as readonly string[]).includes(searchParams.sort ?? "") ? (searchParams.sort as OpenSort) : "Cow ID";
   const list = openList(calc, cows, year, thisYear(), sort);
   // Recip Rating from her whole history, every year (Carter, 2026-10-15).
   const ratings = recipRatings(calc);

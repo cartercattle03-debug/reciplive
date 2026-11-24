@@ -92,3 +92,4 @@
 - 2026-11-23: Open Inventory totals in one box above the list: Open cows and Cull candidates (red).
 - 2026-11-24: Speed pass (Carter: "find things that would speed up the operation"). A loading screen shows the moment a tab is tapped ((staff)/loading.tsx); the sign-in check and Lists load once per page, shared by the layout and the page (React cache), its two lookups together; typing down a column refreshes the page once after the last save (0.7 s), not per cell; a long table draws 300 rows, then Show all (Find and sort still cover every row; ticks / paste / arrows only drawn rows).
 - 2026-11-24: RecipLive's Supabase is in Oregon (Carter read it), next to the app (Vercel pdx1) - no change. Keep the two together.
+- 2026-11-24: Cow ID order = HerdLive's Herd ID order (letters first; then by first digit, shorter first, then value; a suffix rides with its number - 968H with 968). Open Inventory opens sorted by Cow ID.
